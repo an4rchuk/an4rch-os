@@ -27,7 +27,7 @@ PKGS_SYSTEM=(
   playerctl
   greetd greetd-tuigreet
   ufw
-  man-db less unzip zip p7zip wget curl rsync git base-devel
+  git base-devel curl
 )
 
 # Everyday command-line tools Lumen relies on.
@@ -50,6 +50,7 @@ PKGS_LOOK=(
 
 # Best-effort extras: nice to have, never fatal.
 PKGS_OPTIONAL=(
+  man-db less unzip zip 7zip wget rsync
   satty wf-recorder
   tesseract tesseract-data-eng
   libqalculate imagemagick
