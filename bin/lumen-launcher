@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# lumen-launcher — the app launcher (SUPER + SPACE).
+set -euo pipefail
+source "${LUMEN_PATH:-$HOME/.local/share/lumen}/lib/lumen.sh"
+
+# Pressing the shortcut again closes the launcher.
+if pgrep -x fuzzel >/dev/null; then
+  pkill -x fuzzel
+  exit 0
+fi
+exec fuzzel --prompt "  " "$@"

@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# lumen-pick-color — pick a colour anywhere on screen and copy its hex code.
+set -euo pipefail
+source "${LUMEN_PATH:-$HOME/.local/share/lumen}/lib/lumen.sh"
+
+pkill -x hyprpicker 2>/dev/null && exit 0
+color=$(hyprpicker --no-fancy --format=hex 2>/dev/null) || exit 0
+[[ -n "$color" ]] || exit 0
+printf '%s' "$color" | wl-copy
+
+# Show a swatch of the colour as the notification icon.
+swatch="$LUMEN_CACHE/swatch.png"
+mkdir -p "$LUMEN_CACHE"
+if has magick; then
+  magick -size 64x64 "xc:$color" "$swatch" 2>/dev/null || swatch="color-select"
+else
+  swatch="color-select"
+fi
+notify "$color" "Copied to the clipboard" -i "$swatch"

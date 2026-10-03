@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# lumen-launch — start your preferred apps (terminal, browser, editor, …).
+#
+#   lumen-launch terminal|browser|editor|files|monitor [args]
+#   lumen-launch -- COMMAND [args]     run any command as a session app
+#
+# Preferred apps are set in ~/.config/lumen/settings.conf.
+set -euo pipefail
+source "${LUMEN_PATH:-$HOME/.local/share/lumen}/lib/lumen.sh"
+
+what="${1:-}"
+shift || true
+
+case "$what" in
+  --) [[ $# -gt 0 ]] || die "usage: lumen-launch -- COMMAND"; launch "$@" ;;
+  terminal) term "$@" ;;
+  browser)
+    if [[ "${1:-}" == --private ]]; then
+      case "$LUMEN_BROWSER" in
+        firefox | librewolf | zen*) launch "$LUMEN_BROWSER" --private-window ;;
+        *) launch "$LUMEN_BROWSER" --incognito ;;
+      esac
+    else
+      launch "$LUMEN_BROWSER" "$@"
+    fi
+    ;;
+  editor)
+    if [[ "$LUMEN_EDITOR" == nvim || "$LUMEN_EDITOR" == vim || "$LUMEN_EDITOR" == hx || "$LUMEN_EDITOR" == helix ]]; then
+      term -- "$LUMEN_EDITOR" "$@"
+    else
+      launch "$LUMEN_EDITOR" "$@"
+    fi
+    ;;
+  files) launch "$LUMEN_FILES" "$@" ;;
+  monitor) term --title "System monitor" -- btop ;;
+  "") die "usage: lumen-launch terminal|browser|editor|files|monitor  or  lumen-launch -- COMMAND" ;;
+  *) launch "$what" "$@" ;;
+esac

@@ -1,0 +1,83 @@
+#!/usr/bin/env bash
+# lumen-doctor — check that everything Lumen needs is installed and running.
+#
+#   lumen-doctor            full report
+#   lumen-doctor windows    print class and title of open windows (for rules)
+set -uo pipefail
+source "${LUMEN_PATH:-$HOME/.local/share/lumen}/lib/lumen.sh"
+
+if [[ "${1:-}" == windows ]]; then
+  hyprctl clients -j | jq -r '.[] | "\(.class)\t\(.title)"' | column -t -s $'\t'
+  exit 0
+fi
+
+ok=0 warn=0 bad=0
+pass() { printf '  \e[32m✓\e[0m %s\n' "$1"; ok=$((ok + 1)); }
+note() { printf '  \e[33m!\e[0m %s\n' "$1"; warn=$((warn + 1)); }
+fail() { printf '  \e[31m✗\e[0m %s\n' "$1"; bad=$((bad + 1)); }
+section() { printf '\n\e[1m%s\e[0m\n' "$1"; }
+
+need() { # need CMD [package] [optional]
+  if has "$1"; then pass "$1"; elif [[ "${3:-}" == optional ]]; then note "$1 not installed (optional: lumen-pkg add ${2:-$1})"; else fail "$1 missing — lumen-pkg add ${2:-$1}"; fi
+}
+
+printf '\e[1;35mLumen doctor\e[0m  %s\n' "$(cat "$LUMEN_PATH/VERSION" 2>/dev/null || echo dev)"
+
+section "Core"
+need hyprctl hyprland
+if has hyprctl && hyprctl version -j >/dev/null 2>&1; then
+  pass "Hyprland $(hyprctl version -j | jq -r '.tag // .version // "?"') running"
+  errors=$(hyprctl configerrors 2>/dev/null | grep -v '^$' || true)
+  if [[ -z "$errors" || "$errors" == "no errors" ]]; then pass "Hyprland config has no errors"; else fail "Hyprland config errors:"; printf '%s\n' "$errors" | sed 's/^/      /'; fi
+else
+  note "Hyprland is not running in this shell (run inside the desktop for live checks)"
+fi
+need uwsm uwsm
+need waybar waybar
+if has waybar; then
+  wv=$(waybar --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -n1)
+  if [[ -n "$wv" ]] && [[ "$(printf '%s\n0.15.0\n' "$wv" | sort -V | tail -n1)" == "0.15.0" ]] && ! pacman -Q waybar-git >/dev/null 2>&1; then
+    note "waybar $wv predates Hyprland's Lua IPC: workspace clicks won't work. Fix: lumen-pkg add waybar-git"
+  fi
+fi
+for c in fuzzel mako hypridle hyprlock swaybg; do need "$c"; done
+need hyprsunset hyprsunset optional
+need hyprpicker hyprpicker optional
+
+section "Everyday tools"
+for c in grim slurp wl-copy cliphist jq brightnessctl playerctl wpctl nmcli; do need "$c"; done
+need satty satty optional
+need wf-recorder wf-recorder optional
+need tesseract "tesseract tesseract-data-eng" optional
+need qalc libqalculate optional
+need "$LUMEN_TERMINAL" "$LUMEN_TERMINAL"
+need "$LUMEN_BROWSER" "$LUMEN_BROWSER"
+need "${LUMEN_EDITOR%% *}" "${LUMEN_EDITOR%% *}" optional
+need "${LUMEN_FILES%% *}" "${LUMEN_FILES%% *}" optional
+
+section "Session"
+for p in waybar mako hypridle swaybg; do
+  if pgrep -x "$p" >/dev/null; then pass "$p running"; else note "$p not running — lumen-session start"; fi
+done
+if pgrep -f hyprpolkitagent >/dev/null || systemctl --user is-active -q hyprpolkitagent 2>/dev/null; then pass "authentication agent running"; else note "no polkit agent running (admin prompts won't appear)"; fi
+if pgrep -f 'wl-paste.*cliphist' >/dev/null; then pass "clipboard history recording"; else note "clipboard history not recording"; fi
+[[ -d "$LUMEN_CURRENT/theme" ]] && pass "theme: $(theme_current)" || fail "no theme rendered — lumen-theme set lumen"
+[[ -e "$LUMEN_CURRENT/wallpaper" ]] && pass "wallpaper: $(basename "$(readlink "$LUMEN_CURRENT/wallpaper")")" || note "no wallpaper — lumen-wallpaper generate"
+
+section "System services"
+for s in NetworkManager bluetooth power-profiles-daemon; do
+  if systemctl is-active -q "$s" 2>/dev/null; then pass "$s"; else note "$s not active — sudo systemctl enable --now $s"; fi
+done
+for s in pipewire wireplumber; do
+  if systemctl --user is-active -q "$s" 2>/dev/null; then pass "$s"; else fail "$s not active — systemctl --user enable --now $s"; fi
+done
+if systemctl is-enabled -q greetd 2>/dev/null; then pass "greetd login screen"; else note "no display manager; logging in on tty1 starts the desktop"; fi
+if has ufw && sudo -n ufw status 2>/dev/null | grep -q active; then pass "firewall active"; elif has ufw; then note "firewall status needs sudo: sudo ufw status"; else note "no firewall (lumen-pkg add ufw)"; fi
+
+section "Fonts"
+for f in "Inter" "JetBrainsMono Nerd Font"; do
+  if fc-list | grep -qi "$f"; then pass "$f"; else fail "$f missing"; fi
+done
+
+printf '\n%s passed, %s notes, %s problems\n' "$ok" "$warn" "$bad"
+[[ $bad -eq 0 ]]

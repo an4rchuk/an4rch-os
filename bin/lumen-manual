@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+# lumen-manual — read the Lumen manual (SUPER + F1).
+#
+#   lumen-manual            open the manual
+#   lumen-manual TOPIC      jump to a chapter, e.g. `lumen-manual themes`
+set -euo pipefail
+source "${LUMEN_PATH:-$HOME/.local/share/lumen}/lib/lumen.sh"
+
+docs="$LUMEN_PATH/docs"
+topic="${1:-}"
+
+if [[ -z "$topic" && -t 1 ]]; then
+  file="$docs/README.md"
+elif [[ -n "$topic" ]]; then
+  file=$(find "$docs" -name "*${topic}*.md" | sort | head -n1)
+  [[ -n "$file" ]] || die "No chapter matching '$topic'. Chapters: $(cd "$docs" && ls *.md | tr '\n' ' ')"
+else
+  # Started from a key binding: pick a chapter from a menu.
+  mapfile -t files < <(find "$docs" -maxdepth 1 -name '*.md' | sort)
+  choice=$(for f in "${files[@]}"; do sed -n '1s/^# //p' "$f"; done | menu "Manual" --index --lines "${#files[@]}" --width 40) || exit 0
+  file="${files[$choice]}"
+fi
+
+reader=(less -R)
+if has glow; then
+  reader=(glow -p -w 100)
+fi
+
+if [[ -t 1 ]]; then
+  exec "${reader[@]}" "$file"
+else
+  term --float --title "Lumen manual" -- "${reader[@]}" "$file"
+fi

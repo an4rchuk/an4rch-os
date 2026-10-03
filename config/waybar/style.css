@@ -1,0 +1,239 @@
+/* Lumen top bar. Colours come from the active theme. */
+@import "../lumen/current/theme/waybar.css";
+
+* {
+  font-family: "Inter", "JetBrainsMono Nerd Font Propo", sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  min-height: 0;
+  border: none;
+  border-radius: 0;
+}
+
+window#waybar {
+  background: alpha(@bg, 0.82);
+  color: @fg;
+  border-radius: 14px;
+  border: 1px solid alpha(@fg, 0.07);
+  transition: background-color 0.3s ease;
+}
+
+window#waybar.empty #window {
+  background: transparent;
+}
+
+tooltip {
+  background: alpha(@bg_alt, 0.97);
+  border: 1px solid alpha(@fg, 0.1);
+  border-radius: 10px;
+}
+
+tooltip label {
+  color: @fg;
+  padding: 2px 4px;
+}
+
+/* Every module is a soft pill that lights up on hover. */
+#custom-lumen,
+#workspaces,
+#submap,
+#window,
+#clock,
+#custom-reminders,
+#privacy,
+#custom-recording,
+#mpris,
+#custom-idle,
+#custom-nightlight,
+#custom-dnd,
+#custom-updates,
+#custom-tray-handle,
+#tray,
+#pulseaudio,
+#bluetooth,
+#network,
+#power-profiles-daemon,
+#battery,
+#custom-power {
+  padding: 0 10px;
+  margin: 5px 2px;
+  border-radius: 9px;
+  color: @fg;
+  background: transparent;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+#custom-lumen:hover,
+#clock:hover,
+#mpris:hover,
+#custom-idle:hover,
+#custom-nightlight:hover,
+#custom-dnd:hover,
+#custom-updates:hover,
+#custom-tray-handle:hover,
+#pulseaudio:hover,
+#bluetooth:hover,
+#network:hover,
+#power-profiles-daemon:hover,
+#battery:hover,
+#custom-power:hover {
+  background: alpha(@fg, 0.08);
+}
+
+#custom-lumen {
+  color: @accent;
+  font-size: 16px;
+  margin-left: 6px;
+  padding: 0 12px 0 10px;
+}
+
+#workspaces {
+  padding: 0 4px;
+  background: alpha(@fg, 0.04);
+}
+
+#workspaces button {
+  color: alpha(@fg, 0.38);
+  padding: 0 5px;
+  margin: 0;
+  background: transparent;
+  font-size: 11px;
+  transition: color 0.25s ease;
+  box-shadow: none;
+}
+
+#workspaces button:hover {
+  color: @fg;
+  background: transparent;
+}
+
+#workspaces button.empty {
+  color: alpha(@fg, 0.2);
+}
+
+#workspaces button.active {
+  color: @accent;
+}
+
+#workspaces button.urgent {
+  color: @red;
+}
+
+#submap {
+  color: @bg;
+  background: @accent;
+  font-weight: 700;
+}
+
+#window {
+  color: @fg_dim;
+  font-weight: 400;
+}
+
+#clock {
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+#custom-reminders {
+  color: @yellow;
+  padding-left: 0;
+}
+
+#custom-reminders.none {
+  padding: 0;
+  margin: 0;
+}
+
+#custom-recording {
+  color: @bg;
+  background: @red;
+  font-weight: 700;
+  animation: pulse 1.6s ease-in-out infinite;
+}
+
+#custom-recording.idle {
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  animation: none;
+}
+
+@keyframes pulse {
+  0% { background: @red; }
+  50% { background: alpha(@red, 0.6); }
+  100% { background: @red; }
+}
+
+#privacy {
+  color: @bg;
+  background: @orange;
+}
+
+#mpris {
+  color: @fg_dim;
+}
+
+#mpris.playing {
+  color: @fg;
+}
+
+#custom-idle.on,
+#custom-nightlight.on,
+#custom-dnd.on {
+  color: @accent;
+}
+
+#custom-idle.off,
+#custom-nightlight.off,
+#custom-dnd.off,
+#custom-updates.none {
+  padding: 0;
+  margin: 0;
+}
+
+#custom-updates {
+  color: @accent2;
+}
+
+#custom-tray-handle {
+  color: @fg_dim;
+}
+
+#pulseaudio.muted {
+  color: @fg_dim;
+}
+
+#bluetooth.off,
+#bluetooth.disabled,
+#network.disconnected,
+#network.disabled {
+  color: @fg_dim;
+}
+
+#power-profiles-daemon.performance {
+  color: @orange;
+}
+
+#power-profiles-daemon.power-saver {
+  color: @green;
+}
+
+#battery.charging,
+#battery.plugged {
+  color: @green;
+}
+
+#battery.warning:not(.charging) {
+  color: @yellow;
+}
+
+#battery.critical:not(.charging) {
+  color: @bg;
+  background: @red;
+}
+
+#custom-power {
+  color: @red;
+  margin-right: 6px;
+}

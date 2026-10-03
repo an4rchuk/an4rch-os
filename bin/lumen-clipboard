@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# lumen-clipboard — browse and reuse clipboard history (SUPER + V).
+#
+#   lumen-clipboard          pick an entry and copy it again
+#   lumen-clipboard delete   pick an entry and forget it
+#   lumen-clipboard clear    forget everything
+set -euo pipefail
+source "${LUMEN_PATH:-$HOME/.local/share/lumen}/lib/lumen.sh"
+
+has cliphist || die "cliphist is not installed"
+
+case "${1:-pick}" in
+  pick)
+    entry=$(cliphist list | menu "Clipboard" --with-nth 2 --width 60 --lines 12) || exit 0
+    [[ -n "$entry" ]] && cliphist decode <<<"$entry" | wl-copy
+    ;;
+  delete)
+    entry=$(cliphist list | menu "Forget" --with-nth 2 --width 60 --lines 12) || exit 0
+    [[ -n "$entry" ]] && cliphist delete <<<"$entry"
+    ;;
+  clear)
+    confirm "Clear clipboard history?" || exit 0
+    cliphist wipe
+    wl-copy --clear 2>/dev/null || true
+    notify "Clipboard history cleared" "" -i edit-clear
+    ;;
+  *) die "usage: lumen-clipboard [pick|delete|clear]" ;;
+esac

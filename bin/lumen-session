@@ -1,0 +1,124 @@
+#!/usr/bin/env bash
+# lumen-session — start session services and answer session questions.
+#
+#   lumen-session start          start bar, notifications, idle, clipboard, …
+#   lumen-session restart NAME   restart one of: bar, notifications, idle, wallpaper
+#   lumen-session logout         end the session cleanly
+#   lumen-session can-suspend    exit 0 if idle suspend is allowed right now
+#   lumen-session lock-status    one-line status for the lock screen
+set -uo pipefail
+source "${LUMEN_PATH:-$HOME/.local/share/lumen}/lib/lumen.sh"
+
+start_once() {
+  # start_once PROCESS COMMAND... — start unless already running.
+  local proc="$1"
+  shift
+  pgrep -x "$proc" >/dev/null || launch "$@"
+}
+
+restart() {
+  case "$1" in
+    bar) pkill -x waybar; sleep 0.2; launch waybar ;;
+    notifications) pkill -x mako; sleep 0.2; launch mako ;;
+    idle) pkill -x hypridle; sleep 0.2; launch hypridle ;;
+    wallpaper) "$LUMEN_PATH/bin/lumen-wallpaper" restore ;;
+    *) die "Unknown service '$1' (bar, notifications, idle, wallpaper)" ;;
+  esac
+}
+
+start() {
+  mkdir -p "$LUMEN_STATE" "$LUMEN_CACHE"
+
+  # A theme must exist before the bar and notifications read it.
+  [[ -d "$LUMEN_CURRENT/theme" ]] || "$LUMEN_PATH/bin/lumen-theme" set lumen
+
+  "$LUMEN_PATH/bin/lumen-wallpaper" restore
+  start_once waybar waybar
+  start_once mako mako
+  start_once hypridle hypridle
+
+  # Clipboard history for text and images.
+  if has cliphist && has wl-paste; then
+    pgrep -f 'wl-paste --type text --watch' >/dev/null || launch wl-paste --type text --watch cliphist store
+    pgrep -f 'wl-paste --type image --watch' >/dev/null || launch wl-paste --type image --watch cliphist store
+  fi
+
+  # Authentication agent for "this app wants admin rights" prompts.
+  if systemctl --user cat hyprpolkitagent.service >/dev/null 2>&1; then
+    systemctl --user start hyprpolkitagent.service
+  elif [[ -x /usr/lib/hyprpolkitagent/hyprpolkitagent ]]; then
+    start_once hyprpolkitagent /usr/lib/hyprpolkitagent/hyprpolkitagent
+  fi
+
+  # Bring back toggles that were on when the session ended.
+  [[ -f "$LUMEN_STATE/nightlight" ]] && "$LUMEN_PATH/bin/lumen-toggle" nightlight on
+  [[ -f "$LUMEN_STATE/dnd" ]] && makoctl mode -a do-not-disturb >/dev/null 2>&1
+
+  # First login: say hello and point at the essentials.
+  if [[ ! -f "$LUMEN_STATE/welcomed" ]]; then
+    touch "$LUMEN_STATE/welcomed"
+    (
+      sleep 3
+      notify "Welcome to Lumen" "SUPER + SPACE  apps\nSUPER + ALT + SPACE  Lumen menu\nSUPER + /  all key bindings\nSUPER + F1  the manual" -i user-home -t 15000
+    ) &
+  fi
+}
+
+logout() {
+  if has hyprshutdown; then
+    hyprshutdown
+  elif has uwsm && systemctl --user is-active -q graphical-session.target; then
+    uwsm stop
+  else
+    hyprctl dispatch 'hl.dsp.exit()'
+  fi
+}
+
+can_suspend() {
+  case "${LUMEN_IDLE_SUSPEND:-always}" in
+    never) return 1 ;;
+    battery)
+      local ac
+      for ac in /sys/class/power_supply/{AC,ADP,ACAD}*/online; do
+        [[ -f "$ac" && "$(cat "$ac")" == 1 ]] && return 1
+      done
+      ;;
+  esac
+  # Stay awake while someone is connected over SSH…
+  if has ss && ss -Htn state established '( sport = :22 )' 2>/dev/null | grep -q .; then
+    return 1
+  fi
+  # …or while audio is playing.
+  if has pactl && pactl list short sinks 2>/dev/null | grep -q RUNNING; then
+    return 1
+  fi
+  return 0
+}
+
+lock_status() {
+  local out=() bat cap status layout
+  for bat in /sys/class/power_supply/BAT*; do
+    [[ -f "$bat/capacity" ]] || continue
+    cap=$(cat "$bat/capacity")
+    status=$(cat "$bat/status" 2>/dev/null)
+    if [[ "$status" == Charging ]]; then out+=("󰂄 $cap%"); else out+=("󰁹 $cap%"); fi
+    break
+  done
+  if has hyprctl && has jq; then
+    layout=$(hyprctl devices -j 2>/dev/null | jq -r '[.keyboards[] | select(.main == true)][0].active_keymap // empty')
+    [[ -n "$layout" ]] && out+=("󰌌 $layout")
+  fi
+  [[ ${#out[@]} -gt 0 ]] || return 0
+  local line
+  line=$(printf '%s     ' "${out[@]}")
+  printf '%s\n' "${line%     }"
+}
+
+case "${1:-}" in
+  start) start ;;
+  restart) restart "${2:?usage: lumen-session restart bar|notifications|idle|wallpaper}" ;;
+  logout) logout ;;
+  can-suspend) can_suspend ;;
+  lock-status) lock_status ;;
+  *) sed -n '2,9s/^# \{0,1\}//p' "$0"; exit 1 ;;
+esac

@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# lumen-windows — jump to any open window by name (SUPER + `).
+set -euo pipefail
+source "${LUMEN_PATH:-$HOME/.local/share/lumen}/lib/lumen.sh"
+
+mapfile -t rows < <(hyprctl clients -j | jq -r '
+  sort_by(.workspace.id, .at[0])[]
+  | select(.mapped and .workspace.id != -1)
+  | [.address, (.workspace.name | if startswith("special:") then "S" else . end), .class, .title] | @tsv')
+[[ ${#rows[@]} -gt 0 ]] || { notify "No open windows" ""; exit 0; }
+
+choice=$(for r in "${rows[@]}"; do
+  IFS=$'\t' read -r _ ws cls title <<<"$r"
+  printf '%s\0icon\x1f%s\n' "[$ws]  $title" "${cls,,}"
+done | menu "Windows" --index --width 60 --lines 10) || exit 0
+
+address=$(cut -f1 <<<"${rows[$choice]}")
+hyprctl dispatch "hl.dsp.focus({ window = \"address:$address\" })" >/dev/null

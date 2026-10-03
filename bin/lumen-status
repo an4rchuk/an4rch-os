@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+# lumen-status — JSON status for the custom top-bar modules.
+#
+#   lumen-status idle | nightlight | dnd | record | updates | reminders
+set -uo pipefail
+source "${LUMEN_PATH:-$HOME/.local/share/lumen}/lib/lumen.sh"
+
+out() { # out TEXT CLASS TOOLTIP
+  jq -cn --arg t "$1" --arg c "$2" --arg tt "$3" '{text: $t, class: $c, alt: $c, tooltip: $tt}'
+}
+
+case "${1:-}" in
+  idle)
+    if pgrep -x hypridle >/dev/null; then out "" off "Screen locks when idle"
+    else out "󰅶" on "Keeping awake — click to allow sleep again"; fi
+    ;;
+  nightlight)
+    if pgrep -x hyprsunset >/dev/null; then out "󰖔" on "Night light on — click to turn off"
+    else out "" off "Night light off"; fi
+    ;;
+  dnd)
+    if makoctl mode 2>/dev/null | grep -qx do-not-disturb; then
+      n=$(makoctl list 2>/dev/null | jq '.data[0] | length' 2>/dev/null || echo 0)
+      out "󰂛" on "Do Not Disturb — $n hidden. Click to turn off, right-click to show the last one"
+    else
+      out "" off "Notifications on"
+    fi
+    ;;
+  record)
+    if pgrep -x wf-recorder >/dev/null; then out "󰑊  REC" recording "Recording — click to stop"
+    else out "" idle ""; fi
+    ;;
+  updates)
+    n=0
+    if has checkupdates; then n=$(checkupdates 2>/dev/null | wc -l); fi
+    if has yay; then n=$((n + $(yay -Qua 2>/dev/null | wc -l))); fi
+    if [[ $n -gt 0 ]]; then out "󰚰  $n" available "$n updates available — click to update"
+    else out "" none "Up to date"; fi
+    ;;
+  reminders)
+    n=$(systemctl --user list-timers --all --output=json 'lumen-remind-*' 2>/dev/null | jq '[.[] | select(.next != null)] | length' 2>/dev/null || echo 0)
+    if [[ "${n:-0}" -gt 0 ]]; then
+      tip=$("$LUMEN_PATH/bin/lumen-remind" list --plain 2>/dev/null)
+      out "󰀠 $n" pending "$tip"
+    else
+      out "" none ""
+    fi
+    ;;
+  *) echo "usage: lumen-status idle|nightlight|dnd|record|updates|reminders" >&2; exit 1 ;;
+esac

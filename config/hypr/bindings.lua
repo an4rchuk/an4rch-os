@@ -1,0 +1,17 @@
+-- Your key bindings. They are added after Lumen's (SUPER + / lists them all).
+--
+-- Replace a default:
+--   hl.unbind("SUPER + B")
+--   hl.bind("SUPER + B", hl.dsp.exec_cmd("lumen-launch -- chromium"), { description = "Chromium" })
+--
+-- Launch an app (lumen-launch runs it as a proper systemd scope):
+--   hl.bind("SUPER + O", hl.dsp.exec_cmd("lumen-launch -- obsidian"), { description = "Notes" })
+--
+-- Open a website as an app window:
+--   hl.bind("SUPER + SHIFT + M", hl.dsp.exec_cmd("lumen-webapp https://music.youtube.com"), { description = "Music" })
+--
+-- Run Lua directly:
+--   hl.bind("SUPER + CTRL + O", function()
+--       hl.dispatch(hl.dsp.window.float({ action = "toggle" }))
+--       hl.dispatch(hl.dsp.window.center())
+--   end, { description = "Float and centre" })

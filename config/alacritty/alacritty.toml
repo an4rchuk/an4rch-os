@@ -1,0 +1,16 @@
+# Fallback terminal (Alacritty). Lumen uses Ghostty by default.
+[general]
+import = ["~/.config/lumen/current/theme/alacritty.toml"]
+live_config_reload = true
+
+[window]
+padding = { x = 14, y = 10 }
+decorations = "None"
+opacity = 0.96
+
+[font]
+normal = { family = "JetBrainsMono Nerd Font", style = "Regular" }
+size = 11.5
+
+[cursor]
+style = { shape = "Beam", blinking = "On" }

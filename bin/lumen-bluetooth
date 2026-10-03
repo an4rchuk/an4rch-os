@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# lumen-bluetooth — pair and connect Bluetooth devices (SUPER + ALT + B).
+set -euo pipefail
+source "${LUMEN_PATH:-$HOME/.local/share/lumen}/lib/lumen.sh"
+
+# Make sure the adapter is powered and not soft-blocked before opening.
+has rfkill && rfkill unblock bluetooth 2>/dev/null || true
+has bluetoothctl && bluetoothctl power on >/dev/null 2>&1 || true
+
+if has bluetui; then
+  term --float --title "Bluetooth" -- bluetui
+elif has blueman-manager; then
+  launch blueman-manager
+else
+  term --float --title "Bluetooth" -- bluetoothctl
+fi

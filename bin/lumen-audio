@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# lumen-audio — volume mixer and input/output devices (SUPER + ALT + A).
+#
+#   lumen-audio            open the mixer
+#   lumen-audio output     quick-switch the output device
+set -euo pipefail
+source "${LUMEN_PATH:-$HOME/.local/share/lumen}/lib/lumen.sh"
+
+if [[ "${1:-}" == output ]]; then
+  # pactl gives stable names and human descriptions for every sink.
+  mapfile -t names < <(pactl -f json list sinks | jq -r '.[].name')
+  mapfile -t descs < <(pactl -f json list sinks | jq -r '.[].description')
+  default=$(pactl get-default-sink)
+  choice=$(for i in "${!names[@]}"; do
+    [[ "${names[$i]}" == "$default" ]] && printf '󰓃  %s  ·  current\n' "${descs[$i]}" || printf '󰓃  %s\n' "${descs[$i]}"
+  done | menu "Output" --index --width 50 --lines "${#names[@]}") || exit 0
+  pactl set-default-sink "${names[$choice]}"
+  notify "Audio output" "${descs[$choice]}" -i audio-speakers -t 2000
+  exit 0
+fi
+
+if has wiremix; then
+  term --float --title "Audio" -- wiremix
+else
+  launch pavucontrol
+fi

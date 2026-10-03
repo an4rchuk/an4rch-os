@@ -1,0 +1,176 @@
+#!/usr/bin/env bash
+# lumen-theme — list, preview, switch and create themes.
+#
+#   lumen-theme                 pick a theme from a menu
+#   lumen-theme set NAME        switch to NAME
+#   lumen-theme next            cycle to the next theme
+#   lumen-theme list            print available themes
+#   lumen-theme current         print the active theme
+#   lumen-theme render          re-render the active theme (after editing it)
+#   lumen-theme new NAME        copy the active theme to ~/.config/lumen/themes/NAME
+set -euo pipefail
+source "${LUMEN_PATH:-$HOME/.local/share/lumen}/lib/lumen.sh"
+
+TEMPLATES="$LUMEN_PATH/templates"
+
+# render NAME DEST — write every template for theme NAME into DEST.
+render() {
+  local name="$1" dest="$2" dir
+  dir=$(theme_dir "$name") || die "No theme called '$name'. Try: lumen-theme list"
+
+  declare -A c=()
+  local key value
+  while IFS='=' read -r key value; do
+    key="${key//[[:space:]]/}"
+    [[ -z "$key" || "$key" == \#* ]] && continue
+    value="${value#"${value%%[![:space:]]*}"}"
+    value="${value%"${value##*[![:space:]]}"}"
+    c[$key]="$value"
+  done <"$dir/theme.conf"
+
+  local required
+  for required in bg bg_alt bg_hl fg fg_dim accent red orange yellow green cyan blue purple; do
+    [[ -n "${c[$required]:-}" ]] || die "$dir/theme.conf is missing '$required'"
+  done
+
+  # Derived values. Any of them can be set explicitly in theme.conf instead.
+  : "${c[mode]:=dark}"
+  : "${c[accent2]:=${c[blue]}}"
+  : "${c[term_black]:=${c[bg_hl]}}"
+  : "${c[term_bright_black]:=${c[fg_dim]}}"
+  : "${c[term_white]:=${c[fg]}}"
+  : "${c[term_bright_white]:=${c[fg]}}"
+  if [[ "${c[mode]}" == light ]]; then
+    : "${c[color_scheme]:=prefer-light}" "${c[gtk_theme]:=adw-gtk3}" "${c[icon_theme]:=Papirus-Light}"
+  else
+    : "${c[color_scheme]:=prefer-dark}" "${c[gtk_theme]:=adw-gtk3-dark}" "${c[icon_theme]:=Papirus-Dark}"
+  fi
+  c[slug]="$name"
+  c[home]="$HOME"
+
+  # One sed program substitutes {{key}}, {{key.hex}} (no '#') and
+  # {{key.rgb}} ("r, g, b") for every palette entry.
+  local script="" hex
+  for key in "${!c[@]}"; do
+    value="${c[$key]//\\/\\\\}"
+    value="${value//|/\\|}"
+    value="${value//&/\\&}"
+    script+="s|{{$key}}|$value|g;"
+    if [[ "${c[$key]}" =~ ^#([0-9a-fA-F]{6})$ ]]; then
+      hex="${BASH_REMATCH[1]}"
+      script+="s|{{$key.hex}}|$hex|g;"
+      script+="s|{{$key.rgb}}|$((16#${hex:0:2})), $((16#${hex:2:2})), $((16#${hex:4:2}))|g;"
+    fi
+  done
+
+  mkdir -p "$dest"
+  local tpl out
+  for tpl in "$TEMPLATES"/*.tpl; do
+    out="$(basename "${tpl%.tpl}")"
+    if [[ -f "$dir/overrides/$out" ]]; then
+      cp "$dir/overrides/$out" "$dest/$out"
+    else
+      sed -e "$script" "$tpl" >"$dest/$out"
+    fi
+  done
+  # Overrides may also add files no template knows about.
+  if [[ -d "$dir/overrides" ]]; then
+    for out in "$dir"/overrides/*; do
+      [[ -f "$out" && ! -e "$dest/$(basename "$out")" ]] && cp "$out" "$dest/"
+    done
+  fi
+  if grep -l '{{' "$dest"/* 2>/dev/null | head -n1 | grep -q .; then
+    echo "warning: unresolved placeholders in: $(grep -l '{{' "$dest"/* | xargs -n1 basename | tr '\n' ' ')" >&2
+  fi
+  printf '%s\n' "$name" >"$dest/../theme.name.new"
+}
+
+# apply — tell every running component to pick up the new files.
+apply() {
+  local t="$LUMEN_CURRENT/theme"
+
+  # theme.env carries the derived GTK/icon settings for this palette.
+  local LUMEN_THEME_COLOR_SCHEME="" LUMEN_THEME_GTK="" LUMEN_THEME_ICONS=""
+  # shellcheck source=/dev/null
+  source "$t/theme.env"
+  if has gsettings; then
+    gsettings set org.gnome.desktop.interface color-scheme "$LUMEN_THEME_COLOR_SCHEME" 2>/dev/null || true
+    gsettings set org.gnome.desktop.interface gtk-theme "$LUMEN_THEME_GTK" 2>/dev/null || true
+    gsettings set org.gnome.desktop.interface icon-theme "$LUMEN_THEME_ICONS" 2>/dev/null || true
+  fi
+
+  has hyprctl && hyprctl reload >/dev/null 2>&1 || true
+  pkill -SIGUSR2 -x waybar 2>/dev/null || true
+  has makoctl && makoctl reload 2>/dev/null || true
+  pkill -SIGUSR2 -x ghostty 2>/dev/null || true
+  pkill -SIGUSR2 -x btop 2>/dev/null || true
+
+  # Point btop at the rendered theme (btop rewrites its config, so patch it).
+  local btop="${XDG_CONFIG_HOME:-$HOME/.config}/btop/btop.conf"
+  if [[ -f "$btop" ]]; then
+    sed -i "s|^color_theme = .*|color_theme = \"$t/btop.theme\"|" "$btop"
+  fi
+
+  "$LUMEN_PATH/bin/lumen-wallpaper" theme >/dev/null 2>&1 || true
+}
+
+set_theme() {
+  local name="$1"
+  theme_dir "$name" >/dev/null || die "No theme called '$name'. Try: lumen-theme list"
+  mkdir -p "$LUMEN_CURRENT"
+  rm -rf "$LUMEN_CURRENT/theme.new"
+  render "$name" "$LUMEN_CURRENT/theme.new"
+  # Swap directories so readers never see a half-written theme.
+  rm -rf "$LUMEN_CURRENT/theme.old"
+  [[ -d "$LUMEN_CURRENT/theme" ]] && mv "$LUMEN_CURRENT/theme" "$LUMEN_CURRENT/theme.old"
+  mv "$LUMEN_CURRENT/theme.new" "$LUMEN_CURRENT/theme"
+  mv "$LUMEN_CURRENT/theme.name.new" "$LUMEN_CURRENT/theme.name"
+  rm -rf "$LUMEN_CURRENT/theme.old"
+  apply "$name"
+  notify "Theme: $(theme_get "$name" name || echo "$name")" "Everything has been restyled." -i preferences-desktop-theme -h string:x-canonical-private-synchronous:lumen-theme
+}
+
+pick() {
+  local current choice names=() labels=() n
+  current=$(theme_current)
+  while read -r n; do
+    names+=("$n")
+    if [[ "$n" == "$current" ]]; then
+      labels+=("  $(theme_get "$n" name)  ·  current")
+    else
+      labels+=("  $(theme_get "$n" name)")
+    fi
+  done < <(theme_list)
+  choice=$(printf '%s\n' "${labels[@]}" | menu "Theme" --index --lines "${#names[@]}" --width 36) || exit 0
+  [[ -n "$choice" ]] && set_theme "${names[$choice]}"
+}
+
+case "${1:-pick}" in
+  pick) pick ;;
+  set) set_theme "${2:?usage: lumen-theme set NAME}" ;;
+  list) theme_list ;;
+  current) theme_current ;;
+  render) set_theme "$(theme_current)" ;;
+  next)
+    mapfile -t all < <(theme_list)
+    cur=$(theme_current)
+    for i in "${!all[@]}"; do
+      if [[ "${all[$i]}" == "$cur" ]]; then
+        set_theme "${all[$(((i + 1) % ${#all[@]}))]}"
+        exit 0
+      fi
+    done
+    set_theme "${all[0]}"
+    ;;
+  new)
+    new="${2:?usage: lumen-theme new NAME}"
+    src=$(theme_dir "$(theme_current)")
+    mkdir -p "$LUMEN_CONFIG/themes"
+    [[ -e "$LUMEN_CONFIG/themes/$new" ]] && die "$LUMEN_CONFIG/themes/$new already exists"
+    cp -r "$src" "$LUMEN_CONFIG/themes/$new"
+    sed -i -E "s/^(name[[:space:]]*=).*/\1 $new/" "$LUMEN_CONFIG/themes/$new/theme.conf"
+    echo "Created $LUMEN_CONFIG/themes/$new — edit theme.conf, then run: lumen-theme set $new"
+    ;;
+  -h | --help | help) sed -n '2,11s/^# \{0,1\}//p' "$0" ;;
+  *) die "Unknown command '$1'. See: lumen-theme --help" ;;
+esac

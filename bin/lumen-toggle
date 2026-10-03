@@ -1,0 +1,104 @@
+#!/usr/bin/env bash
+# lumen-toggle — flip a desktop feature on or off.
+#
+#   lumen-toggle idle         keep the screen awake (pause lock and sleep)
+#   lumen-toggle nightlight   warm colours for the evening
+#   lumen-toggle dnd          Do Not Disturb (reminders still show)
+#   lumen-toggle bar          show/hide the top bar
+#   lumen-toggle gaps         gapless, square windows for small screens
+#   lumen-toggle layout       tiling ↔ scrolling (niri-style) layout
+#
+# Add `on` or `off` to force a state, e.g. `lumen-toggle nightlight on`.
+set -euo pipefail
+source "${LUMEN_PATH:-$HOME/.local/share/lumen}/lib/lumen.sh"
+
+mkdir -p "$LUMEN_STATE"
+what="${1:-}"
+want="${2:-toggle}"
+
+state_on() { [[ -f "$LUMEN_STATE/$1" ]]; }
+set_state() { if [[ "$2" == on ]]; then touch "$LUMEN_STATE/$1"; else rm -f "$LUMEN_STATE/$1"; fi; }
+
+resolve() {
+  # resolve CURRENT(on/off) → desired(on/off)
+  case "$want" in
+    on | off) echo "$want" ;;
+    *) [[ "$1" == on ]] && echo off || echo on ;;
+  esac
+}
+
+case "$what" in
+  idle)
+    # "Keep awake" means hypridle is stopped.
+    if pgrep -x hypridle >/dev/null; then cur=off; else cur=on; fi
+    if [[ "$(resolve "$cur")" == on ]]; then
+      pkill -x hypridle || true
+      notify "Keeping awake" "The screen won't lock or sleep until you turn this off." -i caffeine-cup-full -h string:x-canonical-private-synchronous:lumen-idle
+    else
+      launch hypridle
+      notify "Normal sleep restored" "" -i caffeine-cup-empty -t 2000 -h string:x-canonical-private-synchronous:lumen-idle
+    fi
+    sleep 0.2
+    bar_signal idle
+    ;;
+
+  nightlight)
+    if pgrep -x hyprsunset >/dev/null; then cur=on; else cur=off; fi
+    if [[ "$(resolve "$cur")" == on ]]; then
+      pgrep -x hyprsunset >/dev/null || launch hyprsunset -t "$LUMEN_NIGHTLIGHT_TEMP"
+      set_state nightlight on
+      [[ "$want" == toggle ]] && notify "Night light on" "${LUMEN_NIGHTLIGHT_TEMP}K" -i night-light -t 2000 -h string:x-canonical-private-synchronous:lumen-night
+    else
+      pkill -x hyprsunset || true
+      set_state nightlight off
+      notify "Night light off" "" -i night-light -t 2000 -h string:x-canonical-private-synchronous:lumen-night
+    fi
+    sleep 0.2
+    bar_signal nightlight
+    ;;
+
+  dnd)
+    if makoctl mode 2>/dev/null | grep -qx do-not-disturb; then cur=on; else cur=off; fi
+    if [[ "$(resolve "$cur")" == on ]]; then
+      notify "Do Not Disturb" "Notifications are silenced. Reminders still come through." -i notifications-disabled -t 2500
+      sleep 2.6
+      makoctl mode -a do-not-disturb >/dev/null
+      set_state dnd on
+    else
+      makoctl mode -r do-not-disturb >/dev/null
+      set_state dnd off
+      notify "Notifications back on" "" -i notifications -t 2000
+    fi
+    bar_signal dnd
+    ;;
+
+  bar)
+    if pgrep -x waybar >/dev/null; then
+      pkill -SIGUSR1 -x waybar # waybar toggles visibility on SIGUSR1
+    else
+      launch waybar
+    fi
+    ;;
+
+  gaps)
+    if state_on nogaps; then cur=on; else cur=off; fi
+    if [[ "$(resolve "$cur")" == on ]]; then
+      hyprctl eval 'hl.config({ general = { gaps_in = 0, gaps_out = 0, border_size = 1 }, decoration = { rounding = 0 } })' >/dev/null
+      set_state nogaps on
+    else
+      set_state nogaps off
+      hyprctl reload >/dev/null
+    fi
+    ;;
+
+  layout)
+    current=$(hyprctl getoption general:layout -j 2>/dev/null | jq -r '.str // empty')
+    [[ -n "$current" ]] || current=$(hyprctl repl 'return hl.get_config("general.layout")' 2>/dev/null | tail -n1)
+    if [[ "$current" == scrolling ]]; then next=dwindle; label="Tiling"; else next=scrolling; label="Scrolling"; fi
+    hyprctl eval "hl.config({ general = { layout = \"$next\" } })" >/dev/null
+    notify "$label layout" "" -i view-grid -t 1500 -h string:x-canonical-private-synchronous:lumen-layout
+    ;;
+
+  -h | --help | help | "") sed -n '2,11s/^# \{0,1\}//p' "$0" ;;
+  *) die "Unknown toggle '$what'. See: lumen-toggle --help" ;;
+esac

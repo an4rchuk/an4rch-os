@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# lumen-term — open a terminal, optionally as a floating dialog.
+#
+#   lumen-term                         new terminal
+#   lumen-term --float                 floating, centred terminal
+#   lumen-term [--float] [--hold] [--title T] -- CMD [args]
+set -euo pipefail
+source "${LUMEN_PATH:-$HOME/.local/share/lumen}/lib/lumen.sh"
+term "$@"

@@ -1,0 +1,251 @@
+// Lumen top bar (Waybar).
+// Restyle with SUPER + CTRL + T. Show/hide with SUPER + CTRL + B.
+// Reference: `man 5 waybar`, https://github.com/Alexays/Waybar/wiki
+{
+  "layer": "top",
+  "position": "top",
+  "height": 34,
+  "margin-top": 6,
+  "margin-left": 10,
+  "margin-right": 10,
+  "spacing": 0,
+  "reload_style_on_change": true,
+
+  "modules-left": ["custom/lumen", "hyprland/workspaces", "hyprland/submap", "hyprland/window"],
+  "modules-center": ["clock", "custom/reminders"],
+  "modules-right": [
+    "privacy",
+    "custom/recording",
+    "mpris",
+    "group/status",
+    "group/tray",
+    "pulseaudio",
+    "bluetooth",
+    "network",
+    "power-profiles-daemon",
+    "battery",
+    "custom/power"
+  ],
+
+  "custom/lumen": {
+    "format": "󰣇",
+    "tooltip-format": "Lumen menu  (SUPER + ALT + SPACE)\nRight-click: launcher",
+    "on-click": "lumen-menu",
+    "on-click-right": "lumen-launcher"
+  },
+
+  "hyprland/workspaces": {
+    "format": "{icon}",
+    "format-icons": {
+      "active": "",
+      "default": "",
+      "empty": "",
+      "special": "󰐃"
+    },
+    "persistent-workspaces": { "*": 5 },
+    "show-special": false,
+    "on-scroll-up": "hyprctl dispatch 'hl.dsp.focus({ workspace = \"e-1\" })'",
+    "on-scroll-down": "hyprctl dispatch 'hl.dsp.focus({ workspace = \"e+1\" })'",
+    "tooltip": false
+  },
+
+  "hyprland/submap": {
+    "format": "󰩨  {}",
+    "tooltip": false
+  },
+
+  "hyprland/window": {
+    "format": "{title}",
+    "max-length": 48,
+    "separate-outputs": true,
+    "rewrite": {
+      "(.*) — Mozilla Firefox": "$1",
+      "(.*) - Chromium": "$1",
+      "(.*) - Visual Studio Code": "$1",
+      "(.*) - Code - OSS": "$1"
+    }
+  },
+
+  "clock": {
+    "format": "{:%a %d %b  %H:%M}",
+    "format-alt": "{:%A, %d %B %Y  ·  %H:%M:%S}",
+    "interval": 1,
+    "tooltip-format": "<tt>{calendar}</tt>",
+    "calendar": {
+      "mode": "month",
+      "weeks-pos": "left",
+      "on-scroll": 1,
+      "format": {
+        "months": "<span weight='bold'>{}</span>",
+        "weeks": "<span alpha='45%'>W{}</span>",
+        "weekdays": "<span alpha='60%'>{}</span>",
+        "today": "<span weight='bold'><u>{}</u></span>"
+      }
+    },
+    "actions": {
+      "on-click-right": "mode",
+      "on-scroll-up": "shift_down",
+      "on-scroll-down": "shift_up"
+    }
+  },
+
+  "custom/reminders": {
+    "exec": "lumen-status reminders",
+    "return-type": "json",
+    "interval": 30,
+    "signal": 13,
+    "on-click": "lumen-remind",
+    "on-click-right": "lumen-remind list"
+  },
+
+  "privacy": {
+    "icon-size": 14,
+    "icon-spacing": 6,
+    "transition-duration": 200,
+    "modules": [
+      { "type": "screenshare", "tooltip": true },
+      { "type": "audio-in", "tooltip": true }
+    ]
+  },
+
+  "custom/recording": {
+    "exec": "lumen-status record",
+    "return-type": "json",
+    "interval": "once",
+    "signal": 10,
+    "on-click": "lumen-record stop"
+  },
+
+  "mpris": {
+    "format": "{status_icon}  {dynamic}",
+    "format-paused": "{status_icon}  <i>{dynamic}</i>",
+    "dynamic-order": ["title", "artist"],
+    "dynamic-len": 32,
+    "status-icons": { "playing": "󰐊", "paused": "󰏤", "stopped": "󰓛" },
+    "ignored-players": ["firefox", "chromium"],
+    "on-click": "playerctl play-pause",
+    "on-scroll-up": "playerctl next",
+    "on-scroll-down": "playerctl previous"
+  },
+
+  "group/status": {
+    "orientation": "inherit",
+    "modules": ["custom/idle", "custom/nightlight", "custom/dnd", "custom/updates"]
+  },
+
+  "custom/idle": {
+    "exec": "lumen-status idle",
+    "return-type": "json",
+    "interval": "once",
+    "signal": 8,
+    "on-click": "lumen-toggle idle"
+  },
+
+  "custom/nightlight": {
+    "exec": "lumen-status nightlight",
+    "return-type": "json",
+    "interval": "once",
+    "signal": 11,
+    "on-click": "lumen-toggle nightlight"
+  },
+
+  "custom/dnd": {
+    "exec": "lumen-status dnd",
+    "return-type": "json",
+    "interval": "once",
+    "signal": 9,
+    "on-click": "lumen-toggle dnd",
+    "on-click-right": "makoctl restore"
+  },
+
+  "custom/updates": {
+    "exec": "lumen-status updates",
+    "return-type": "json",
+    "interval": 3600,
+    "signal": 12,
+    "on-click": "lumen-update"
+  },
+
+  "group/tray": {
+    "orientation": "inherit",
+    "drawer": { "transition-duration": 250, "children-class": "tray-child", "transition-left-to-right": false },
+    "modules": ["custom/tray-handle", "tray"]
+  },
+
+  "custom/tray-handle": {
+    "format": "󰅁",
+    "tooltip-format": "Background apps"
+  },
+
+  "tray": {
+    "icon-size": 15,
+    "spacing": 10
+  },
+
+  "pulseaudio": {
+    "format": "{icon}  {volume}%",
+    "format-muted": "󰝟  muted",
+    "format-bluetooth": "󰂰  {volume}%",
+    "format-icons": { "headphone": "󰋋", "headset": "󰋎", "default": ["󰕿", "󰖀", "󰕾"] },
+    "scroll-step": 5,
+    "max-volume": 150,
+    "on-click": "lumen-audio",
+    "on-click-right": "lumen-osd volume mute",
+    "tooltip-format": "{desc}\nClick: mixer · Right-click: mute"
+  },
+
+  "bluetooth": {
+    "format": "󰂯",
+    "format-off": "󰂲",
+    "format-disabled": "󰂲",
+    "format-connected": "󰂱  {num_connections}",
+    "format-connected-battery": "󰂱  {device_battery_percentage}%",
+    "tooltip-format": "{controller_alias}\n{status}",
+    "tooltip-format-connected": "{controller_alias}\n\n{device_enumerate}",
+    "tooltip-format-enumerate-connected": "{device_alias}",
+    "tooltip-format-enumerate-connected-battery": "{device_alias}  {device_battery_percentage}%",
+    "on-click": "lumen-bluetooth"
+  },
+
+  "network": {
+    "format-wifi": "{icon}",
+    "format-ethernet": "󰈀",
+    "format-linked": "󰈀",
+    "format-disconnected": "󰤮",
+    "format-disabled": "󰤭",
+    "format-icons": ["󰤯", "󰤟", "󰤢", "󰤥", "󰤨"],
+    "tooltip-format-wifi": "{essid}  ·  {signalStrength}%\n{ipaddr}\n {bandwidthDownBytes}   {bandwidthUpBytes}",
+    "tooltip-format-ethernet": "{ifname}\n{ipaddr}\n {bandwidthDownBytes}   {bandwidthUpBytes}",
+    "tooltip-format-disconnected": "Offline — click to connect",
+    "interval": 5,
+    "on-click": "lumen-wifi"
+  },
+
+  "power-profiles-daemon": {
+    "format": "{icon}",
+    "tooltip-format": "Power profile: {profile}\nClick to change",
+    "format-icons": {
+      "default": "󰾅",
+      "performance": "󰓅",
+      "balanced": "󰾅",
+      "power-saver": "󰾆"
+    }
+  },
+
+  "battery": {
+    "interval": 30,
+    "states": { "warning": 25, "critical": 10 },
+    "format": "{icon}  {capacity}%",
+    "format-charging": "󰂄  {capacity}%",
+    "format-plugged": "󰚥  {capacity}%",
+    "format-full": "󰁹  full",
+    "format-icons": ["󰂎", "󰁺", "󰁻", "󰁼", "󰁽", "󰁾", "󰁿", "󰂀", "󰂁", "󰂂", "󰁹"],
+    "tooltip-format": "{timeTo}\n{power:.1f} W"
+  },
+
+  "custom/power": {
+    "format": "󰐥",
+    "tooltip-format": "Power  (SUPER + Esc)",
+    "on-click": "lumen-power"
+  }
+}

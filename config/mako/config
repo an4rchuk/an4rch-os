@@ -1,0 +1,58 @@
+# Lumen notifications (mako). Colours come from the active theme.
+# Do Not Disturb: SUPER + CTRL + D. Dismiss: SUPER + N.
+# Reference: man 5 mako
+
+include=~/.config/lumen/current/theme/mako.ini
+
+font=Inter 11
+width=380
+height=160
+margin=14
+padding=14,16
+outer-margin=6
+border-size=1
+border-radius=14
+icons=1
+max-icon-size=40
+icon-location=left
+max-visible=4
+layer=overlay
+anchor=top-right
+default-timeout=6000
+ignore-timeout=0
+history=1
+max-history=50
+sort=-time
+markup=1
+actions=1
+format=<b>%s</b>\n%b
+on-button-middle=dismiss-all
+on-button-right=dismiss
+on-button-left=invoke-default-action
+
+[urgency=low]
+default-timeout=4000
+
+[urgency=critical]
+default-timeout=0
+
+# Volume / brightness pop-ups (lumen-osd): compact and quick.
+[category=osd]
+default-timeout=1400
+width=280
+format=<b>%s</b>
+history=0
+group-by=category
+
+[app-name=Reminder]
+default-timeout=0
+
+[mode=do-not-disturb]
+invisible=1
+
+# Reminders and critical alerts still get through Do Not Disturb.
+[mode=do-not-disturb app-name=Reminder]
+invisible=0
+
+[mode=do-not-disturb urgency=critical]
+invisible=0

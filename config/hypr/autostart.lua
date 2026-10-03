@@ -1,0 +1,6 @@
+-- Apps to start when you log in.
+--
+-- hl.on("hyprland.start", function()
+--     hl.exec_cmd("lumen-launch -- signal-desktop --start-in-tray")
+--     hl.exec_cmd("lumen-launch -- spotify", { workspace = "9 silent" })
+-- end)

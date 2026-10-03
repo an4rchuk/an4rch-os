@@ -1,0 +1,11 @@
+-- Your window rules. Find a window's class with `hyprctl clients`.
+-- Reference: https://wiki.hypr.land/configuring/core/rules/window-rules/
+--
+-- Always open Spotify on workspace 9:
+--   hl.window_rule({ match = { class = "^(spotify)$" }, workspace = "9 silent" })
+--
+-- Float an app and give it a size:
+--   hl.window_rule({ match = { class = "^(org.gnome.Calculator)$" }, float = true, size = { 400, 600 } })
+--
+-- Make a terminal slightly transparent:
+--   hl.window_rule({ match = { class = "^(com.mitchellh.ghostty)$" }, opacity = "0.94 0.9" })

@@ -1,0 +1,79 @@
+#!/usr/bin/env bash
+# lumen-wifi — connect to Wi-Fi and manage network connections (SUPER + ALT + W).
+set -euo pipefail
+source "${LUMEN_PATH:-$HOME/.local/share/lumen}/lib/lumen.sh"
+
+has nmcli || die "NetworkManager is not installed"
+
+radio=$(nmcli -t radio wifi 2>/dev/null || echo disabled)
+entries=()
+ssids=()
+
+if [[ "$radio" == enabled ]]; then
+  notify "Scanning for networks…" "" -t 1500 -h string:x-canonical-private-synchronous:lumen-wifi -i network-wireless
+  # IN-USE:SIGNAL:SECURITY:SSID, strongest first, de-duplicated by name.
+  while IFS=: read -r inuse signal security ssid; do
+    [[ -z "$ssid" ]] && continue
+    ssid="${ssid//\\:/:}"
+    bars="󰤯"
+    ((signal > 20)) && bars="󰤟"
+    ((signal > 40)) && bars="󰤢"
+    ((signal > 60)) && bars="󰤥"
+    ((signal > 80)) && bars="󰤨"
+    lock=""
+    [[ -n "$security" && "$security" != "--" ]] && lock="  󰌾"
+    mark=""
+    [[ "$inuse" == "*" ]] && mark="  ·  connected"
+    entries+=("$bars  $ssid$lock$mark")
+    ssids+=("$ssid")
+  done < <(nmcli -t -f IN-USE,SIGNAL,SECURITY,SSID dev wifi list --rescan auto 2>/dev/null |
+    sort -t: -k2 -nr | awk -F: '!seen[$4]++')
+  entries+=("󰖪  Turn Wi-Fi off")
+else
+  entries+=("󰖩  Turn Wi-Fi on")
+fi
+entries+=("󰛳  Network settings" "󰒓  Advanced (terminal)")
+
+choice=$(printf '%s\n' "${entries[@]}" | menu "Wi-Fi" --index --width 44 --lines 10) || exit 0
+
+if ((choice < ${#ssids[@]})); then
+  ssid="${ssids[$choice]}"
+  if [[ "${entries[$choice]}" == *connected ]]; then
+    if confirm "Disconnect from $ssid?"; then
+      nmcli con down id "$ssid" >/dev/null && notify "Disconnected" "$ssid" -i network-wireless-offline
+    fi
+    exit 0
+  fi
+  notify "Connecting…" "$ssid" -t 2000 -h string:x-canonical-private-synchronous:lumen-wifi -i network-wireless
+  # Known network: just bring it up.
+  if nmcli -t -f NAME con show | grep -Fxq -- "$ssid"; then
+    if nmcli con up id "$ssid" >/dev/null 2>&1; then
+      notify "Connected" "$ssid" -i network-wireless -h string:x-canonical-private-synchronous:lumen-wifi
+      exit 0
+    fi
+  fi
+  password=""
+  if [[ "${entries[$choice]}" == *󰌾* ]]; then
+    password=$(ask_secret "Password for $ssid") || exit 0
+  fi
+  if [[ -n "$password" ]]; then
+    result=$(nmcli dev wifi connect "$ssid" password "$password" 2>&1) && ok=1 || ok=0
+  else
+    result=$(nmcli dev wifi connect "$ssid" 2>&1) && ok=1 || ok=0
+  fi
+  if [[ $ok -eq 1 ]]; then
+    notify "Connected" "$ssid" -i network-wireless -h string:x-canonical-private-synchronous:lumen-wifi
+  else
+    notify "Couldn't connect to $ssid" "${result#Error: }" -u critical -i network-wireless-offline
+  fi
+  exit 0
+fi
+
+case "${entries[$choice]}" in
+  *"Turn Wi-Fi off") nmcli radio wifi off && notify "Wi-Fi off" "" -i network-wireless-offline ;;
+  *"Turn Wi-Fi on") nmcli radio wifi on && notify "Wi-Fi on" "Open this menu again to pick a network." -i network-wireless ;;
+  *"Network settings")
+    if has nm-connection-editor; then launch nm-connection-editor; else term --float -- nmtui; fi
+    ;;
+  *Advanced*) term --float --title "Network" -- nmtui ;;
+esac

@@ -1,0 +1,78 @@
+#!/usr/bin/env bash
+# lumen-webapp — turn a website into an app with its own launcher entry.
+#
+#   lumen-webapp add [NAME URL]    create (asks when no arguments)
+#   lumen-webapp remove            pick one to remove
+#   lumen-webapp URL               open a URL as an app window right now
+set -euo pipefail
+source "${LUMEN_PATH:-$HOME/.local/share/lumen}/lib/lumen.sh"
+
+apps="$HOME/.local/share/applications"
+icons="$HOME/.local/share/icons/lumen-webapps"
+
+# Chromium-family browsers can open a site in a chrome-less app window.
+app_browser() {
+  local b
+  for b in "$LUMEN_BROWSER" chromium brave google-chrome-stable vivaldi-stable microsoft-edge-stable; do
+    case "$b" in chromium | brave | google-chrome* | vivaldi* | microsoft-edge*) has "$b" && { echo "$b"; return; } ;; esac
+  done
+}
+
+open_url() {
+  local b
+  b=$(app_browser)
+  if [[ -n "$b" ]]; then
+    launch "$b" --app="$1"
+  else
+    launch "$LUMEN_BROWSER" --new-window "$1"
+  fi
+}
+
+add() {
+  local name="${1:-}" url="${2:-}"
+  [[ -n "$name" ]] || name=$(ask "App name" "Music") || exit 0
+  [[ -n "$name" ]] || exit 0
+  [[ -n "$url" ]] || url=$(ask "Address" "https://music.youtube.com") || exit 0
+  [[ -n "$url" ]] || exit 0
+  [[ "$url" == http* ]] || url="https://$url"
+
+  local id domain icon
+  id="lumen-webapp-$(tr '[:upper:] ' '[:lower:]-' <<<"$name" | tr -cd 'a-z0-9-')"
+  domain=$(sed -E 's#^https?://([^/]+).*#\1#' <<<"$url")
+  mkdir -p "$apps" "$icons"
+  icon="$icons/$id.png"
+  curl -fsSL --max-time 8 "https://www.google.com/s2/favicons?domain=$domain&sz=256" -o "$icon" 2>/dev/null || icon=applications-internet
+
+  cat >"$apps/$id.desktop" <<DESKTOP
+[Desktop Entry]
+Type=Application
+Name=$name
+Comment=$url
+Exec=$LUMEN_PATH/bin/lumen-webapp $url
+Icon=$icon
+Terminal=false
+Categories=Network;WebBrowser;
+StartupNotify=true
+X-Lumen-WebApp=true
+DESKTOP
+  update-desktop-database -q "$apps" 2>/dev/null || true
+  notify "$name is ready" "Find it in the launcher (SUPER + SPACE)." -i "$icon"
+  [[ -n "$(app_browser)" ]] || notify "Tip" "Install Chromium for chrome-less app windows: lumen-pkg add chromium"
+}
+
+remove() {
+  mapfile -t files < <(grep -l '^X-Lumen-WebApp=true' "$apps"/*.desktop 2>/dev/null || true)
+  [[ ${#files[@]} -gt 0 ]] || { notify "No web apps yet" "Create one with: lumen-webapp add"; exit 0; }
+  choice=$(for f in "${files[@]}"; do sed -n 's/^Name=//p' "$f"; done | menu "Remove web app" --index --lines "${#files[@]}") || exit 0
+  rm -f "${files[$choice]}" "$icons/$(basename "${files[$choice]}" .desktop).png"
+  update-desktop-database -q "$apps" 2>/dev/null || true
+  notify "Web app removed" "" -i edit-delete
+}
+
+case "${1:-add}" in
+  add) shift || true; add "$@" ;;
+  remove) remove ;;
+  http*://*) open_url "$1" ;;
+  -h | --help | help) sed -n '2,6s/^# \{0,1\}//p' "$0" ;;
+  *) open_url "https://$1" ;;
+esac

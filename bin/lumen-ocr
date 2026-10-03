@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# lumen-ocr — copy the text inside a screen region (SUPER + SHIFT + T).
+set -euo pipefail
+source "${LUMEN_PATH:-$HOME/.local/share/lumen}/lib/lumen.sh"
+
+has tesseract || die "tesseract is not installed (lumen-pkg add tesseract tesseract-data-eng)"
+pkill -x slurp 2>/dev/null && exit 0
+geometry=$(slurp -d -b '#00000055' -c '#ffffffcc' -w 2 2>/dev/null) || exit 0
+text=$(grim -g "$geometry" -t png -s 2 - | tesseract - - -l "${LUMEN_OCR_LANG:-eng}" 2>/dev/null | sed -e 's/[[:space:]]*$//')
+
+if [[ -z "${text//[[:space:]]/}" ]]; then
+  notify "No text found" "Try selecting a larger area." -i dialog-information
+  exit 0
+fi
+printf '%s' "$text" | wl-copy
+preview=$(printf '%s' "$text" | head -c 160)
+notify "Text copied" "$preview" -i edit-copy

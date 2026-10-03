@@ -1,0 +1,193 @@
+#!/usr/bin/env bash
+# lumen-menu — everything in one place (SUPER + ALT + SPACE).
+#
+#   lumen-menu [section]   open the menu, optionally straight at a section:
+#                          capture, toggle, style, setup, install, system, learn
+set -euo pipefail
+source "${LUMEN_PATH:-$HOME/.local/share/lumen}/lib/lumen.sh"
+
+bin="$LUMEN_PATH/bin"
+
+# show TITLE ITEM... — one level of the menu; prints the chosen item.
+show() {
+  local title="$1"
+  shift
+  printf '%s\n' "$@" | menu "$title" --width 34 --lines "$#"
+}
+
+main_menu() {
+  case $(show "Lumen" \
+    "󰀻  Apps" \
+    "󰄀  Capture" \
+    "󰔡  Toggle" \
+    "󰏘  Style" \
+    "󰒓  Setup" \
+    "󰏗  Install" \
+    "󰆴  Remove" \
+    "󰚰  Update" \
+    "󰋗  Learn" \
+    "󰐥  System") in
+    *Apps) "$bin/lumen-launcher" ;;
+    *Capture) capture_menu ;;
+    *Toggle) toggle_menu ;;
+    *Style) style_menu ;;
+    *Setup) setup_menu ;;
+    *Install) install_menu ;;
+    *Remove) "$bin/lumen-pkg" remove ;;
+    *Update) "$bin/lumen-update" ;;
+    *Learn) learn_menu ;;
+    *System) "$bin/lumen-power" ;;
+  esac
+}
+
+capture_menu() {
+  case $(show "Capture" \
+    "󰹑  Screenshot a region" \
+    "󰖯  Screenshot the window" \
+    "󰍹  Screenshot the screen" \
+    "󰏫  Screenshot and annotate" \
+    "󰑋  Record a region" \
+    "󰕧  Record the screen" \
+    "󰕧  Record the screen with audio" \
+    "󰈋  Pick a colour" \
+    "󰊄  Copy text from screen (OCR)") in
+    *"Screenshot a region") sleep 0.2; "$bin/lumen-screenshot" region ;;
+    *"Screenshot the window") sleep 0.2; "$bin/lumen-screenshot" window ;;
+    *"Screenshot the screen") sleep 0.2; "$bin/lumen-screenshot" screen ;;
+    *"Screenshot and annotate") sleep 0.2; "$bin/lumen-screenshot" edit ;;
+    *"Record a region") "$bin/lumen-record" region ;;
+    *"Record the screen") "$bin/lumen-record" screen ;;
+    *"Record the screen with audio") "$bin/lumen-record" screen --audio ;;
+    *"Pick a colour") "$bin/lumen-pick-color" ;;
+    *OCR*) "$bin/lumen-ocr" ;;
+  esac
+}
+
+toggle_menu() {
+  case $(show "Toggle" \
+    "󰅶  Keep awake" \
+    "󰖔  Night light" \
+    "󰂛  Do Not Disturb" \
+    "󰕮  Gaps and rounding" \
+    "󰕰  Tiling / scrolling layout" \
+    "󰍜  Top bar") in
+    *awake) "$bin/lumen-toggle" idle ;;
+    *Night*) "$bin/lumen-toggle" nightlight ;;
+    *Disturb) "$bin/lumen-toggle" dnd ;;
+    *Gaps*) "$bin/lumen-toggle" gaps ;;
+    *layout) "$bin/lumen-toggle" layout ;;
+    *bar) "$bin/lumen-toggle" bar ;;
+  esac
+}
+
+style_menu() {
+  case $(show "Style" \
+    "󰏘  Theme" \
+    "󰸉  Wallpaper" \
+    "󰸉  Next wallpaper" \
+    "󰏫  Edit look and feel" \
+    "󰙵  Edit top bar" \
+    "󰈙  Make my own theme") in
+    *"  Theme") "$bin/lumen-theme" ;;
+    *"Next wallpaper") "$bin/lumen-wallpaper" next ;;
+    *"  Wallpaper") "$bin/lumen-wallpaper" pick ;;
+    *"look and feel") edit "$HOME/.config/hypr/looks.lua" ;;
+    *"top bar") edit "$HOME/.config/waybar/config.jsonc" "$HOME/.config/waybar/style.css" ;;
+    *"own theme")
+      name=$(ask "Theme name" "my-theme") || exit 0
+      [[ -n "$name" ]] || exit 0
+      slug=$(tr '[:upper:] ' '[:lower:]-' <<<"$name" | tr -cd 'a-z0-9-')
+      "$bin/lumen-theme" new "$slug" >/dev/null
+      edit "$LUMEN_CONFIG/themes/$slug/theme.conf"
+      notify "Theme '$slug' created" "Edit the colours, save, then: lumen-theme set $slug" -i preferences-desktop-theme
+      ;;
+  esac
+}
+
+setup_menu() {
+  case $(show "Setup" \
+    "󰖩  Wi-Fi" \
+    "󰂯  Bluetooth" \
+    "󰕾  Audio mixer" \
+    "󰓃  Audio output" \
+    "󰍹  Displays" \
+    "󰾅  Power profile" \
+    "󰌌  Keyboard layout" \
+    "󰥔  Time zone" \
+    "󰈷  Fingerprint login" \
+    "󰐪  Printers" \
+    "󰏘  Default apps" \
+    "󰒓  Lumen settings" \
+    "󰈙  Edit key bindings" \
+    "󰩟  Health check") in
+    *Wi-Fi) "$bin/lumen-wifi" ;;
+    *Bluetooth) "$bin/lumen-bluetooth" ;;
+    *"Audio mixer") "$bin/lumen-audio" ;;
+    *"Audio output") "$bin/lumen-audio" output ;;
+    *Displays) "$bin/lumen-display" ;;
+    *"Power profile") "$bin/lumen-power-profile" ;;
+    *Keyboard*) "$bin/lumen-setup" keyboard ;;
+    *"Time zone") "$bin/lumen-setup" timezone ;;
+    *Fingerprint*) term --float --hold -- "$bin/lumen-setup" fingerprint ;;
+    *Printers) term --float --hold -- "$bin/lumen-setup" printing ;;
+    *"Default apps") "$bin/lumen-setup" defaults ;;
+    *"Lumen settings") edit "$LUMEN_CONFIG/settings.conf" ;;
+    *"key bindings") edit "$HOME/.config/hypr/bindings.lua" ;;
+    *"Health check") term --float --hold --title "Lumen doctor" -- "$bin/lumen-doctor" ;;
+  esac
+}
+
+install_menu() {
+  case $(show "Install" \
+    "󰏗  Search all packages" \
+    "󰏓  Popular apps" \
+    "󰏖  Flatpak apps" \
+    "󰖟  Web app (website as an app)" \
+    "󰊠  Development tools" \
+    "󰊴  Gaming") in
+    *"Search all"*) "$bin/lumen-pkg" install ;;
+    *Popular*) "$bin/lumen-pkg" popular ;;
+    *Flatpak*) "$bin/lumen-pkg" flatpak ;;
+    *"Web app"*) "$bin/lumen-webapp" add ;;
+    *Development*) "$bin/lumen-pkg" bundle dev ;;
+    *Gaming) "$bin/lumen-pkg" bundle gaming ;;
+  esac
+}
+
+learn_menu() {
+  case $(show "Learn" \
+    "󰌌  Key bindings" \
+    "󰈙  Lumen manual" \
+    "󰖟  Hyprland wiki" \
+    "󰣇  Arch Wiki" \
+    "󰋼  About this computer") in
+    *"Key bindings") "$bin/lumen-keys" ;;
+    *manual) "$bin/lumen-manual" ;;
+    *Hyprland*) launch xdg-open "https://wiki.hypr.land/" ;;
+    *Arch*) launch xdg-open "https://wiki.archlinux.org/" ;;
+    *About*) term --float --hold --title "About" -- bash -c 'fastfetch; echo; printf "Lumen %s\n" "$(cat "$LUMEN_PATH/VERSION" 2>/dev/null)"' ;;
+  esac
+}
+
+# edit FILE... — open config files in the configured editor.
+edit() {
+  local f
+  for f in "$@"; do [[ -e "$f" ]] || { mkdir -p "$(dirname "$f")"; touch "$f"; }; done
+  case "$LUMEN_EDITOR" in
+    nvim | vim | hx | helix | nano) term -- "$LUMEN_EDITOR" "$@" ;;
+    *) launch "$LUMEN_EDITOR" "$@" ;;
+  esac
+}
+
+case "${1:-}" in
+  "") main_menu ;;
+  capture) capture_menu ;;
+  toggle) toggle_menu ;;
+  style) style_menu ;;
+  setup) setup_menu ;;
+  install) install_menu ;;
+  learn) learn_menu ;;
+  system) "$bin/lumen-power" ;;
+  -h | --help) sed -n '2,6s/^# \{0,1\}//p' "$0" ;;
+  *) die "Unknown section '$1'" ;;
+esac
