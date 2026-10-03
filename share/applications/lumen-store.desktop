@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=App Store
+GenericName=Software
+Comment=Find, install and update apps and games
+Exec=lumen-store
+Icon=lumen-store
+Terminal=false
+Categories=System;PackageManager;
+Keywords=apps;install;software;games;flatpak;flathub;aur;packages;
+StartupNotify=true

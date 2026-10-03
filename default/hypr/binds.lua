@@ -25,7 +25,12 @@ end
 -- Apps
 ---------------------------------------------------------------------------
 bind("SUPER + Return",        exec(launch("terminal")),                "Terminal")
-bind("SUPER + SPACE",         exec(cmd("launcher")),                   "App launcher")
+-- Tap the Windows key on its own for the Start menu. As a release bind it
+-- only fires when no other shortcut was used while Super was held.
+bind("SUPER + SUPER_L",       exec(cmd("start")),                      "Start menu (tap the Windows key)", { release = true })
+bind("SUPER + SUPER_R",       exec(cmd("start")),                      "Start menu (right Windows key)", { release = true })
+bind("SUPER + SPACE",         exec(cmd("launcher")),                   "Quick app launcher")
+bind("SUPER + A",             exec(cmd("store")),                      "App Store")
 bind("SUPER + ALT + SPACE",   exec(cmd("menu")),                       "Lumen menu")
 bind("SUPER + B",             exec(launch("browser")),                 "Browser")
 bind("SUPER + SHIFT + B",     exec(launch("browser --private")),       "Browser (private window)")

@@ -9,7 +9,10 @@ The modifiers follow one pattern: <kbd>SUPER</kbd> alone for apps and windows, <
 | Keys | Action |
 | --- | --- |
 | <kbd>SUPER</kbd> + <kbd>Enter</kbd> | Terminal |
-| <kbd>SUPER</kbd> + <kbd>Space</kbd> | App launcher |
+| <kbd>SUPER</kbd> tap | Start menu (tap the Windows key) |
+| <kbd>SUPER</kbd> tap (right) | Start menu (right Windows key) |
+| <kbd>SUPER</kbd> + <kbd>Space</kbd> | Quick app launcher |
+| <kbd>SUPER</kbd> + <kbd>A</kbd> | App Store |
 | <kbd>SUPER</kbd> + <kbd>ALT</kbd> + <kbd>Space</kbd> | Lumen menu |
 | <kbd>SUPER</kbd> + <kbd>B</kbd> | Browser |
 | <kbd>SUPER</kbd> + <kbd>SHIFT</kbd> + <kbd>B</kbd> | Browser (private window) |

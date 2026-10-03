@@ -1,0 +1,7 @@
+
+  Lumen OS live environment
+
+  Install:   lumen-os-install
+  Rescue:    lumen-rescue        (roll back a system that won't start)
+  Wi-Fi:     iwctl               (station wlan0 connect "Network")
+

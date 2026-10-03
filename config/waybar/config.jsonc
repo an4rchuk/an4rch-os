@@ -29,9 +29,9 @@
 
   "custom/lumen": {
     "format": "󰣇",
-    "tooltip-format": "Lumen menu  (SUPER + ALT + SPACE)\nRight-click: launcher",
-    "on-click": "lumen-menu",
-    "on-click-right": "lumen-launcher"
+    "tooltip-format": "Start  (tap the Windows key)\nRight-click: Lumen menu",
+    "on-click": "lumen-start",
+    "on-click-right": "lumen-menu"
   },
 
   "hyprland/workspaces": {

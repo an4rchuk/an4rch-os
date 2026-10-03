@@ -63,6 +63,9 @@ hl.window_rule({
     center = true,
 })
 
+-- Lumen's own windows.
+hl.window_rule({ name = "lumen-welcome", match = { class = "^(org\\.lumen\\.Welcome)$" }, float = true, center = true, size = { 820, 640 } })
+
 hl.window_rule({ name = "lumen-modal-center", match = { modal = true }, float = true, center = true })
 
 -- Authentication prompts get focus and dim everything else.
@@ -115,6 +118,7 @@ hl.window_rule({ name = "lumen-steam-float", match = { class = "^(steam)$", titl
 hl.layer_rule({ name = "lumen-blur-bar",      match = { namespace = "^waybar$" },        blur = true, ignore_alpha = 0.2 })
 hl.layer_rule({ name = "lumen-blur-launcher", match = { namespace = "^launcher$" },      blur = true, ignore_alpha = 0.2, animation = "popin 95%" })
 hl.layer_rule({ name = "lumen-blur-notify",   match = { namespace = "^notifications$" }, blur = true, ignore_alpha = 0.2, animation = "slide right" })
+hl.layer_rule({ name = "lumen-blur-start",    match = { namespace = "^lumen-start$" },   blur = true, ignore_alpha = 0.1, animation = "fade" })
 hl.layer_rule({ name = "lumen-no-anim-selection", match = { namespace = "^(selection|hyprpicker)$" }, no_anim = true })
 
 ---------------------------------------------------------------------------

@@ -15,7 +15,7 @@ hyprctl binds -j | jq -r '
     "Return":"Enter","SPACE":"Space","space":"Space","grave":"`","slash":"/","period":".",
     "comma":",","semicolon":";","equal":"=","minus":"-","bracketleft":"[","bracketright":"]",
     "mouse:272":"Left drag","mouse:273":"Right drag","mouse_down":"Scroll down","mouse_up":"Scroll up",
-    "Print":"PrtSc","escape":"Esc","Escape":"Esc"
+    "Print":"PrtSc","escape":"Esc","Escape":"Esc","SUPER_L":"(tap)","SUPER_R":"(tap, right)"
   }[$k] // $k;
   .[]
   | select((.submap // "") == "" and (.description // "") != "")

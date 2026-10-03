@@ -44,6 +44,19 @@ for c in fuzzel mako hypridle hyprlock swaybg; do need "$c"; done
 need hyprsunset hyprsunset optional
 need hyprpicker hyprpicker optional
 
+section "Lumen apps"
+if python3 -c 'import gi; gi.require_version("Gtk", "4.0"); gi.require_version("Adw", "1")' 2>/dev/null; then
+  pass "GTK 4 + libadwaita for Python (Start menu, App Store, Welcome)"
+else
+  fail "Python GTK 4 / libadwaita missing — lumen-pkg add python-gobject gtk4 libadwaita"
+fi
+if [[ -f /usr/lib/libgtk4-layer-shell.so ]]; then pass "gtk4-layer-shell (Start menu overlay)"; else note "gtk4-layer-shell missing: the Start menu opens as a normal window (lumen-pkg add gtk4-layer-shell)"; fi
+if pgrep -f 'lumen-start/lumen_start.py' >/dev/null; then pass "Start menu service running"; else note "Start menu service not running — lumen-start --daemon"; fi
+need flatpak flatpak optional
+if [[ "$(findmnt -no FSTYPE / 2>/dev/null)" == btrfs ]]; then
+  if has snapper && snapper -c root list >/dev/null 2>&1; then pass "system snapshots (snapper)"; else note "btrfs without snapper: no rollbacks (sudo bash ~/.local/share/lumen/install/distro.sh)"; fi
+fi
+
 section "Everyday tools"
 for c in grim slurp wl-copy cliphist jq brightnessctl playerctl wpctl nmcli; do need "$c"; done
 need satty satty optional

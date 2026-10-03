@@ -1,0 +1,86 @@
+/* Lumen App Store. Base colours come from the theme (apps.css). */
+
+button.app-card {
+  padding: 16px;
+  border-radius: 18px;
+  background: alpha(@lumen_fg, 0.04);
+  border: 1px solid alpha(@lumen_fg, 0.06);
+  box-shadow: none;
+  transition: background 150ms ease, border-color 150ms ease;
+}
+
+button.app-card:hover {
+  background: alpha(@lumen_fg, 0.08);
+  border-color: alpha(@lumen_accent, 0.35);
+}
+
+.card-title {
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.card-summary {
+  font-size: 13px;
+  color: @lumen_fg_dim;
+}
+
+.installed-badge {
+  margin-top: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: @lumen_green;
+}
+
+button.hero {
+  border-radius: 24px;
+  padding: 0;
+  background: linear-gradient(120deg, alpha(@lumen_accent, 0.38), alpha(@lumen_accent2, 0.22) 60%, alpha(@lumen_bg_alt, 0.9));
+  border: 1px solid alpha(@lumen_fg, 0.08);
+  box-shadow: none;
+}
+
+button.hero:hover {
+  background: linear-gradient(120deg, alpha(@lumen_accent, 0.46), alpha(@lumen_accent2, 0.28) 60%, alpha(@lumen_bg_alt, 0.9));
+}
+
+.hero-kicker {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: alpha(@lumen_fg, 0.7);
+}
+
+.hero-title {
+  font-size: 34px;
+  font-weight: 800;
+}
+
+.hero-summary {
+  font-size: 16px;
+  color: alpha(@lumen_fg, 0.85);
+}
+
+button.category-chip {
+  padding: 14px 6px;
+  border-radius: 16px;
+  background: alpha(@lumen_fg, 0.05);
+  border: 1px solid alpha(@lumen_fg, 0.06);
+  font-weight: 600;
+}
+
+button.category-chip:hover {
+  background: alpha(@lumen_accent, 0.18);
+}
+
+button.category-chip image {
+  color: @lumen_accent;
+}
+
+picture.shot {
+  border-radius: 14px;
+}
+
+.description {
+  font-size: 15px;
+  line-height: 1.4;
+}

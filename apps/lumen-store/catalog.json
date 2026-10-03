@@ -1,0 +1,1171 @@
+{
+ "version": 1,
+ "categories": [
+  {
+   "id": "games",
+   "name": "Games",
+   "icon": "input-gaming-symbolic"
+  },
+  {
+   "id": "internet",
+   "name": "Internet",
+   "icon": "web-browser-symbolic"
+  },
+  {
+   "id": "communication",
+   "name": "Chat & Calls",
+   "icon": "call-start-symbolic"
+  },
+  {
+   "id": "media",
+   "name": "Music & Video",
+   "icon": "folder-music-symbolic"
+  },
+  {
+   "id": "creativity",
+   "name": "Create",
+   "icon": "applications-graphics-symbolic"
+  },
+  {
+   "id": "productivity",
+   "name": "Work",
+   "icon": "x-office-document-symbolic"
+  },
+  {
+   "id": "development",
+   "name": "Develop",
+   "icon": "utilities-terminal-symbolic"
+  },
+  {
+   "id": "utilities",
+   "name": "Utilities",
+   "icon": "applications-utilities-symbolic"
+  }
+ ],
+ "apps": [
+  {
+   "id": "firefox",
+   "name": "Firefox",
+   "summary": "Fast, private web browser from Mozilla",
+   "category": "internet",
+   "icon": "firefox",
+   "featured": false,
+   "sources": [
+    {
+     "type": "pacman",
+     "id": "firefox"
+    },
+    {
+     "type": "flatpak",
+     "id": "org.mozilla.firefox"
+    }
+   ]
+  },
+  {
+   "id": "chromium",
+   "name": "Chromium",
+   "summary": "Open-source browser behind Google Chrome",
+   "category": "internet",
+   "icon": "chromium",
+   "featured": false,
+   "sources": [
+    {
+     "type": "pacman",
+     "id": "chromium"
+    },
+    {
+     "type": "flatpak",
+     "id": "org.chromium.Chromium"
+    }
+   ]
+  },
+  {
+   "id": "brave",
+   "name": "Brave",
+   "summary": "Browser that blocks ads and trackers by default",
+   "category": "internet",
+   "icon": "brave",
+   "featured": true,
+   "sources": [
+    {
+     "type": "flatpak",
+     "id": "com.brave.Browser"
+    },
+    {
+     "type": "aur",
+     "id": "brave-bin"
+    }
+   ]
+  },
+  {
+   "id": "zen-browser",
+   "name": "Zen Browser",
+   "summary": "Calm, Firefox-based browser with vertical tabs",
+   "category": "internet",
+   "icon": "zen-browser",
+   "featured": false,
+   "sources": [
+    {
+     "type": "flatpak",
+     "id": "app.zen_browser.zen"
+    },
+    {
+     "type": "aur",
+     "id": "zen-browser-bin"
+    }
+   ]
+  },
+  {
+   "id": "google-chrome",
+   "name": "Google Chrome",
+   "summary": "Google's web browser",
+   "category": "internet",
+   "icon": "google-chrome",
+   "featured": false,
+   "sources": [
+    {
+     "type": "flatpak",
+     "id": "com.google.Chrome"
+    },
+    {
+     "type": "aur",
+     "id": "google-chrome"
+    }
+   ]
+  },
+  {
+   "id": "thunderbird",
+   "name": "Thunderbird",
+   "summary": "Email, calendar and contacts",
+   "category": "internet",
+   "icon": "thunderbird",
+   "featured": false,
+   "sources": [
+    {
+     "type": "pacman",
+     "id": "thunderbird"
+    },
+    {
+     "type": "flatpak",
+     "id": "org.mozilla.Thunderbird"
+    }
+   ]
+  },
+  {
+   "id": "qbittorrent",
+   "name": "qBittorrent",
+   "summary": "Fast, ad-free torrent client",
+   "category": "internet",
+   "icon": "qbittorrent",
+   "featured": false,
+   "sources": [
+    {
+     "type": "pacman",
+     "id": "qbittorrent"
+    },
+    {
+     "type": "flatpak",
+     "id": "org.qbittorrent.qBittorrent"
+    }
+   ]
+  },
+  {
+   "id": "localsend",
+   "name": "LocalSend",
+   "summary": "Share files with nearby devices, AirDrop-style",
+   "category": "internet",
+   "icon": "localsend",
+   "featured": true,
+   "sources": [
+    {
+     "type": "flatpak",
+     "id": "org.localsend.localsend_app"
+    },
+    {
+     "type": "aur",
+     "id": "localsend-bin"
+    }
+   ]
+  },
+  {
+   "id": "nextcloud",
+   "name": "Nextcloud",
+   "summary": "Sync files with your Nextcloud",
+   "category": "internet",
+   "icon": "nextcloud",
+   "featured": false,
+   "sources": [
+    {
+     "type": "pacman",
+     "id": "nextcloud-client"
+    },
+    {
+     "type": "flatpak",
+     "id": "com.nextcloud.desktopclient.nextcloud"
+    }
+   ]
+  },
+  {
+   "id": "tor-browser",
+   "name": "Tor Browser",
+   "summary": "Browse anonymously over the Tor network",
+   "category": "internet",
+   "icon": "torbrowser",
+   "featured": false,
+   "sources": [
+    {
+     "type": "pacman",
+     "id": "torbrowser-launcher"
+    },
+    {
+     "type": "flatpak",
+     "id": "org.torproject.torbrowser-launcher"
+    }
+   ]
+  },
+  {
+   "id": "signal",
+   "name": "Signal",
+   "summary": "Private messaging that's simple to use",
+   "category": "communication",
+   "icon": "signal-desktop",
+   "featured": true,
+   "sources": [
+    {
+     "type": "pacman",
+     "id": "signal-desktop"
+    },
+    {
+     "type": "flatpak",
+     "id": "org.signal.Signal"
+    }
+   ]
+  },
+  {
+   "id": "discord",
+   "name": "Discord",
+   "summary": "Voice, video and text chat for communities",
+   "category": "communication",
+   "icon": "discord",
+   "featured": false,
+   "sources": [
+    {
+     "type": "flatpak",
+     "id": "com.discordapp.Discord"
+    },
+    {
+     "type": "pacman",
+     "id": "discord"
+    }
+   ]
+  },
+  {
+   "id": "telegram",
+   "name": "Telegram",
+   "summary": "Fast, cloud-based messaging",
+   "category": "communication",
+   "icon": "telegram",
+   "featured": false,
+   "sources": [
+    {
+     "type": "pacman",
+     "id": "telegram-desktop"
+    },
+    {
+     "type": "flatpak",
+     "id": "org.telegram.desktop"
+    }
+   ]
+  },
+  {
+   "id": "slack",
+   "name": "Slack",
+   "summary": "Team chat and collaboration",
+   "category": "communication",
+   "icon": "slack",
+   "featured": false,
+   "sources": [
+    {
+     "type": "flatpak",
+     "id": "com.slack.Slack"
+    },
+    {
+     "type": "aur",
+     "id": "slack-desktop"
+    }
+   ]
+  },
+  {
+   "id": "zoom",
+   "name": "Zoom",
+   "summary": "Video meetings",
+   "category": "communication",
+   "icon": "zoom",
+   "featured": false,
+   "sources": [
+    {
+     "type": "flatpak",
+     "id": "us.zoom.Zoom"
+    },
+    {
+     "type": "aur",
+     "id": "zoom"
+    }
+   ]
+  },
+  {
+   "id": "element",
+   "name": "Element",
+   "summary": "Secure chat on the Matrix network",
+   "category": "communication",
+   "icon": "element",
+   "featured": false,
+   "sources": [
+    {
+     "type": "pacman",
+     "id": "element-desktop"
+    },
+    {
+     "type": "flatpak",
+     "id": "im.riot.Riot"
+    }
+   ]
+  },
+  {
+   "id": "spotify",
+   "name": "Spotify",
+   "summary": "Millions of songs and podcasts",
+   "category": "media",
+   "icon": "spotify",
+   "featured": true,
+   "sources": [
+    {
+     "type": "flatpak",
+     "id": "com.spotify.Client"
+    },
+    {
+     "type": "aur",
+     "id": "spotify"
+    }
+   ]
+  },
+  {
+   "id": "vlc",
+   "name": "VLC",
+   "summary": "Plays every video and audio format",
+   "category": "media",
+   "icon": "vlc",
+   "featured": false,
+   "sources": [
+    {
+     "type": "pacman",
+     "id": "vlc"
+    },
+    {
+     "type": "flatpak",
+     "id": "org.videolan.VLC"
+    }
+   ]
+  },
+  {
+   "id": "celluloid",
+   "name": "Celluloid",
+   "summary": "Simple, elegant video player",
+   "category": "media",
+   "icon": "celluloid",
+   "featured": false,
+   "sources": [
+    {
+     "type": "pacman",
+     "id": "celluloid"
+    },
+    {
+     "type": "flatpak",
+     "id": "io.github.celluloid_player.Celluloid"
+    }
+   ]
+  },
+  {
+   "id": "amberol",
+   "name": "Amberol",
+   "summary": "A small, focused music player",
+   "category": "media",
+   "icon": "amberol",
+   "featured": false,
+   "sources": [
+    {
+     "type": "flatpak",
+     "id": "io.bassi.Amberol"
+    }
+   ]
+  },
+  {
+   "id": "shortwave",
+   "name": "Shortwave",
+   "summary": "Listen to internet radio",
+   "category": "media",
+   "icon": "shortwave",
+   "featured": false,
+   "sources": [
+    {
+     "type": "pacman",
+     "id": "shortwave"
+    },
+    {
+     "type": "flatpak",
+     "id": "de.haeckerfelix.Shortwave"
+    }
+   ]
+  },
+  {
+   "id": "obs-studio",
+   "name": "OBS Studio",
+   "summary": "Recording and live streaming",
+   "category": "media",
+   "icon": "obs",
+   "featured": true,
+   "sources": [
+    {
+     "type": "pacman",
+     "id": "obs-studio"
+    },
+    {
+     "type": "flatpak",
+     "id": "com.obsproject.Studio"
+    }
+   ]
+  },
+  {
+   "id": "handbrake",
+   "name": "HandBrake",
+   "summary": "Convert video to any format",
+   "category": "media",
+   "icon": "handbrake",
+   "featured": false,
+   "sources": [
+    {
+     "type": "pacman",
+     "id": "handbrake"
+    },
+    {
+     "type": "flatpak",
+     "id": "fr.handbrake.ghb"
+    }
+   ]
+  },
+  {
+   "id": "audacity",
+   "name": "Audacity",
+   "summary": "Record and edit audio",
+   "category": "media",
+   "icon": "audacity",
+   "featured": false,
+   "sources": [
+    {
+     "type": "pacman",
+     "id": "audacity"
+    },
+    {
+     "type": "flatpak",
+     "id": "org.audacityteam.Audacity"
+    }
+   ]
+  },
+  {
+   "id": "gimp",
+   "name": "GIMP",
+   "summary": "Advanced photo and image editing",
+   "category": "creativity",
+   "icon": "gimp",
+   "featured": false,
+   "sources": [
+    {
+     "type": "pacman",
+     "id": "gimp"
+    },
+    {
+     "type": "flatpak",
+     "id": "org.gimp.GIMP"
+    }
+   ]
+  },
+  {
+   "id": "inkscape",
+   "name": "Inkscape",
+   "summary": "Professional vector graphics",
+   "category": "creativity",
+   "icon": "inkscape",
+   "featured": false,
+   "sources": [
+    {
+     "type": "pacman",
+     "id": "inkscape"
+    },
+    {
+     "type": "flatpak",
+     "id": "org.inkscape.Inkscape"
+    }
+   ]
+  },
+  {
+   "id": "krita",
+   "name": "Krita",
+   "summary": "Digital painting for artists",
+   "category": "creativity",
+   "icon": "krita",
+   "featured": true,
+   "sources": [
+    {
+     "type": "pacman",
+     "id": "krita"
+    },
+    {
+     "type": "flatpak",
+     "id": "org.kde.krita"
+    }
+   ]
+  },
+  {
+   "id": "blender",
+   "name": "Blender",
+   "summary": "3D modelling, animation and rendering",
+   "category": "creativity",
+   "icon": "blender",
+   "featured": true,
+   "sources": [
+    {
+     "type": "pacman",
+     "id": "blender"
+    },
+    {
+     "type": "flatpak",
+     "id": "org.blender.Blender"
+    }
+   ]
+  },
+  {
+   "id": "kdenlive",
+   "name": "Kdenlive",
+   "summary": "Powerful video editing",
+   "category": "creativity",
+   "icon": "kdenlive",
+   "featured": false,
+   "sources": [
+    {
+     "type": "pacman",
+     "id": "kdenlive"
+    },
+    {
+     "type": "flatpak",
+     "id": "org.kde.kdenlive"
+    }
+   ]
+  },
+  {
+   "id": "darktable",
+   "name": "darktable",
+   "summary": "Photo workflow and RAW development",
+   "category": "creativity",
+   "icon": "darktable",
+   "featured": false,
+   "sources": [
+    {
+     "type": "pacman",
+     "id": "darktable"
+    },
+    {
+     "type": "flatpak",
+     "id": "org.darktable.Darktable"
+    }
+   ]
+  },
+  {
+   "id": "libreoffice",
+   "name": "LibreOffice",
+   "summary": "Documents, spreadsheets and presentations",
+   "category": "productivity",
+   "icon": "libreoffice-startcenter",
+   "featured": true,
+   "sources": [
+    {
+     "type": "pacman",
+     "id": "libreoffice-fresh"
+    },
+    {
+     "type": "flatpak",
+     "id": "org.libreoffice.LibreOffice"
+    }
+   ]
+  },
+  {
+   "id": "onlyoffice",
+   "name": "ONLYOFFICE",
+   "summary": "Office suite that feels like Microsoft Office",
+   "category": "productivity",
+   "icon": "onlyoffice-desktopeditors",
+   "featured": false,
+   "sources": [
+    {
+     "type": "flatpak",
+     "id": "org.onlyoffice.desktopeditors"
+    },
+    {
+     "type": "aur",
+     "id": "onlyoffice-bin"
+    }
+   ]
+  },
+  {
+   "id": "obsidian",
+   "name": "Obsidian",
+   "summary": "Notes and knowledge base in plain Markdown",
+   "category": "productivity",
+   "icon": "obsidian",
+   "featured": true,
+   "sources": [
+    {
+     "type": "pacman",
+     "id": "obsidian"
+    },
+    {
+     "type": "flatpak",
+     "id": "md.obsidian.Obsidian"
+    }
+   ]
+  },
+  {
+   "id": "logseq",
+   "name": "Logseq",
+   "summary": "Privacy-first outliner and journal",
+   "category": "productivity",
+   "icon": "logseq",
+   "featured": false,
+   "sources": [
+    {
+     "type": "flatpak",
+     "id": "com.logseq.Logseq"
+    }
+   ]
+  },
+  {
+   "id": "joplin",
+   "name": "Joplin",
+   "summary": "Notes and to-dos that sync everywhere",
+   "category": "productivity",
+   "icon": "joplin",
+   "featured": false,
+   "sources": [
+    {
+     "type": "flatpak",
+     "id": "net.cozic.joplin_desktop"
+    }
+   ]
+  },
+  {
+   "id": "xournalpp",
+   "name": "Xournal++",
+   "summary": "Handwritten notes and PDF annotation",
+   "category": "productivity",
+   "icon": "xournalpp",
+   "featured": false,
+   "sources": [
+    {
+     "type": "pacman",
+     "id": "xournalpp"
+    },
+    {
+     "type": "flatpak",
+     "id": "com.github.xournalpp.xournalpp"
+    }
+   ]
+  },
+  {
+   "id": "calibre",
+   "name": "Calibre",
+   "summary": "Manage and convert e-books",
+   "category": "productivity",
+   "icon": "calibre",
+   "featured": false,
+   "sources": [
+    {
+     "type": "pacman",
+     "id": "calibre"
+    },
+    {
+     "type": "flatpak",
+     "id": "com.calibre_ebook.calibre"
+    }
+   ]
+  },
+  {
+   "id": "foliate",
+   "name": "Foliate",
+   "summary": "Read e-books in style",
+   "category": "productivity",
+   "icon": "foliate",
+   "featured": false,
+   "sources": [
+    {
+     "type": "pacman",
+     "id": "foliate"
+    },
+    {
+     "type": "flatpak",
+     "id": "com.github.johnfactotum.Foliate"
+    }
+   ]
+  },
+  {
+   "id": "anki",
+   "name": "Anki",
+   "summary": "Remember anything with flashcards",
+   "category": "productivity",
+   "icon": "anki",
+   "featured": false,
+   "sources": [
+    {
+     "type": "flatpak",
+     "id": "net.ankiweb.Anki"
+    }
+   ]
+  },
+  {
+   "id": "bitwarden",
+   "name": "Bitwarden",
+   "summary": "Open-source password manager",
+   "category": "productivity",
+   "icon": "bitwarden",
+   "featured": false,
+   "sources": [
+    {
+     "type": "pacman",
+     "id": "bitwarden"
+    },
+    {
+     "type": "flatpak",
+     "id": "com.bitwarden.desktop"
+    }
+   ]
+  },
+  {
+   "id": "keepassxc",
+   "name": "KeePassXC",
+   "summary": "Offline password manager",
+   "category": "productivity",
+   "icon": "keepassxc",
+   "featured": false,
+   "sources": [
+    {
+     "type": "pacman",
+     "id": "keepassxc"
+    },
+    {
+     "type": "flatpak",
+     "id": "org.keepassxc.KeePassXC"
+    }
+   ]
+  },
+  {
+   "id": "visual-studio-code",
+   "name": "Visual Studio Code",
+   "summary": "Microsoft's code editor with the extension marketplace",
+   "category": "development",
+   "icon": "visual-studio-code",
+   "featured": false,
+   "sources": [
+    {
+     "type": "flatpak",
+     "id": "com.visualstudio.code"
+    },
+    {
+     "type": "aur",
+     "id": "visual-studio-code-bin"
+    }
+   ]
+  },
+  {
+   "id": "code---oss",
+   "name": "Code - OSS",
+   "summary": "The open-source build of VS Code",
+   "category": "development",
+   "icon": "code-oss",
+   "featured": false,
+   "sources": [
+    {
+     "type": "pacman",
+     "id": "code"
+    }
+   ]
+  },
+  {
+   "id": "zed",
+   "name": "Zed",
+   "summary": "High-performance, collaborative code editor",
+   "category": "development",
+   "icon": "zed",
+   "featured": true,
+   "sources": [
+    {
+     "type": "pacman",
+     "id": "zed"
+    },
+    {
+     "type": "flatpak",
+     "id": "dev.zed.Zed"
+    }
+   ]
+  },
+  {
+   "id": "neovim",
+   "name": "Neovim",
+   "summary": "Hyper-extensible terminal editor",
+   "category": "development",
+   "icon": "nvim",
+   "featured": false,
+   "sources": [
+    {
+     "type": "pacman",
+     "id": "neovim"
+    }
+   ]
+  },
+  {
+   "id": "podman-desktop",
+   "name": "Podman Desktop",
+   "summary": "Containers and Kubernetes, rootless",
+   "category": "development",
+   "icon": "podman-desktop",
+   "featured": false,
+   "sources": [
+    {
+     "type": "flatpak",
+     "id": "io.podman_desktop.PodmanDesktop"
+    }
+   ]
+  },
+  {
+   "id": "dbeaver",
+   "name": "DBeaver",
+   "summary": "Universal database tool",
+   "category": "development",
+   "icon": "dbeaver",
+   "featured": false,
+   "sources": [
+    {
+     "type": "pacman",
+     "id": "dbeaver"
+    },
+    {
+     "type": "flatpak",
+     "id": "io.dbeaver.DBeaverCommunity"
+    }
+   ]
+  },
+  {
+   "id": "github-desktop",
+   "name": "GitHub Desktop",
+   "summary": "Git, the friendly way",
+   "category": "development",
+   "icon": "github-desktop",
+   "featured": false,
+   "sources": [
+    {
+     "type": "flatpak",
+     "id": "io.github.shiftey.Desktop"
+    }
+   ]
+  },
+  {
+   "id": "postman",
+   "name": "Postman",
+   "summary": "Build and test APIs",
+   "category": "development",
+   "icon": "postman",
+   "featured": false,
+   "sources": [
+    {
+     "type": "flatpak",
+     "id": "com.getpostman.Postman"
+    }
+   ]
+  },
+  {
+   "id": "steam",
+   "name": "Steam",
+   "summary": "Thousands of games, with Proton for Windows titles",
+   "category": "games",
+   "icon": "steam",
+   "featured": true,
+   "sources": [
+    {
+     "type": "pacman",
+     "id": "steam"
+    },
+    {
+     "type": "flatpak",
+     "id": "com.valvesoftware.Steam"
+    }
+   ]
+  },
+  {
+   "id": "heroic",
+   "name": "Heroic",
+   "summary": "Epic Games, GOG and Amazon games",
+   "category": "games",
+   "icon": "heroic",
+   "featured": true,
+   "sources": [
+    {
+     "type": "flatpak",
+     "id": "com.heroicgameslauncher.hgl"
+    },
+    {
+     "type": "aur",
+     "id": "heroic-games-launcher-bin"
+    }
+   ]
+  },
+  {
+   "id": "lutris",
+   "name": "Lutris",
+   "summary": "All your games in one place",
+   "category": "games",
+   "icon": "lutris",
+   "featured": false,
+   "sources": [
+    {
+     "type": "pacman",
+     "id": "lutris"
+    },
+    {
+     "type": "flatpak",
+     "id": "net.lutris.Lutris"
+    }
+   ]
+  },
+  {
+   "id": "bottles",
+   "name": "Bottles",
+   "summary": "Run Windows software easily",
+   "category": "games",
+   "icon": "bottles",
+   "featured": false,
+   "sources": [
+    {
+     "type": "flatpak",
+     "id": "com.usebottles.bottles"
+    }
+   ]
+  },
+  {
+   "id": "protonplus",
+   "name": "ProtonPlus",
+   "summary": "Install and manage Proton versions",
+   "category": "games",
+   "icon": "protonplus",
+   "featured": false,
+   "sources": [
+    {
+     "type": "flatpak",
+     "id": "com.vysp3r.ProtonPlus"
+    }
+   ]
+  },
+  {
+   "id": "prism-launcher",
+   "name": "Prism Launcher",
+   "summary": "Minecraft, with mods and many instances",
+   "category": "games",
+   "icon": "prismlauncher",
+   "featured": false,
+   "sources": [
+    {
+     "type": "pacman",
+     "id": "prismlauncher"
+    },
+    {
+     "type": "flatpak",
+     "id": "org.prismlauncher.PrismLauncher"
+    }
+   ]
+  },
+  {
+   "id": "retroarch",
+   "name": "RetroArch",
+   "summary": "Retro gaming and emulation",
+   "category": "games",
+   "icon": "retroarch",
+   "featured": false,
+   "sources": [
+    {
+     "type": "pacman",
+     "id": "retroarch"
+    },
+    {
+     "type": "flatpak",
+     "id": "org.libretro.RetroArch"
+    }
+   ]
+  },
+  {
+   "id": "moonlight",
+   "name": "Moonlight",
+   "summary": "Stream games from your gaming PC",
+   "category": "games",
+   "icon": "moonlight",
+   "featured": false,
+   "sources": [
+    {
+     "type": "flatpak",
+     "id": "com.moonlight_stream.Moonlight"
+    }
+   ]
+  },
+  {
+   "id": "mangohud",
+   "name": "MangoHud",
+   "summary": "FPS and performance overlay for games",
+   "category": "games",
+   "icon": "mangohud",
+   "featured": false,
+   "sources": [
+    {
+     "type": "pacman",
+     "id": "mangohud"
+    }
+   ]
+  },
+  {
+   "id": "mission-center",
+   "name": "Mission Center",
+   "summary": "See CPU, memory, disk and GPU use",
+   "category": "utilities",
+   "icon": "missioncenter",
+   "featured": false,
+   "sources": [
+    {
+     "type": "pacman",
+     "id": "mission-center"
+    },
+    {
+     "type": "flatpak",
+     "id": "io.missioncenter.MissionCenter"
+    }
+   ]
+  },
+  {
+   "id": "resources",
+   "name": "Resources",
+   "summary": "Monitor your system resources",
+   "category": "utilities",
+   "icon": "resources",
+   "featured": false,
+   "sources": [
+    {
+     "type": "pacman",
+     "id": "resources"
+    },
+    {
+     "type": "flatpak",
+     "id": "net.nokyan.Resources"
+    }
+   ]
+  },
+  {
+   "id": "pika-backup",
+   "name": "Pika Backup",
+   "summary": "Simple, safe backups",
+   "category": "utilities",
+   "icon": "pika-backup",
+   "featured": true,
+   "sources": [
+    {
+     "type": "pacman",
+     "id": "pika-backup"
+    },
+    {
+     "type": "flatpak",
+     "id": "org.gnome.World.PikaBackup"
+    }
+   ]
+  },
+  {
+   "id": "impression",
+   "name": "Impression",
+   "summary": "Write disk images to USB drives",
+   "category": "utilities",
+   "icon": "impression",
+   "featured": false,
+   "sources": [
+    {
+     "type": "flatpak",
+     "id": "io.gitlab.adhami3310.Impression"
+    }
+   ]
+  },
+  {
+   "id": "disks",
+   "name": "Disks",
+   "summary": "Manage drives and partitions",
+   "category": "utilities",
+   "icon": "gnome-disks",
+   "featured": false,
+   "sources": [
+    {
+     "type": "pacman",
+     "id": "gnome-disk-utility"
+    },
+    {
+     "type": "flatpak",
+     "id": "org.gnome.DiskUtility"
+    }
+   ]
+  },
+  {
+   "id": "flatseal",
+   "name": "Flatseal",
+   "summary": "Review and change Flatpak app permissions",
+   "category": "utilities",
+   "icon": "flatseal",
+   "featured": false,
+   "sources": [
+    {
+     "type": "flatpak",
+     "id": "com.github.tchx84.Flatseal"
+    }
+   ]
+  },
+  {
+   "id": "warehouse",
+   "name": "Warehouse",
+   "summary": "Manage Flatpak apps and data",
+   "category": "utilities",
+   "icon": "warehouse",
+   "featured": false,
+   "sources": [
+    {
+     "type": "flatpak",
+     "id": "io.github.flattool.Warehouse"
+    }
+   ]
+  },
+  {
+   "id": "fragments",
+   "name": "Fragments",
+   "summary": "Easy torrent downloads",
+   "category": "utilities",
+   "icon": "fragments",
+   "featured": false,
+   "sources": [
+    {
+     "type": "pacman",
+     "id": "fragments"
+    },
+    {
+     "type": "flatpak",
+     "id": "de.haeckerfelix.Fragments"
+    }
+   ]
+  }
+ ]
+}

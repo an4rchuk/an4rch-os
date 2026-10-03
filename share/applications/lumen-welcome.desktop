@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Welcome to Lumen
+Comment=First steps, gaming setup and getting help
+Exec=lumen-welcome
+Icon=lumen-logo
+Terminal=false
+Categories=System;

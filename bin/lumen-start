@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# lumen-start — the Start menu: tap the Windows (Super) key to open it.
+#
+#   lumen-start                 open, or close if open
+#   lumen-start --search TEXT   open with TEXT already typed
+#   lumen-start --daemon        start hidden in the background (done at login)
+#   lumen-start --quit          stop the background service
+#
+# Pins live in ~/.config/lumen/start-pins.json (right-click any app to pin).
+set -euo pipefail
+LUMEN_PATH="${LUMEN_PATH:-$HOME/.local/share/lumen}"
+
+# Fast path: ask the running service to toggle over D-Bus (no Python start-up).
+if [[ $# -eq 0 ]] && gdbus call --session --dest org.lumen.Start --object-path /org/lumen/Start \
+  --method org.gtk.Actions.Activate toggle '[]' '{}' >/dev/null 2>&1; then
+  exit 0
+fi
+
+# gtk4-layer-shell must be loaded before libwayland, which Python can't
+# guarantee on its own.
+for lib in /usr/lib/libgtk4-layer-shell.so /usr/lib64/libgtk4-layer-shell.so; do
+  if [[ -f "$lib" ]]; then
+    export LD_PRELOAD="$lib${LD_PRELOAD:+:$LD_PRELOAD}"
+    break
+  fi
+done
+
+args=("$@")
+[[ $# -eq 0 ]] && args=(--show)
+exec python3 "$LUMEN_PATH/apps/lumen-start/lumen_start.py" "${args[@]}"

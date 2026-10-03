@@ -10,6 +10,7 @@ PKGS_DESKTOP=(
   uwsm libnewt
   qt5-wayland qt6-wayland
   waybar fuzzel mako swaybg
+  python-gobject gtk4 libadwaita
   polkit gnome-keyring libsecret
   xdg-user-dirs xdg-utils
 )
@@ -54,7 +55,8 @@ PKGS_OPTIONAL=(
   glow yazi neovim
   nautilus gvfs gvfs-mtp file-roller sushi
   loupe mpv evince gnome-calculator gnome-disk-utility
-  flatpak fwupd pacman-contrib
+  flatpak fwupd pacman-contrib pciutils
+  gtk4-layer-shell
   bibata-cursor-theme-bin
 )
 

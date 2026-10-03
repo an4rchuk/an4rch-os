@@ -18,6 +18,7 @@ show() {
 main_menu() {
   case $(show "Lumen" \
     "󰀻  Apps" \
+    "󰏓  App Store" \
     "󰄀  Capture" \
     "󰔡  Toggle" \
     "󰏘  Style" \
@@ -27,7 +28,8 @@ main_menu() {
     "󰚰  Update" \
     "󰋗  Learn" \
     "󰐥  System") in
-    *Apps) "$bin/lumen-launcher" ;;
+    *Apps) "$bin/lumen-start" ;;
+    *"App Store") "$bin/lumen-store" ;;
     *Capture) capture_menu ;;
     *Toggle) toggle_menu ;;
     *Style) style_menu ;;
@@ -114,6 +116,8 @@ setup_menu() {
     "󰾅  Power profile" \
     "󰌌  Keyboard layout" \
     "󰥔  Time zone" \
+    "󰊴  Gaming" \
+    "󰁯  Snapshots and rollback" \
     "󰈷  Fingerprint login" \
     "󰐪  Printers" \
     "󰏘  Default apps" \
@@ -128,6 +132,8 @@ setup_menu() {
     *"Power profile") "$bin/lumen-power-profile" ;;
     *Keyboard*) "$bin/lumen-setup" keyboard ;;
     *"Time zone") "$bin/lumen-setup" timezone ;;
+    *Gaming) "$bin/lumen-gaming" ;;
+    *Snapshots*) "$bin/lumen-snapshot" menu ;;
     *Fingerprint*) term --float --hold -- "$bin/lumen-setup" fingerprint ;;
     *Printers) term --float --hold -- "$bin/lumen-setup" printing ;;
     *"Default apps") "$bin/lumen-setup" defaults ;;
@@ -139,18 +145,20 @@ setup_menu() {
 
 install_menu() {
   case $(show "Install" \
+    "󰏓  App Store" \
     "󰏗  Search all packages" \
     "󰏓  Popular apps" \
     "󰏖  Flatpak apps" \
     "󰖟  Web app (website as an app)" \
     "󰊠  Development tools" \
     "󰊴  Gaming") in
+    *"App Store") "$bin/lumen-store" ;;
     *"Search all"*) "$bin/lumen-pkg" install ;;
     *Popular*) "$bin/lumen-pkg" popular ;;
     *Flatpak*) "$bin/lumen-pkg" flatpak ;;
     *"Web app"*) "$bin/lumen-webapp" add ;;
     *Development*) "$bin/lumen-pkg" bundle dev ;;
-    *Gaming) "$bin/lumen-pkg" bundle gaming ;;
+    *"  Gaming") "$bin/lumen-gaming" ;;
   esac
 }
 
@@ -160,11 +168,13 @@ learn_menu() {
     "󰈙  Lumen manual" \
     "󰖟  Hyprland wiki" \
     "󰣇  Arch Wiki" \
+    "󰋑  Welcome tour" \
     "󰋼  About this computer") in
     *"Key bindings") "$bin/lumen-keys" ;;
     *manual) "$bin/lumen-manual" ;;
     *Hyprland*) launch xdg-open "https://wiki.hypr.land/" ;;
     *Arch*) launch xdg-open "https://wiki.archlinux.org/" ;;
+    *"Welcome tour") "$bin/lumen-welcome" ;;
     *About*) term --float --hold --title "About" -- bash -c 'fastfetch; echo; printf "Lumen %s\n" "$(cat "$LUMEN_PATH/VERSION" 2>/dev/null)"' ;;
   esac
 }

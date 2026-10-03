@@ -52,9 +52,9 @@ else
 fi
 
 step "Shell scripts"
-mapfile -t scripts < <(grep -lE '^#!/usr/bin/env bash|^#!/bin/bash' "$root"/bin/* "$root"/install.sh "$root"/boot.sh "$root"/install/*.sh "$root"/tests/*.sh 2>/dev/null)
+mapfile -t scripts < <(grep -lE '^#!/usr/bin/env bash|^#!/bin/bash' "$root"/bin/* "$root"/install.sh "$root"/boot.sh "$root"/install/*.sh "$root"/tests/*.sh "$root"/iso/*.sh "$root"/iso/airootfs/usr/local/bin/* 2>/dev/null)
 if command -v shellcheck >/dev/null; then
-  if shellcheck -x -P "$root/lib" -e SC1091 -S warning "${scripts[@]}" "$root/lib/lumen.sh"; then
+  if LC_ALL=C.UTF-8 shellcheck -x -P "$root/lib" -e SC1091 -S warning "${scripts[@]}" "$root/lib/lumen.sh"; then
     ok "shellcheck: ${#scripts[@]} scripts"
   else
     bad "shellcheck found issues"
@@ -64,6 +64,46 @@ else
 fi
 for s in "${scripts[@]}"; do bash -n "$s" || bad "syntax: $s"; done
 ok "bash -n"
+
+step "Lumen apps (Start menu, App Store, Welcome)"
+if python3 -m py_compile "$root"/apps/*/*.py "$root/bin/lumen-wallgen" 2>&1; then ok "Python compiles"; else bad "Python syntax"; fi
+rm -rf "$root"/apps/*/__pycache__ "$root"/bin/__pycache__
+if python3 - "$root/apps/lumen-store/catalog.json" <<'PY'
+import json, re, sys
+data = json.load(open(sys.argv[1]))
+cats = {c["id"] for c in data["categories"]}
+ids, problems = set(), []
+for a in data["apps"]:
+    if a["id"] in ids: problems.append(f"duplicate id {a['id']}")
+    ids.add(a["id"])
+    if a["category"] not in cats: problems.append(f"{a['id']}: unknown category {a['category']}")
+    if not a["sources"]: problems.append(f"{a['id']}: no sources")
+    for s in a["sources"]:
+        if s["type"] not in ("pacman", "aur", "flatpak"): problems.append(f"{a['id']}: bad source type {s['type']}")
+        if not re.match(r"^[A-Za-z0-9@._+-]+$", s["id"]): problems.append(f"{a['id']}: bad package id {s['id']}")
+        if s["type"] == "flatpak" and s["id"].count(".") < 2: problems.append(f"{a['id']}: flatpak id {s['id']} looks wrong")
+if problems:
+    sys.exit("\n".join(problems))
+print(f"  {len(ids)} apps in {len(cats)} categories")
+PY
+then ok "store catalogue is valid"; else bad "store catalogue"; fi
+
+# Headless smoke test: each GTK app starts and renders without a traceback.
+if command -v xvfb-run >/dev/null && python3 -c 'import gi; gi.require_version("Gtk", "4.0"); gi.require_version("Adw", "1")' 2>/dev/null; then
+  for app in "lumen-start/lumen_start.py --show" "lumen-store/lumen_store.py" "lumen-welcome/lumen_welcome.py"; do
+    log="$tmp/gui.log"
+    # shellcheck disable=SC2086
+    GDK_BACKEND=x11 GSK_RENDERER=cairo GTK_A11Y=none timeout 25 xvfb-run -a dbus-run-session -- \
+      bash -c "python3 $root/apps/$app & pid=\$!; sleep 6; kill -0 \$pid && echo LUMEN-ALIVE; kill \$pid" >"$log" 2>&1 || true
+    if grep -qE 'Traceback|Error:' "$log" || ! grep -q LUMEN-ALIVE "$log"; then
+      bad "${app%%/*}: $(grep -v 'fd limit' "$log" | grep -m1 -E 'Error|error|No such' || echo "exited early")"
+    else
+      ok "${app%%/*} renders"
+    fi
+  done
+else
+  printf '  - GUI smoke test skipped (needs xvfb-run and Python GTK 4 + libadwaita)\n'
+fi
 
 step "Waybar"
 if python3 - "$root/config/waybar/config.jsonc" <<'PY'

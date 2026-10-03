@@ -13,6 +13,13 @@ lumen/
 │   ├── packages.sh         package sets (required vs best-effort)
 │   ├── migrate.sh          runs after updates: new configs + one-off migrations
 │   └── migrations/         dated, run-once scripts
+├── apps/                   Lumen's own GTK 4 apps (Python + libadwaita)
+│   ├── lumen-start/        the Start menu (layer-shell overlay, D-Bus toggled)
+│   ├── lumen-store/        the App Store and its curated catalog.json
+│   └── lumen-welcome/      the first-boot tour
+├── iso/                    Lumen OS: archiso overlay, build.sh, the OS installer and rescue tool
+├── system/                 OS-level files (fastfetch logo and layout)
+├── share/                  .desktop launchers and icons for Lumen's apps
 ├── bin/                    every `lumen-*` command (bash; one Python tool)
 ├── lib/lumen.sh            shared shell library: paths, settings, menus, terminals
 ├── default/                Lumen-managed defaults, loaded before user config
@@ -58,6 +65,21 @@ Hyprland runs under [uwsm](https://github.com/Vladimir-csp/uwsm), so the session
 
 Apps launched from the launcher or key bindings go through `lumen-launch`, which uses `uwsm app` too. That way every app gets its own scope, and its logs land in `journalctl --user`.
 
+## Lumen OS
+
+`iso/build.sh` copies Arch's official `releng` archiso profile and layers `iso/airootfs/` on top: the installer (`lumen-os-install`, a `gum` TUI), `lumen-rescue`, an auto-start on tty1, and a full copy of this repository at `/opt/lumen`. The profile is renamed and the boot menus rebranded. Because releng is copied at build time, the ISO keeps up with upstream archiso.
+
+The installer partitions (1 GB ESP plus btrfs, optionally inside LUKS2), creates the `@`, `@home`, `@log`, `@pkg` and `@snapshots` subvolumes, and `pacstrap`s a base system with both kernels. It configures a systemd-based initramfs (`plymouth` and `sd-encrypt` hooks) and systemd-boot. Then it runs `install.sh --distro` as the new user inside the chroot. `install/distro.sh` adds the OS layer: os-release branding (with a pacman hook so `filesystem` upgrades keep it), Plymouth, zram, multilib, paccache and snapper.
+
+fstab mounts subvolumes **by name, not ID**, which is what makes rollbacks work. `lumen-snapshot restore` renames `@` to `@broken-<date>`, snapshots the chosen snapshot into a new `@`, and reinstalls that snapshot's kernel version from the `@pkg` cache into `/boot`. That last step keeps the kernel on the ESP matching the restored system's `/usr/lib/modules`.
+
+## Start menu and App Store
+
+Both are Python + GTK 4 apps that take their colours from `apps.css`, rendered by the theme engine like every other app.
+
+- **Start** runs as a hidden `Gtk.Application` (`org.lumen.Start`). Tapping Super runs `lumen-start`, which activates the app's `toggle` action over D-Bus with `gdbus`, so no Python starts per tap. With gtk4-layer-shell it's a full-screen overlay below the bar, whose backdrop closes it on click. The Hyprland bind is `hl.bind("SUPER + SUPER_L", …, { release = true })`. Hyprland shadows release binds while another bound key is pressed, so Super shortcuts never open Start.
+- **The App Store** keeps a curated `catalog.json` (name, category and an ordered list of `pacman`/`flatpak`/`aur` sources). Repo availability is checked with one `pacman -Si` call. Installs run `pkexec pacman`, `flatpak --user` or `yay --sudo pkexec`, with output streamed to a progress bar. Screenshots and descriptions come from Flathub's `/api/v2/appstream/{id}`, and search uses `/api/v2/search`. Everything is cached under `~/.cache/lumen/store`.
+
 ## Menus
 
 Every menu is fuzzel in dmenu mode, through the `menu`, `ask`, `ask_secret` and `confirm` helpers in `lib/lumen.sh`. Opening a menu while another is open closes it, so every menu hotkey doubles as a toggle. Bar modules are custom Waybar modules fed by `lumen-status`. Scripts refresh them instantly with real-time signals through `bar_signal` in `lib/lumen.sh`.
@@ -74,6 +96,7 @@ runs on any Linux machine, without a GPU or Hyprland:
 - **Themes:** every theme renders, with no unresolved placeholders.
 - **Scripts:** `shellcheck` and `bash -n` on every shell script.
 - **Waybar:** `config.jsonc` parses and every listed module has a config block.
+- **Lumen apps:** Python compiles, the store catalogue validates, and the Start menu, App Store and Welcome each launch and render headlessly under Xvfb.
 - **Wallpapers:** the generator runs.
 
 When Hyprland releases a new version, refresh the API snapshot:

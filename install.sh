@@ -10,6 +10,10 @@
 #   --terminal NAME    ghostty (default), alacritty, kitty
 #   --editor NAME      code (default), zed, nvim
 #   --theme NAME       starting theme (default: lumen)
+#   --gaming           also install the gaming stack (Steam, Proton tools, …)
+#   --distro           apply the Lumen OS system layer (branding, snapshots,
+#                      boot splash, zram) — used by the Lumen OS ISO installer
+#   --no-reboot        don't offer to restart at the end
 #   --no-greeter       don't set up the greetd login screen
 #   --autologin        log straight in (sensible with full-disk encryption)
 #   --verbose          show command output instead of spinners
@@ -24,7 +28,7 @@ source "$LUMEN_PATH/install/lib.sh"
 source "$LUMEN_PATH/install/packages.sh"
 
 BROWSER="" TERMINAL_APP="" EDITOR_APP="" THEME="lumen"
-GREETER=1 AUTOLOGIN=0 CONFIGS_ONLY=0
+GREETER=1 AUTOLOGIN=0 CONFIGS_ONLY=0 GAMING=0 DISTRO=0 REBOOT=1
 while [[ $# -gt 0 ]]; do
   case "$1" in
     -y | --yes) export LUMEN_YES=1 ;;
@@ -34,6 +38,9 @@ while [[ $# -gt 0 ]]; do
     --theme) THEME="$2"; shift ;;
     --no-greeter) GREETER=0 ;;
     --autologin) AUTOLOGIN=1 ;;
+    --gaming) GAMING=1 ;;
+    --distro) DISTRO=1 ;;
+    --no-reboot) REBOOT=0 ;;
     --configs-only) CONFIGS_ONLY=1 ;;
     --verbose) export LUMEN_VERBOSE=1 ;;
     -h | --help) sed -n '2,20s/^# \{0,1\}//p' "$0"; exit 0 ;;
@@ -192,6 +199,15 @@ install_configs() {
   done < <(find "$LUMEN_PATH/config" -type f -print0)
   ok "Configs in ~/.config (hypr, waybar, fuzzel, mako, ghostty, …)"
 
+  # Launchers and icons for Lumen's own apps (Start, App Store, Welcome, …).
+  local data="${XDG_DATA_HOME:-$HOME/.local/share}"
+  mkdir -p "$data/applications" "$data/icons/hicolor/scalable/apps"
+  cp "$LUMEN_PATH"/share/applications/*.desktop "$data/applications/"
+  cp "$LUMEN_PATH"/share/icons/hicolor/scalable/apps/*.svg "$data/icons/hicolor/scalable/apps/"
+  update-desktop-database -q "$data/applications" 2>/dev/null || true
+  gtk-update-icon-cache -q -t "$data/icons/hicolor" 2>/dev/null || true
+  ok "App Store, Start menu and Welcome launchers"
+
   mkdir -p "$HOME/.config/lumen"
   local settings="$HOME/.config/lumen/settings.conf"
   if [[ ! -f "$settings" ]]; then
@@ -269,6 +285,14 @@ setup_system() {
 
   if [[ "$(getent passwd "$USER" | cut -d: -f7)" != */zsh ]]; then
     run "Making zsh your shell" sudo chsh -s /usr/bin/zsh "$USER"
+  fi
+
+  if [[ $DISTRO -eq 1 ]]; then
+    run "Applying the Lumen OS system layer (branding, snapshots, boot splash, zram)" sudo LUMEN_PATH="$LUMEN_PATH" bash "$LUMEN_PATH/install/distro.sh"
+  fi
+
+  if [[ $GAMING -eq 1 ]] || { [[ -z "${LUMEN_YES:-}" ]] && ask_yes "Set up gaming too? (Steam, Proton tools, GameMode, MangoHud)" n; }; then
+    run "Installing the gaming stack" env LUMEN_YES=1 "$LUMEN_PATH/bin/lumen-gaming" install
   fi
 
   if [[ $GREETER -eq 1 ]]; then
@@ -379,7 +403,7 @@ finish() {
   Log: ${DIM}$LOG${RESET}
 
 EOF
-  if [[ -z "${WAYLAND_DISPLAY:-}" ]] && ask_yes "Restart now to start Lumen?" y; then
+  if [[ $REBOOT -eq 1 && -z "${WAYLAND_DISPLAY:-}" ]] && ask_yes "Restart now to start Lumen?" y; then
     sudo systemctl reboot
   fi
 }

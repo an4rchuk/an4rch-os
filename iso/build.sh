@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+# Build the Lumen OS installer ISO.
+#
+#   sudo iso/build.sh                 → out/lumen-<date>-x86_64.iso
+#   sudo WORK=/var/tmp/lumen iso/build.sh
+#
+# Needs an Arch Linux host (or the archlinux container) with `archiso`
+# installed. The ISO is Arch's official "releng" live image with Lumen's
+# installer, branding and a copy of this repository layered on top, so it
+# stays in step with upstream archiso automatically.
+#
+# No Arch machine? Push a tag or run the "iso" GitHub Actions workflow: it
+# builds the ISO in an Arch container and attaches it to the run.
+set -euo pipefail
+
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+work="${WORK:-/tmp/lumen-iso}"
+out="${OUT:-$root/out}"
+releng="${RELENG:-/usr/share/archiso/configs/releng}"
+profile="$work/profile"
+
+[[ $EUID -eq 0 ]] || { echo "Run as root (mkarchiso needs it): sudo $0"; exit 1; }
+command -v mkarchiso >/dev/null || { echo "Install archiso first: pacman -S archiso"; exit 1; }
+[[ -d "$releng" ]] || { echo "releng profile not found at $releng"; exit 1; }
+
+echo "==> Preparing profile in $profile"
+rm -rf "$work"
+mkdir -p "$work" "$out"
+cp -a "$releng" "$profile"
+
+# Our files on top of releng's live system.
+cp -a "$root/iso/airootfs/." "$profile/airootfs/"
+
+# Extra packages for the live environment (installer UI and tools).
+cat "$root/iso/packages.x86_64" >>"$profile/packages.x86_64"
+sort -u -o "$profile/packages.x86_64" "$profile/packages.x86_64"
+
+# A copy of Lumen itself (with git history, so `lumen update` works after
+# installing). Build leftovers are left out.
+mkdir -p "$profile/airootfs/opt/lumen"
+tar -C "$root" --exclude=./out --exclude=./work --exclude='./iso/*.iso' --exclude='__pycache__' -cf - . |
+  tar -C "$profile/airootfs/opt/lumen" -xf -
+git -C "$profile/airootfs/opt/lumen" remote set-url origin "${LUMEN_REPO:-https://github.com/twil09/linux.git}" 2>/dev/null || true
+
+# Identity of the image.
+version="$(date +%Y.%m.%d)"
+sed -i \
+  -e 's/^iso_name=.*/iso_name="lumen"/' \
+  -e "s/^iso_label=.*/iso_label=\"LUMEN_\$(date --date=\"@\${SOURCE_DATE_EPOCH:-\$(date +%s)}\" +%Y%m)\"/" \
+  -e 's/^iso_publisher=.*/iso_publisher="Lumen OS <https:\/\/github.com\/twil09\/linux>"/' \
+  -e 's/^iso_application=.*/iso_application="Lumen OS installer"/' \
+  "$profile/profiledef.sh"
+# Our installer must be executable inside the image.
+sed -i 's|^file_permissions=(|file_permissions=(\n  ["/usr/local/bin/lumen-os-install"]="0:0:755"\n  ["/usr/local/bin/lumen-rescue"]="0:0:755"|' "$profile/profiledef.sh"
+
+# Boot menu branding.
+find "$profile/efiboot" "$profile/syslinux" "$profile/grub" -type f \( -name '*.conf' -o -name '*.cfg' \) \
+  -exec sed -i -e 's/Arch Linux install medium/Lumen OS installer/g' -e 's/Arch Linux/Lumen OS/g' {} +
+[[ -f "$root/iso/splash.png" ]] && cp "$root/iso/splash.png" "$profile/syslinux/splash.png"
+
+echo "==> Building (this takes a while)"
+mkarchiso -v -w "$work/build" -o "$out" "$profile"
+
+iso=$(ls -t "$out"/lumen-*.iso | head -n1)
+(cd "$out" && sha256sum "$(basename "$iso")" >"$(basename "$iso").sha256")
+echo
+echo "✓ $iso"
+echo "  Write it to a USB stick with Impression, Ventoy, or:"
+echo "  sudo dd if=$iso of=/dev/sdX bs=4M status=progress oflag=sync"
+echo "  (version $version)"

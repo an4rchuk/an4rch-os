@@ -27,21 +27,25 @@ lumen = { cmd = function() return "" end, launch = function() return "" end }
 -- Section headers come from the "-- Title" banners in binds.lua.
 local src = io.open(root .. "/default/hypr/binds.lua"):read("a")
 local chunks = {}
-local pending_title
+local previous = ""
 for line in src:gmatch("[^\n]*\n?") do
-    local title = line:match("^%-%- ([%w][^%-]*[%w%)])%s*$")
-    if title and not line:match("^%-%- [%l]") then
-        pending_title = title
-        chunks[#chunks + 1] = ("section(%q)\n"):format(pending_title)
+    -- A section title is the comment line right after a "-----" banner.
+    local title = previous:match("^%-%-%-%-%-") and line:match("^%-%- ([%w][^%-]*[%w%)])%s*$")
+    if title then
+        chunks[#chunks + 1] = ("section(%q)\n"):format(title)
     else
         chunks[#chunks + 1] = line
     end
+    previous = line
 end
 local code = table.concat(chunks)
 local env = setmetatable({ section = section }, { __index = _G })
 assert(load(code, "binds.lua", "t", env))()
 
 local function pretty(k)
+    if k:match("^SUPER %+ SUPER_[LR]$") then
+        return "<kbd>SUPER</kbd> tap" .. (k:match("R$") and " (right)" or "")
+    end
     local map = { Return = "Enter", SPACE = "Space", grave = "`", slash = "/", period = ".", comma = ",",
         semicolon = ";", equal = "=", bracketleft = "[", bracketright = "]", Escape = "Esc", escape = "Esc",
         ["mouse:272"] = "Left-drag", ["mouse:273"] = "Right-drag", mouse_down = "Scroll down", mouse_up = "Scroll up",

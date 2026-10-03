@@ -1,0 +1,32 @@
+.welcome-sub {
+  font-size: 15px;
+}
+
+button.theme-tile {
+  padding: 14px 10px;
+  border-radius: 16px;
+  background: alpha(@lumen_fg, 0.05);
+  border: 1px solid alpha(@lumen_fg, 0.07);
+  font-weight: 600;
+}
+
+button.theme-tile:hover {
+  border-color: alpha(@lumen_accent, 0.6);
+  background: alpha(@lumen_accent, 0.12);
+}
+
+.keycap {
+  padding: 6px 12px;
+  min-width: 110px;
+  border-radius: 10px;
+  background: alpha(@lumen_fg, 0.07);
+  border: 1px solid alpha(@lumen_fg, 0.12);
+  border-bottom-width: 3px;
+  font-weight: 700;
+  font-family: "JetBrainsMono Nerd Font", monospace;
+}
+
+.swatch {
+  border-radius: 999px;
+  border: 1px solid alpha(white, 0.15);
+}

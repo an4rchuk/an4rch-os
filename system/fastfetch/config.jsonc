@@ -1,0 +1,28 @@
+// Lumen OS fastfetch layout (system default; copy to ~/.config/fastfetch to change).
+{
+  "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json",
+  "logo": {
+    "type": "file",
+    "source": "/usr/share/lumen/logo.txt",
+    "color": { "1": "magenta", "2": "cyan" },
+    "padding": { "right": 3, "top": 1 }
+  },
+  "display": { "separator": "  ", "color": { "keys": "magenta" } },
+  "modules": [
+    "title",
+    { "type": "custom", "format": "" },
+    { "type": "os", "key": "󰣇 OS" },
+    { "type": "kernel", "key": " Kernel" },
+    { "type": "uptime", "key": "󰅐 Uptime" },
+    { "type": "packages", "key": "󰏗 Packages" },
+    { "type": "wm", "key": " Desktop" },
+    { "type": "terminal", "key": " Terminal" },
+    { "type": "cpu", "key": "󰻠 CPU" },
+    { "type": "gpu", "key": "󰍛 GPU" },
+    { "type": "memory", "key": " Memory" },
+    { "type": "disk", "key": "󰋊 Disk" },
+    { "type": "battery", "key": "󰁹 Battery" },
+    { "type": "custom", "format": "" },
+    "colors"
+  ]
+}

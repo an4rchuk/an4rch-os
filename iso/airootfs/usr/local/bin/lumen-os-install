@@ -1,0 +1,325 @@
+#!/usr/bin/env bash
+# lumen-os-install — install Lumen OS from the live USB.
+#
+# Asks a few questions, then: wipes the chosen disk, creates an EFI partition
+# and an (optionally encrypted) btrfs system with subvolumes for snapshots,
+# installs Arch Linux with the main and LTS kernels, sets up systemd-boot,
+# Plymouth and zram, and finally runs the Lumen installer inside the new
+# system. Everything is logged to /var/log/lumen-os-install.log.
+#
+# Needs: UEFI firmware, an internet connection, 20 GB of disk.
+set -euo pipefail
+
+LUMEN_SRC=/opt/lumen
+LOG=/var/log/lumen-os-install.log
+MNT=/mnt
+ACCENT="#9d8cff"
+DIM="#8b90aa"
+
+exec 3>&1 # the real terminal, for gum while output goes to the log
+
+title() {
+  clear
+  gum style --foreground "$ACCENT" --bold --margin "1 2" \
+    '██╗     ██╗   ██╗███╗   ███╗███████╗███╗   ██╗' \
+    '██║     ██║   ██║████╗ ████║██╔════╝████╗  ██║' \
+    '██║     ██║   ██║██╔████╔██║█████╗  ██╔██╗ ██║' \
+    '██║     ██║   ██║██║╚██╔╝██║██╔══╝  ██║╚██╗██║' \
+    '███████╗╚██████╔╝██║ ╚═╝ ██║███████╗██║ ╚████║' \
+    '╚══════╝ ╚═════╝ ╚═╝     ╚═╝╚══════╝╚═╝  ╚═══╝'
+  [[ -n "${1:-}" ]] && gum style --foreground "$DIM" --margin "0 2 1" "$1"
+  return 0
+}
+
+note() { gum style --foreground "$DIM" --margin "0 2" "$@"; }
+fail() {
+  gum style --foreground "#f2777a" --bold --margin "1 2" "✗ $*" "" "The full log is in $LOG. Run lumen-os-install to try again."
+  exit 1
+}
+step() { printf '\n==> %s\n' "$*" >>"$LOG"; }
+# spin TITLE CMD... — run with a spinner, output to the log.
+spin() {
+  local t="$1"
+  shift
+  step "$t"
+  if ! gum spin --spinner dot --title "  $t" -- bash -c '"$@" >>'"$LOG"' 2>&1' _ "$@"; then
+    tail -n 20 "$LOG" >&3
+    fail "$t failed"
+  fi
+  gum style --foreground "#9fdc9b" "  ✓ $t"
+}
+
+# --- checks -----------------------------------------------------------------------
+[[ $EUID -eq 0 ]] || { echo "Run as root."; exit 1; }
+[[ -d /sys/firmware/efi ]] || {
+  title
+  fail "This computer started in legacy BIOS mode. Lumen OS needs UEFI: turn it on in the firmware settings (often F2 or Del at startup) and boot the USB again."
+}
+[[ -d "$LUMEN_SRC" ]] || fail "Lumen files are missing from this USB ($LUMEN_SRC)."
+
+title "Welcome! This installs Lumen OS on this computer. It takes about 15 minutes."
+gum confirm --affirmative "Let's go" --negative "Not now" "Ready to begin?" || exit 0
+
+# --- network --------------------------------------------------------------------------
+online() { curl -fsS --max-time 6 -o /dev/null https://archlinux.org; }
+until online; do
+  title "Connect to the internet"
+  dev=$(iwctl device list 2>/dev/null | awk '/station/ {print $2; exit}')
+  if [[ -z "$dev" ]]; then
+    note "No internet connection, and no Wi-Fi adapter was found." "Plug in an Ethernet cable, then press Enter."
+    read -r
+    continue
+  fi
+  note "Scanning for Wi-Fi networks…"
+  iwctl station "$dev" scan >/dev/null 2>&1 || true
+  sleep 3
+  mapfile -t nets < <(iwctl station "$dev" get-networks 2>/dev/null | sed 's/\x1b\[[0-9;]*m//g' | awk 'NR>4 && NF {sub(/^ *> */, ""); sub(/ +(psk|open|8021x) +\**$/, ""); sub(/ +$/, ""); if ($0 != "") print}')
+  [[ ${#nets[@]} -gt 0 ]] || { note "No networks found. Press Enter to scan again."; read -r; continue; }
+  ssid=$(printf '%s\n' "${nets[@]}" "Other network…" | gum choose --header "Choose your Wi-Fi network") || continue
+  [[ "$ssid" == "Other network…" ]] && { ssid=$(gum input --header "Network name") || continue; }
+  pass=$(gum input --password --placeholder "Password (leave empty for open networks)" --header "Password for $ssid") || continue
+  if [[ -n "$pass" ]]; then
+    iwctl --passphrase "$pass" station "$dev" connect "$ssid" >>"$LOG" 2>&1 || true
+  else
+    iwctl station "$dev" connect "$ssid" >>"$LOG" 2>&1 || true
+  fi
+  WIFI_SSID="$ssid" WIFI_PASS="$pass"
+  sleep 4
+done
+timedatectl set-ntp true >/dev/null 2>&1 || true
+
+# --- keyboard -------------------------------------------------------------------------
+title "Keyboard"
+keymap=$( { echo us; localectl list-keymaps | grep -vx us; } | gum filter --height 12 --placeholder "Type to search (us, uk, de, fr…)" --header "Keyboard layout") || keymap=us
+loadkeys "$keymap" 2>/dev/null || true
+
+# --- disk -----------------------------------------------------------------------------
+title "Where should Lumen OS go?"
+mapfile -t disks < <(lsblk -dpno NAME,SIZE,MODEL,TYPE -e 7,11 | awk '$NF == "disk" {$NF=""; print}' | sed 's/ *$//')
+[[ ${#disks[@]} -gt 0 ]] || fail "No disks found."
+disk_line=$(printf '%s\n' "${disks[@]}" | gum choose --header "Choose a disk. EVERYTHING on it will be erased.") || exit 1
+DISK="${disk_line%% *}"
+size_gb=$(( $(lsblk -bdno SIZE "$DISK") / 1024 / 1024 / 1024 ))
+(( size_gb >= 20 )) || fail "$DISK is only ${size_gb} GB; Lumen OS needs at least 20 GB."
+
+title "Encryption"
+note "Encryption protects your files if the computer is lost or stolen." "You'll type a password every time it starts."
+ENCRYPT=0
+if gum confirm --default=true "Encrypt the disk? (recommended for laptops)"; then
+  ENCRYPT=1
+  while true; do
+    LUKS_PASS=$(gum input --password --header "Disk encryption password" --placeholder "At least 8 characters")
+    [[ ${#LUKS_PASS} -ge 8 ]] || { note "Too short — use at least 8 characters."; continue; }
+    again=$(gum input --password --header "Type it again")
+    [[ "$LUKS_PASS" == "$again" ]] && break
+    note "They didn't match. Try again."
+  done
+fi
+
+# --- account --------------------------------------------------------------------------
+title "Your account"
+FULLNAME=$(gum input --header "Your name" --placeholder "Alex Doe") || FULLNAME=""
+FULLNAME=$(tr -d '"$`\\:' <<<"$FULLNAME")
+default_user=$(tr '[:upper:]' '[:lower:]' <<<"${FULLNAME%% *}" | tr -cd 'a-z0-9_-')
+while true; do
+  USERNAME=$(gum input --header "Username (for logging in)" --value "${default_user:-user}")
+  [[ "$USERNAME" =~ ^[a-z_][a-z0-9_-]{0,31}$ ]] && [[ "$USERNAME" != root ]] && break
+  note "Use lower-case letters, digits, - or _, starting with a letter."
+done
+while true; do
+  USER_PASS=$(gum input --password --header "Password for $USERNAME")
+  [[ -n "$USER_PASS" ]] || { note "The password can't be empty."; continue; }
+  again=$(gum input --password --header "Type it again")
+  [[ "$USER_PASS" == "$again" ]] && break
+  note "They didn't match. Try again."
+done
+HOSTNAME_=$(gum input --header "Computer name (on the network)" --value "lumen") || HOSTNAME_=lumen
+[[ "$HOSTNAME_" =~ ^[a-zA-Z0-9][a-zA-Z0-9-]{0,62}$ ]] || HOSTNAME_=lumen
+
+# --- time and language ------------------------------------------------------------------
+title "Time zone and language"
+TZ_GUESS=$(curl -fsS --max-time 5 https://ipapi.co/timezone 2>/dev/null || true)
+if [[ -n "$TZ_GUESS" && -f "/usr/share/zoneinfo/$TZ_GUESS" ]] && gum confirm "Your time zone looks like $TZ_GUESS. Use it?"; then
+  TIMEZONE="$TZ_GUESS"
+else
+  TIMEZONE=$(timedatectl list-timezones | gum filter --height 12 --header "Time zone" --placeholder "Europe/London, America/New_York…") || TIMEZONE=UTC
+fi
+LOCALE=$( { echo en_US.UTF-8; grep -oE '^[a-z]{2,3}_[A-Z]{2}\.UTF-8' /usr/share/i18n/SUPPORTED | grep -vx en_US.UTF-8; } |
+  gum filter --height 10 --header "Language and formats" --placeholder "en_GB, de_DE, fr_FR…") || LOCALE=en_US.UTF-8
+
+# --- software ----------------------------------------------------------------------------
+title "Apps"
+BROWSER=$(gum choose --header "Web browser" firefox chromium brave zen-browser) || BROWSER=firefox
+TERMINAL_APP=$(gum choose --header "Terminal" ghostty alacritty kitty) || TERMINAL_APP=ghostty
+EDITOR_APP=$(gum choose --header "Code editor" code zed nvim) || EDITOR_APP=code
+GAMING=0
+gum confirm --default=false "Set up gaming? (Steam, Proton, GameMode, MangoHud — about 1.5 GB)" && GAMING=1
+THEME=$(ls "$LUMEN_SRC/themes" | gum choose --header "Theme (change any time later)" --selected lumen) || THEME=lumen
+
+# --- review ---------------------------------------------------------------------------------
+title "Ready to install"
+gum style --border rounded --border-foreground "$ACCENT" --padding "1 3" --margin "0 2" \
+  "Disk:        $disk_line" \
+  "Encryption:  $([[ $ENCRYPT -eq 1 ]] && echo on || echo off)" \
+  "User:        $USERNAME${FULLNAME:+ ($FULLNAME)}" \
+  "Computer:    $HOSTNAME_" \
+  "Time zone:   $TIMEZONE" \
+  "Language:    $LOCALE · keyboard $keymap" \
+  "Apps:        $BROWSER, $TERMINAL_APP, $EDITOR_APP$([[ $GAMING -eq 1 ]] && echo ', gaming')" \
+  "Theme:       $THEME"
+echo
+gum style --foreground "#f2777a" --bold --margin "0 2" "Everything on $DISK will be permanently erased."
+gum confirm --default=false --affirmative "Erase and install" --negative "Cancel" "Continue?" || exit 0
+
+# --- install -----------------------------------------------------------------------------------
+title "Installing Lumen OS"
+: >"$LOG"
+part() { if [[ "$DISK" =~ [0-9]$ ]]; then echo "${DISK}p$1"; else echo "${DISK}$1"; fi; }
+EFI=$(part 1)
+SYS=$(part 2)
+
+umount -R "$MNT" 2>/dev/null || true
+cryptsetup close cryptroot 2>/dev/null || true
+spin "Mirrors: picking the fastest" timeout 90 reflector --latest 20 --protocol https --sort rate --save /etc/pacman.d/mirrorlist
+spin "Partitioning $DISK" bash -c "wipefs -af '$DISK' && sgdisk -Z '$DISK' && sgdisk -n1:0:+1G -t1:ef00 -c1:EFI -n2:0:0 -t2:8300 -c2:lumen '$DISK' && partprobe '$DISK' && udevadm settle"
+
+ROOTDEV="$SYS"
+if [[ $ENCRYPT -eq 1 ]]; then
+  step "Encrypting"
+  printf '%s' "$LUKS_PASS" | cryptsetup luksFormat --type luks2 --batch-mode --label lumen-crypt "$SYS" - >>"$LOG" 2>&1 || fail "Encryption failed"
+  printf '%s' "$LUKS_PASS" | cryptsetup open --allow-discards --persistent "$SYS" cryptroot - >>"$LOG" 2>&1 || fail "Unlocking failed"
+  ROOTDEV=/dev/mapper/cryptroot
+  gum style --foreground "#9fdc9b" "  ✓ Encrypted the system partition"
+fi
+
+spin "Formatting" bash -c "mkfs.fat -F32 -n EFI '$EFI' && mkfs.btrfs -f -L lumen '$ROOTDEV'"
+
+OPTS="noatime,compress=zstd:1,space_cache=v2"
+spin "Creating btrfs subvolumes" bash -c "
+  mount '$ROOTDEV' '$MNT' &&
+  for sv in @ @home @log @pkg @snapshots; do btrfs subvolume create '$MNT/'\$sv; done &&
+  umount '$MNT' &&
+  mount -o '$OPTS,subvol=@' '$ROOTDEV' '$MNT' &&
+  mkdir -p '$MNT'/{boot,home,var/log,var/cache/pacman/pkg,.snapshots} &&
+  mount -o '$OPTS,subvol=@home' '$ROOTDEV' '$MNT/home' &&
+  mount -o '$OPTS,subvol=@log' '$ROOTDEV' '$MNT/var/log' &&
+  mount -o '$OPTS,subvol=@pkg' '$ROOTDEV' '$MNT/var/cache/pacman/pkg' &&
+  mount -o '$OPTS,subvol=@snapshots' '$ROOTDEV' '$MNT/.snapshots' &&
+  mount -o umask=0077 '$EFI' '$MNT/boot'"
+
+UCODE=""
+grep -q GenuineIntel /proc/cpuinfo && UCODE=intel-ucode
+grep -q AuthenticAMD /proc/cpuinfo && UCODE=amd-ucode
+# mkinitcpio settings must exist before the kernels are installed.
+mkdir -p "$MNT/etc/mkinitcpio.conf.d"
+cat >"$MNT/etc/mkinitcpio.conf.d/lumen.conf" <<'EOF'
+# Lumen OS: systemd-based initramfs with boot splash and disk unlock.
+HOOKS=(base systemd plymouth autodetect microcode modconf kms keyboard sd-vconsole block sd-encrypt filesystems fsck)
+EOF
+printf 'KEYMAP=%s\n' "$keymap" >"$MNT/etc/vconsole.conf"
+
+spin "Installing the base system (the longest step)" pacstrap -K "$MNT" \
+  base linux linux-lts linux-firmware sof-firmware $UCODE btrfs-progs cryptsetup \
+  sudo git base-devel networkmanager wpa_supplicant plymouth zram-generator \
+  snapper snap-pac efibootmgr arch-install-scripts pciutils man-db nano reflector
+
+genfstab -U "$MNT" >>"$MNT/etc/fstab"
+# Mount subvolumes by name only: rollbacks replace @ with a new subvolume ID.
+sed -i -E 's/,?subvolid=[0-9]+//' "$MNT/etc/fstab"
+
+ROOT_UUID=$(blkid -s UUID -o value "$ROOTDEV")
+if [[ $ENCRYPT -eq 1 ]]; then
+  LUKS_UUID=$(blkid -s UUID -o value "$SYS")
+  ROOT_ARGS="rd.luks.name=$LUKS_UUID=cryptroot rd.luks.options=discard root=/dev/mapper/cryptroot"
+else
+  ROOT_ARGS="root=UUID=$ROOT_UUID"
+fi
+CMDLINE="$ROOT_ARGS rootflags=subvol=@ rw quiet splash loglevel=3 rd.udev.log_level=3 vt.global_cursor_default=0"
+
+step "Configuring the system"
+arch-chroot "$MNT" /bin/bash -e >>"$LOG" 2>&1 <<CHROOT || fail "System configuration failed"
+ln -sf "/usr/share/zoneinfo/$TIMEZONE" /etc/localtime
+hwclock --systohc
+sed -i "s/^#\\(en_US.UTF-8 UTF-8\\)/\\1/" /etc/locale.gen
+grep -q "^${LOCALE} " /etc/locale.gen || sed -i "s/^#\\(${LOCALE} UTF-8\\)/\\1/" /etc/locale.gen
+locale-gen
+echo "LANG=$LOCALE" >/etc/locale.conf
+echo "$HOSTNAME_" >/etc/hostname
+cat >/etc/hosts <<HOSTS
+127.0.0.1 localhost
+::1       localhost
+127.0.1.1 $HOSTNAME_.localdomain $HOSTNAME_
+HOSTS
+
+useradd -m -G wheel -s /bin/bash -c "$FULLNAME" "$USERNAME"
+echo '%wheel ALL=(ALL:ALL) ALL' >/etc/sudoers.d/10-wheel
+chmod 440 /etc/sudoers.d/10-wheel
+passwd -l root
+
+bootctl install --esp-path=/boot
+cat >/boot/loader/loader.conf <<LOADER
+default lumen.conf
+timeout 3
+console-mode max
+editor no
+LOADER
+cat >/boot/loader/entries/lumen.conf <<ENTRY
+title   Lumen OS
+linux   /vmlinuz-linux
+initrd  /initramfs-linux.img
+options $CMDLINE
+ENTRY
+cat >/boot/loader/entries/lumen-lts.conf <<ENTRY
+title   Lumen OS (LTS kernel)
+linux   /vmlinuz-linux-lts
+initrd  /initramfs-linux-lts.img
+options $CMDLINE
+ENTRY
+systemctl enable systemd-boot-update.service NetworkManager
+mkinitcpio -P
+CHROOT
+gum style --foreground "#9fdc9b" "  ✓ Configured the system and boot loader"
+
+# Passwords never go through the log.
+printf '%s:%s\n' "$USERNAME" "$USER_PASS" | arch-chroot "$MNT" chpasswd
+
+# Carry the Wi-Fi network over to NetworkManager.
+if [[ -n "${WIFI_SSID:-}" ]]; then
+  conn="$MNT/etc/NetworkManager/system-connections/$WIFI_SSID.nmconnection"
+  mkdir -p "$(dirname "$conn")"
+  {
+    printf '[connection]\nid=%s\ntype=wifi\n\n[wifi]\nmode=infrastructure\nssid=%s\n\n' "$WIFI_SSID" "$WIFI_SSID"
+    [[ -n "${WIFI_PASS:-}" ]] && printf '[wifi-security]\nkey-mgmt=wpa-psk\npsk=%s\n\n' "$WIFI_PASS"
+    printf '[ipv4]\nmethod=auto\n\n[ipv6]\nmethod=auto\n'
+  } >"$conn"
+  chmod 600 "$conn"
+fi
+
+# Lumen itself, installed as the new user with temporary password-less sudo.
+spin "Copying Lumen" bash -c "mkdir -p '$MNT/home/$USERNAME/.local/share' && cp -a '$LUMEN_SRC' '$MNT/home/$USERNAME/.local/share/lumen' && arch-chroot '$MNT' chown -R '$USERNAME:$USERNAME' '/home/$USERNAME/.local'"
+echo "$USERNAME ALL=(ALL) NOPASSWD: ALL" >"$MNT/etc/sudoers.d/99-lumen-install"
+chmod 440 "$MNT/etc/sudoers.d/99-lumen-install"
+
+lumen_args=(--yes --distro --no-reboot --browser "$BROWSER" --terminal "$TERMINAL_APP" --editor "$EDITOR_APP" --theme "$THEME")
+[[ $GAMING -eq 1 ]] && lumen_args+=(--gaming)
+step "Lumen installer: ${lumen_args[*]}"
+gum style --foreground "$DIM" --margin "1 2 0" "Installing the Lumen desktop and apps (10–20 minutes). Progress: $LOG"
+if ! arch-chroot "$MNT" sudo -u "$USERNAME" env HOME="/home/$USERNAME" USER="$USERNAME" LUMEN_YES=1 LUMEN_VERBOSE=1 \
+  bash "/home/$USERNAME/.local/share/lumen/install.sh" "${lumen_args[@]}" >>"$LOG" 2>&1; then
+  rm -f "$MNT/etc/sudoers.d/99-lumen-install"
+  fail "The Lumen desktop didn't install completely. The system boots to a console; log in and run ~/.local/share/lumen/install.sh to finish."
+fi
+rm -f "$MNT/etc/sudoers.d/99-lumen-install"
+cp "$LOG" "$MNT/var/log/lumen-os-install.log" 2>/dev/null || true
+gum style --foreground "#9fdc9b" "  ✓ Installed the Lumen desktop"
+
+# A first snapshot of the fresh system, to always be able to go back.
+arch-chroot "$MNT" snapper --no-dbus -c root create --description "Fresh install" --userdata important=yes >>"$LOG" 2>&1 || true
+
+sync
+umount -R "$MNT"
+[[ $ENCRYPT -eq 1 ]] && cryptsetup close cryptroot
+
+title "Lumen OS is installed"
+note "Remove the USB stick, then restart." "" "After logging in, tap the Windows key to open Start."
+gum confirm --affirmative "Restart now" --negative "Stay here" "Restart?" && systemctl reboot

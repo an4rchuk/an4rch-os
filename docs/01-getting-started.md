@@ -1,5 +1,10 @@
 # Getting started
 
+There are two ways to get Lumen:
+
+- **Lumen OS**: boot the installer ISO and it sets up the whole computer, including disk encryption, snapshots and the boot loader. See [Lumen OS](09-lumen-os.md).
+- **On an existing Arch install**: the steps below. You get the same desktop, Start menu, App Store and tools on top of the system you already have.
+
 ## What you need
 
 - A computer with a fresh [Arch Linux](https://wiki.archlinux.org/title/Installation_guide) install. `archinstall` with the **minimal** profile is perfect. Arch-based distributions (EndeavourOS, CachyOS) work too.
@@ -49,17 +54,19 @@ Useful options (pass them after `bash -s --` when piping, e.g. `… | bash -s --
 | `--theme nord` | Start with a different theme |
 | `--autologin` | Skip the login screen. Only sensible with full-disk encryption |
 | `--no-greeter` | No login screen; logging in on the first console starts the desktop |
+| `--gaming` | Also install the gaming stack (Steam, Proton tools, GameMode, MangoHud) |
+| `--distro` | Apply the Lumen OS system layer (branding, snapshots, boot splash, zram) |
 | `--configs-only` | Refresh configs and styling without touching packages |
 
 The installer is safe to run again. Packages already installed are skipped. On later runs your configs are only added when missing, never overwritten.
 
 ## The first login
 
-After the restart you'll see the login screen. Sign in, and Lumen greets you with a notification listing the essentials.
+After the restart you'll see the login screen. Sign in, and the **Welcome** tour opens: pick a theme, connect Wi-Fi, set up gaming, get apps, and learn the keys. Reopen it any time from Start.
 
 The top bar, from left to right:
 
-- **󰣇** opens the Lumen menu (right-click opens the app launcher).
+- **󰣇** opens Start (right-click opens the Lumen menu).
 - **Workspace dots.** Click one to switch, scroll to move through them.
 - **The active window's title.**
 - **Clock** in the centre. Hover for a calendar, scroll it to change month. Pending reminders show next to it.
@@ -71,7 +78,8 @@ The top bar, from left to right:
 
 | Keys | Does |
 | --- | --- |
-| <kbd>SUPER</kbd> + <kbd>SPACE</kbd> | Open an app |
+| <kbd>SUPER</kbd> (tap) | Start menu |
+| <kbd>SUPER</kbd> + <kbd>A</kbd> | App Store |
 | <kbd>SUPER</kbd> + <kbd>Enter</kbd> | Terminal |
 | <kbd>SUPER</kbd> + <kbd>B</kbd> | Browser |
 | <kbd>SUPER</kbd> + <kbd>W</kbd> | Close the window |

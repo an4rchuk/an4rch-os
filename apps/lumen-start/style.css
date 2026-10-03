@@ -1,0 +1,198 @@
+/* Lumen Start. Colours come from the theme (apps.css @define-color lumen_*). */
+
+window.lumen-start {
+  background: transparent;
+}
+
+.backdrop {
+  background: alpha(black, 0.18);
+}
+
+.panel {
+  margin-top: 10px;
+  padding: 20px 20px 12px;
+  border-radius: 22px;
+  background: alpha(@lumen_bg_alt, 0.96);
+  border: 1px solid alpha(@lumen_fg, 0.08);
+  box-shadow: 0 18px 50px alpha(black, 0.45);
+  color: @lumen_fg;
+  font-family: "Inter", sans-serif;
+}
+
+entry.search, searchentry.search {
+  min-height: 42px;
+  padding: 0 14px;
+  border-radius: 14px;
+  background: alpha(@lumen_fg, 0.06);
+  border: 1px solid alpha(@lumen_fg, 0.08);
+  color: @lumen_fg;
+  font-size: 15px;
+  margin-bottom: 14px;
+  box-shadow: none;
+  outline: none;
+}
+
+searchentry.search:focus-within {
+  border-color: alpha(@lumen_accent, 0.75);
+  background: alpha(@lumen_fg, 0.08);
+}
+
+.section-head {
+  margin: 4px 6px 6px;
+}
+
+.section-title {
+  font-weight: 700;
+  font-size: 13px;
+  color: @lumen_fg;
+}
+
+.recent-title {
+  margin: 14px 6px 4px;
+}
+
+button.pill {
+  border: none;
+  box-shadow: none;
+  padding: 3px 12px;
+  min-height: 0;
+  border-radius: 999px;
+  background: alpha(@lumen_fg, 0.07);
+  color: @lumen_fg;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+button.pill:hover {
+  background: alpha(@lumen_fg, 0.13);
+}
+
+button.tile {
+  padding: 12px 4px 10px;
+  border-radius: 14px;
+  color: @lumen_fg;
+  background: transparent;
+  transition: background 120ms ease;
+}
+
+button.tile:hover {
+  background: alpha(@lumen_fg, 0.07);
+}
+
+button.tile:active {
+  background: alpha(@lumen_accent, 0.18);
+}
+
+.tile-label {
+  font-size: 12px;
+}
+
+list.results {
+  background: transparent;
+}
+
+list.results row.result {
+  padding: 7px 10px;
+  margin: 1px 0;
+  border-radius: 12px;
+  color: @lumen_fg;
+  background: transparent;
+}
+
+list.results row.result:hover {
+  background: alpha(@lumen_fg, 0.06);
+}
+
+list.results row.result:selected {
+  background: alpha(@lumen_accent, 0.20);
+}
+
+.result-title {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.result-subtitle {
+  font-size: 12px;
+  color: @lumen_fg_dim;
+}
+
+.action-icon-box {
+  border-radius: 9px;
+  background: alpha(@lumen_accent, 0.16);
+}
+
+.action-icon {
+  color: @lumen_accent;
+}
+
+.letter {
+  margin: 12px 12px 4px;
+  font-weight: 700;
+  font-size: 12px;
+  color: @lumen_accent;
+}
+
+scrollbar {
+  background: transparent;
+}
+
+.footer {
+  margin-top: 12px;
+  padding: 10px 6px 0;
+  border-top: 1px solid alpha(@lumen_fg, 0.08);
+}
+
+.avatar {
+  border-radius: 999px;
+  background: linear-gradient(135deg, @lumen_accent, @lumen_accent2);
+  color: @lumen_bg;
+  font-weight: 800;
+  font-size: 14px;
+}
+
+.avatar-image {
+  border-radius: 999px;
+}
+
+.user-name {
+  font-weight: 600;
+  font-size: 13px;
+}
+
+button.footer-button, menubutton.footer-button > button {
+  border: none;
+  box-shadow: none;
+  outline: none;
+  min-width: 36px;
+  min-height: 36px;
+  border-radius: 12px;
+  color: @lumen_fg;
+  background: transparent;
+}
+
+button.footer-button:hover, menubutton.footer-button > button:hover {
+  background: alpha(@lumen_fg, 0.08);
+}
+
+menubutton.power > button {
+  color: @lumen_red;
+}
+
+popover.power-popover > contents {
+  padding: 6px;
+  border-radius: 14px;
+  background: @lumen_bg_alt;
+  border: 1px solid alpha(@lumen_fg, 0.1);
+  color: @lumen_fg;
+}
+
+button.power-item {
+  padding: 8px 14px;
+  border-radius: 10px;
+  color: @lumen_fg;
+}
+
+button.power-item:hover {
+  background: alpha(@lumen_fg, 0.08);
+}

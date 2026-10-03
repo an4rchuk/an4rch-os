@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Settings
+GenericName=System Settings
+Comment=Wi-Fi, Bluetooth, sound, displays, themes and more
+Exec=lumen-menu setup
+Icon=lumen-settings
+Terminal=false
+Categories=Settings;System;
+Keywords=settings;preferences;control;panel;wifi;bluetooth;display;

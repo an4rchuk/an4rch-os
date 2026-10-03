@@ -36,6 +36,8 @@ start() {
   start_once waybar waybar
   start_once mako mako
   start_once hypridle hypridle
+  # The Start menu waits in the background so a Super tap opens it instantly.
+  pgrep -f 'lumen-start/lumen_start.py' >/dev/null || launch "$LUMEN_PATH/bin/lumen-start" --daemon
 
   # Clipboard history for text and images.
   if has cliphist && has wl-paste; then
@@ -54,13 +56,17 @@ start() {
   [[ -f "$LUMEN_STATE/nightlight" ]] && "$LUMEN_PATH/bin/lumen-toggle" nightlight on
   [[ -f "$LUMEN_STATE/dnd" ]] && makoctl mode -a do-not-disturb >/dev/null 2>&1
 
-  # First login: say hello and point at the essentials.
-  if [[ ! -f "$LUMEN_STATE/welcomed" ]]; then
-    touch "$LUMEN_STATE/welcomed"
-    (
-      sleep 3
-      notify "Welcome to Lumen" "SUPER + SPACE  apps\nSUPER + ALT + SPACE  Lumen menu\nSUPER + /  all key bindings\nSUPER + F1  the manual" -i user-home -t 15000
-    ) &
+  # First login: open the welcome tour (falls back to a notification).
+  if [[ ! -f "$LUMEN_STATE/welcome-done" ]]; then
+    if python3 -c 'import gi; gi.require_version("Adw", "1")' 2>/dev/null; then
+      (sleep 2 && launch "$LUMEN_PATH/bin/lumen-welcome") &
+    elif [[ ! -f "$LUMEN_STATE/welcomed" ]]; then
+      touch "$LUMEN_STATE/welcomed"
+      (
+        sleep 3
+        notify "Welcome to Lumen" "Tap the Windows key for Start\nSUPER + ALT + SPACE  Lumen menu\nSUPER + /  all key bindings\nSUPER + F1  the manual" -i user-home -t 15000
+      ) &
+    fi
   fi
 }
 

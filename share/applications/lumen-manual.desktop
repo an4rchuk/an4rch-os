@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Lumen Manual
+Comment=How to use and customise Lumen OS
+Exec=lumen-manual
+Icon=help-browser
+Terminal=false
+Categories=Documentation;

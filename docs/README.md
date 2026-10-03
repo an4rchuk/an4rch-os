@@ -14,10 +14,11 @@ Open it any time with <kbd>SUPER</kbd> + <kbd>F1</kbd>, or `lumen manual <topic>
 | [System and hardware](06-system.md) | Wi-Fi, Bluetooth, audio, displays, sleep, lock screen, login, fingerprint, printing, updates, installing apps |
 | [Troubleshooting](07-troubleshooting.md) | `lumen doctor`, logs, recovering from a broken config |
 | [How Lumen works](08-architecture.md) | The repository layout, the theme engine and the test suite |
+| [Lumen OS](09-lumen-os.md) | The installer ISO, Start menu, App Store, gaming, snapshots, rollback and rescue |
 
 ## The three things to remember
 
-1. <kbd>SUPER</kbd> + <kbd>SPACE</kbd> opens any app.
+1. Tap <kbd>SUPER</kbd> (the Windows key) to open Start; <kbd>SUPER</kbd> + <kbd>SPACE</kbd> is the quick launcher.
 2. <kbd>SUPER</kbd> + <kbd>ALT</kbd> + <kbd>SPACE</kbd> opens the Lumen menu, which reaches every feature in this manual.
 3. <kbd>SUPER</kbd> + <kbd>/</kbd> lists every key binding, searchable.
 

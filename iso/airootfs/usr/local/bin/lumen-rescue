@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+# lumen-rescue — roll back an installed Lumen OS that no longer starts.
+#
+# Run from the Lumen OS live USB. Unlocks the disk if needed, lists the
+# system snapshots, and makes the one you choose the active system again —
+# the same as `lumen-snapshot restore` on a running system. /home is never
+# touched; the broken system is kept as @broken-<date>.
+set -euo pipefail
+ACCENT="#9d8cff"
+[[ $EUID -eq 0 ]] || { echo "Run as root."; exit 1; }
+
+gum style --foreground "$ACCENT" --bold --margin "1 2" "Lumen OS rescue" 
+gum style --margin "0 2 1" "Restore your system to a snapshot taken before things went wrong."
+
+# Find the Lumen system partition (encrypted or plain btrfs).
+mapfile -t parts < <(lsblk -pnro NAME,FSTYPE,LABEL | awk '$2 == "crypto_LUKS" || ($2 == "btrfs" && $3 == "lumen") {print $1" "$2}')
+[[ ${#parts[@]} -gt 0 ]] || { echo "No Lumen OS installation found."; exit 1; }
+pick=$(printf '%s\n' "${parts[@]}" | gum choose --header "Which installation?")
+dev="${pick%% *}"
+if [[ "$pick" == *crypto_LUKS ]]; then
+  cryptsetup status rescue >/dev/null 2>&1 || {
+    pass=$(gum input --password --header "Disk encryption password")
+    printf '%s' "$pass" | cryptsetup open "$dev" rescue - || { echo "Wrong password."; exit 1; }
+  }
+  dev=/dev/mapper/rescue
+fi
+
+top=/mnt/lumen-top
+mkdir -p "$top"
+mountpoint -q "$top" || mount -o subvolid=5 "$dev" "$top"
+
+mapfile -t snaps < <(for d in "$top"/@snapshots/*/; do
+  n=$(basename "$d")
+  [[ -f "$d/info.xml" && -d "$d/snapshot" ]] || continue
+  date=$(sed -n 's:.*<date>\(.*\)</date>.*:\1:p' "$d/info.xml")
+  desc=$(sed -n 's:.*<description>\(.*\)</description>.*:\1:p' "$d/info.xml")
+  printf '%s  %s  %s\n' "$n" "$date" "$desc"
+done | sort -n -r)
+[[ ${#snaps[@]} -gt 0 ]] || { echo "No snapshots found."; exit 1; }
+choice=$(printf '%s\n' "${snaps[@]}" | gum choose --height 15 --header "Restore which snapshot? (newest first; 'pre' = before an update)")
+n="${choice%% *}"
+gum confirm "Make snapshot $n the active system? Your current system is kept as a backup." || exit 0
+
+stamp=$(date +%Y%m%d-%H%M%S)
+mv "$top/@" "$top/@broken-$stamp"
+btrfs subvolume snapshot "$top/@snapshots/$n/snapshot" "$top/@" >/dev/null
+
+# Put back the snapshot's own kernels on the boot partition.
+new=/mnt/lumen-new
+mkdir -p "$new"
+mount -o subvol=@ "$dev" "$new"
+mount -o subvol=@pkg "$dev" "$new/var/cache/pacman/pkg"
+esp=$(lsblk -pnro NAME,PARTLABEL,FSTYPE | awk '$2 == "EFI" && $3 == "vfat" {print $1; exit}')
+[[ -n "$esp" ]] && mount "$esp" "$new/boot"
+for k in linux linux-lts; do
+  ver=$(pacman --root "$new" --dbpath "$new/var/lib/pacman" -Q "$k" 2>/dev/null | awk '{print $2}') || true
+  [[ -n "$ver" ]] || continue
+  pkg=$(find "$new/var/cache/pacman/pkg" -maxdepth 1 -name "$k-$ver-*.pkg.tar.zst" | head -n1)
+  if [[ -n "$pkg" ]]; then
+    echo "Restoring kernel $k $ver"
+    arch-chroot "$new" pacman -U --noconfirm --overwrite '/boot/*' "/var/cache/pacman/pkg/$(basename "$pkg")" >/dev/null
+  else
+    arch-chroot "$new" mkinitcpio -p "$k" >/dev/null 2>&1 || true
+  fi
+done
+umount -R "$new"
+umount "$top"
+
+gum style --foreground "#9fdc9b" --bold --margin "1 2" "✓ Restored snapshot $n." "Remove the USB stick and restart."

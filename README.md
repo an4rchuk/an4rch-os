@@ -1,26 +1,42 @@
-# Lumen
+# Lumen OS
 
-**A calm, keyboard-driven Linux desktop that is ready the moment you log in.**
+**An Arch-based Linux distribution that's calm, fast, and ready for work and play the moment you log in.**
 
-Lumen turns a fresh Arch Linux install into a polished [Hyprland](https://hypr.land) desktop. It sets up a clean top bar, a launcher and menus for everything, themes that restyle the whole system at once, and the everyday tools already wired in: screenshots, screen recording, clipboard history, reminders, an emoji picker, a calculator, OCR and web apps. Wi-Fi, Bluetooth, audio, displays, sleep, login, fingerprint, printing, updates and installing apps are each one key away.
+Lumen OS takes inspiration from [Omarchy](https://omarchy.org) (an opinionated, keyboard-first Hyprland desktop on plain Arch) and [Bazzite](https://bazzite.gg) (roll back any update, gaming ready, a friendly app store). It ships as a bootable installer ISO; the same desktop also installs on any existing Arch system.
+
+- **Tap the Windows key** for the Start menu: pinned apps, recent apps, everything A–Z, and a search that also finds settings, does maths and searches the web.
+- **App Store** for Flathub, the Arch repositories and the AUR in one place, with screenshots, one-click install, and updates.
+- **Snapshots on every update**, so a bad update is one click (or one reboot into the LTS kernel) away from undone.
+- **Gaming in one click:** Steam, Proton tools, GameMode, MangoHud, gamescope and an optional Steam Game Mode session.
+
+![The Start menu, the App Store, settings search in Start, and the welcome tour](docs/images/start-store-welcome.jpg)
+<sub>The Start menu, App Store, a settings search in Start, and the welcome tour, rendered from the real apps during testing (with a fallback font instead of Inter).</sub>
+
+Underneath is a polished [Hyprland](https://hypr.land) desktop. It sets up a clean top bar, a launcher and menus for everything, themes that restyle the whole system at once, and the everyday tools already wired in: screenshots, screen recording, clipboard history, reminders, an emoji picker, a calculator, OCR and web apps. Wi-Fi, Bluetooth, audio, displays, sleep, login, fingerprint, printing, updates and installing apps are each one key away.
 
 ![Lumen's nine themes, each with its own generated wallpaper](docs/images/themes.jpg)
 <sub>Mock-ups of the nine bundled themes, drawn on the wallpapers Lumen paints for each one at install time.</sub>
 
 ## Install
 
-On a fresh [Arch Linux](https://wiki.archlinux.org/title/Installation_guide) install (`archinstall` with the *minimal* profile is ideal), logged in as your user:
+**Lumen OS (recommended).** Download the ISO from the [releases](https://github.com/twil09/linux/releases), or build it (`sudo iso/build.sh` on Arch, or the *iso* GitHub Actions workflow). Write it to a USB stick and boot it. The installer handles Wi-Fi, disk encryption, your account and apps, then sets up btrfs snapshots, systemd-boot with an LTS fallback kernel, the boot splash and the desktop. See [Lumen OS](docs/09-lumen-os.md).
+
+**On an existing Arch install,** logged in as your user:
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/twil09/linux/main/boot.sh | bash
 ```
 
-Answer three questions (browser, terminal, editor), wait a few minutes, then restart. Details and options: [Getting started](docs/01-getting-started.md).
+Answer a few questions (browser, terminal, editor, gaming), wait a few minutes, then restart. See [Getting started](docs/01-getting-started.md).
 
 ## What you get
 
 | | |
 | --- | --- |
+| **Lumen OS** | Arch-based ISO with a guided installer: encrypted btrfs, automatic snapshots and one-click rollback, rescue mode from the USB, systemd-boot with an LTS fallback, Plymouth, zram, multilib on, and a welcome tour on first boot |
+| **Start menu** | Tap the Windows key. Pins, recents, all apps, and search across apps, settings, maths, commands and the web. Right-click to pin or uninstall |
+| **App Store** | GTK 4 / libadwaita store over Flathub, the Arch repos and the AUR: curated Explore page, screenshots, per-app source choice, Installed and Updates tabs |
+| **Gaming** | Steam + Proton, 32-bit drivers for your GPU, GameMode, MangoHud, gamescope, ProtonPlus, and an optional Steam Big Picture session |
 | **Desktop** | Hyprland 0.55+ with its new Lua config, run as a proper systemd session by uwsm. Gentle animations, blur, rounded corners, and a scrolling layout one key away |
 | **Top bar** | Waybar: workspaces, window title, clock and calendar, reminders, media, privacy indicators, recording, toggles, tray, audio, Bluetooth, network, power profile, battery. Click anything to open its panel |
 | **Launcher and menus** | fuzzel for apps, windows, the Lumen menu, Wi-Fi, displays, power, themes, wallpapers, clipboard and emoji: one consistent look everywhere |
@@ -36,7 +52,9 @@ Answer three questions (browser, terminal, editor), wait a few minutes, then res
 
 | Keys | |
 | --- | --- |
-| <kbd>SUPER</kbd> + <kbd>SPACE</kbd> | Apps |
+| <kbd>SUPER</kbd> (tap) | Start menu |
+| <kbd>SUPER</kbd> + <kbd>SPACE</kbd> | Quick launcher |
+| <kbd>SUPER</kbd> + <kbd>A</kbd> | App Store |
 | <kbd>SUPER</kbd> + <kbd>ALT</kbd> + <kbd>SPACE</kbd> | Lumen menu: everything else |
 | <kbd>SUPER</kbd> + <kbd>/</kbd> | Searchable list of every key binding |
 | <kbd>SUPER</kbd> + <kbd>Enter</kbd> / <kbd>B</kbd> / <kbd>E</kbd> / <kbd>C</kbd> | Terminal / browser / files / code editor |
@@ -61,6 +79,7 @@ The pattern: <kbd>SUPER</kbd> for apps and windows, <kbd>+SHIFT</kbd> to move an
 | [System and hardware](docs/06-system.md) | Network, Bluetooth, audio, displays, sleep, login, fingerprint, printing, updates, apps |
 | [Troubleshooting](docs/07-troubleshooting.md) | `lumen doctor`, logs, recovery |
 | [How Lumen works](docs/08-architecture.md) | Architecture, theme engine, tests |
+| [Lumen OS](docs/09-lumen-os.md) | The ISO and installer, Start menu, App Store, gaming, snapshots and rescue |
 
 On the desktop: <kbd>SUPER</kbd> + <kbd>F1</kbd>, or `lumen manual` in a terminal.
 

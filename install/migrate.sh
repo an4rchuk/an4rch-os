@@ -35,6 +35,13 @@ while IFS= read -r -d '' f; do
   fi
 done < <(find "$LUMEN_PATH/config" -type f -print0)
 
+# Launchers and icons for Lumen's own apps are managed by Lumen: always refresh.
+data="${XDG_DATA_HOME:-$HOME/.local/share}"
+mkdir -p "$data/applications" "$data/icons/hicolor/scalable/apps"
+cp "$LUMEN_PATH"/share/applications/*.desktop "$data/applications/"
+cp "$LUMEN_PATH"/share/icons/hicolor/scalable/apps/*.svg "$data/icons/hicolor/scalable/apps/"
+update-desktop-database -q "$data/applications" 2>/dev/null || true
+
 for m in "$LUMEN_PATH"/install/migrations/*.sh; do
   [[ -f "$m" ]] || continue
   name=$(basename "$m")
