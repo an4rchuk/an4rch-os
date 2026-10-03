@@ -5,6 +5,7 @@
 #   - brands the OS (os-release, console greeting, fastfetch logo) and keeps
 #     the branding across `filesystem` package upgrades
 #   - boot splash (Plymouth), compressed RAM swap (zram), multilib for games
+#   - performance defaults: sysctls, I/O schedulers, NTSYNC, quick shutdowns
 #   - snapshots: snapper on btrfs with snap-pac, readable by the wheel group,
 #     old packages kept for rollbacks
 set -euo pipefail
@@ -82,6 +83,47 @@ vm.page-cluster = 0
 vm.watermark_boost_factor = 0
 vm.watermark_scale_factor = 125
 SYSCTL
+
+# --- Performance (CachyOS-style defaults) ------------------------------------------------
+# Low-risk tweaks only; the opt-in ones (sched-ext schedulers, the zen kernel,
+# mirror ranking) are in `lumen tune`.
+cat >/etc/sysctl.d/91-lumen-performance.conf <<'SYSCTL'
+# Keep directory and inode caches longer: snappier file browsing.
+vm.vfs_cache_pressure = 50
+# Write dirty pages out in smaller, steadier batches (no multi-second stalls
+# when copying big files to slow USB sticks).
+vm.dirty_bytes = 268435456
+vm.dirty_background_bytes = 67108864
+vm.dirty_writeback_centisecs = 1500
+# Games: the split-lock "penalty" slows down some Windows games under Proton,
+# and many games need lots of memory maps.
+kernel.split_lock_mitigate = 0
+vm.max_map_count = 2147483642
+# Desktops don't need the NMI watchdog; turning it off saves a little power.
+kernel.nmi_watchdog = 0
+# Faster networking under load.
+net.core.netdev_max_backlog = 4096
+net.ipv4.tcp_fastopen = 3
+SYSCTL
+
+# Best I/O scheduler per disk type: none for NVMe, mq-deadline for SATA SSDs,
+# BFQ for spinning disks.
+cat >/etc/udev/rules.d/60-lumen-ioschedulers.rules <<'UDEV'
+ACTION=="add|change", KERNEL=="nvme[0-9]*n[0-9]*", ATTR{queue/scheduler}="none"
+ACTION=="add|change", KERNEL=="sd[a-z]*|mmcblk[0-9]*", ATTR{queue/rotational}=="0", ATTR{queue/scheduler}="mq-deadline"
+ACTION=="add|change", KERNEL=="sd[a-z]*", ATTR{queue/rotational}=="1", ATTR{queue/scheduler}="bfq"
+UDEV
+
+# NTSYNC: Windows-style sync primitives in the kernel (Linux 6.14+), used by
+# Wine and Proton for smoother games. Harmless when unused.
+echo ntsync >/etc/modules-load.d/lumen-ntsync.conf
+echo 'KERNEL=="ntsync", MODE="0644"' >/etc/udev/rules.d/60-lumen-ntsync.rules
+
+# Don't wait 90 s for a stuck service at shutdown, and keep the journal small.
+install -d /etc/systemd/system.conf.d /etc/systemd/user.conf.d /etc/systemd/journald.conf.d
+printf '[Manager]\nDefaultTimeoutStopSec=15s\n' >/etc/systemd/system.conf.d/90-lumen.conf
+printf '[Manager]\nDefaultTimeoutStopSec=15s\n' >/etc/systemd/user.conf.d/90-lumen.conf
+printf '[Journal]\nSystemMaxUse=200M\n' >/etc/systemd/journald.conf.d/90-lumen.conf
 
 # Keep three versions of each package: rollbacks reinstall kernels from here.
 systemctl enable paccache.timer >/dev/null 2>&1 || true

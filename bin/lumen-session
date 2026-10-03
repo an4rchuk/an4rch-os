@@ -45,6 +45,9 @@ start() {
     pgrep -f 'wl-paste --type image --watch' >/dev/null || launch wl-paste --type image --watch cliphist store
   fi
 
+  # Low-battery warnings (does nothing on desktops).
+  pgrep -f 'lumen-battery watch' >/dev/null || launch "$LUMEN_PATH/bin/lumen-battery" watch
+
   # Authentication agent for "this app wants admin rights" prompts.
   if systemctl --user cat hyprpolkitagent.service >/dev/null 2>&1; then
     systemctl --user start hyprpolkitagent.service

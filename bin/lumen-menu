@@ -89,12 +89,17 @@ style_menu() {
     "󰸉  Next wallpaper" \
     "󰏫  Edit look and feel" \
     "󰙵  Edit top bar" \
-    "󰈙  Make my own theme") in
+    "󰈙  Make my own theme" \
+    "󰇚  Install a theme from git") in
     *"  Theme") "$bin/lumen-theme" ;;
     *"Next wallpaper") "$bin/lumen-wallpaper" next ;;
     *"  Wallpaper") "$bin/lumen-wallpaper" pick ;;
     *"look and feel") edit "$HOME/.config/hypr/looks.lua" ;;
     *"top bar") edit "$HOME/.config/waybar/config.jsonc" "$HOME/.config/waybar/style.css" ;;
+    *"from git")
+      url=$(ask "Theme git URL" "https://github.com/someone/lumen-theme") || exit 0
+      [[ -n "$url" ]] && term --float --hold --title "Install theme" -- "$bin/lumen-theme" install "$url"
+      ;;
     *"own theme")
       name=$(ask "Theme name" "my-theme") || exit 0
       [[ -n "$name" ]] || exit 0
@@ -117,6 +122,8 @@ setup_menu() {
     "󰌌  Keyboard layout" \
     "󰥔  Time zone" \
     "󰊴  Gaming" \
+    "󰐱  Extras (streaming, RGB, Android, VMs…)" \
+    "󰓅  Performance tuning" \
     "󰁯  Snapshots and rollback" \
     "󰈷  Fingerprint login" \
     "󰐪  Printers" \
@@ -133,6 +140,8 @@ setup_menu() {
     *Keyboard*) "$bin/lumen-setup" keyboard ;;
     *"Time zone") "$bin/lumen-setup" timezone ;;
     *Gaming) "$bin/lumen-gaming" ;;
+    *Extras*) "$bin/lumen-extras" ;;
+    *Performance*) "$bin/lumen-tune" ;;
     *Snapshots*) "$bin/lumen-snapshot" menu ;;
     *Fingerprint*) term --float --hold -- "$bin/lumen-setup" fingerprint ;;
     *Printers) term --float --hold -- "$bin/lumen-setup" printing ;;
@@ -150,14 +159,16 @@ install_menu() {
     "󰏓  Popular apps" \
     "󰏖  Flatpak apps" \
     "󰖟  Web app (website as an app)" \
-    "󰊠  Development tools" \
+    "󰅩  Development environment" \
+    "󰊠  Development tools bundle" \
     "󰊴  Gaming") in
     *"App Store") "$bin/lumen-store" ;;
     *"Search all"*) "$bin/lumen-pkg" install ;;
     *Popular*) "$bin/lumen-pkg" popular ;;
     *Flatpak*) "$bin/lumen-pkg" flatpak ;;
     *"Web app"*) "$bin/lumen-webapp" add ;;
-    *Development*) "$bin/lumen-pkg" bundle dev ;;
+    *"Development environment") "$bin/lumen-dev" ;;
+    *"Development tools"*) "$bin/lumen-pkg" bundle dev ;;
     *"  Gaming") "$bin/lumen-gaming" ;;
   esac
 }

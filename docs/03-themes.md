@@ -110,6 +110,10 @@ The files a theme produces are listed below. They're rendered from `templates/*.
 
 In templates, `{{accent}}` becomes `#9d8cff`, `{{accent.hex}}` becomes `9d8cff` and `{{accent.rgb}}` becomes `157, 140, 255`. This works for every palette key.
 
+## Installing someone else's theme
+
+Themes can be shared as git repositories: `lumen theme install URL` downloads one and switches to it, and `lumen theme remove NAME` deletes it. See [Power tools](10-power-tools.md#sharing-themes-lumen-theme-install).
+
 ## Fonts
 
 The interface uses **Inter**; terminals and code use **JetBrains Mono Nerd Font**, which also supplies the icons in the bar and menus. To change them:

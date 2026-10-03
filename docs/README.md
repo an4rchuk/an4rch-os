@@ -15,6 +15,7 @@ Open it any time with <kbd>SUPER</kbd> + <kbd>F1</kbd>, or `lumen manual <topic>
 | [Troubleshooting](07-troubleshooting.md) | `lumen doctor`, logs, recovering from a broken config |
 | [How Lumen works](08-architecture.md) | The repository layout, the theme engine and the test suite |
 | [Lumen OS](09-lumen-os.md) | The installer ISO, Start menu, App Store, gaming, snapshots, rollback and rescue |
+| [Power tools](10-power-tools.md) | Performance tuning, one-command extras, a development environment, sharing themes |
 
 ## The three things to remember
 

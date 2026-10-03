@@ -8,6 +8,8 @@ Lumen OS takes inspiration from [Omarchy](https://omarchy.org) (an opinionated, 
 - **App Store** for Flathub, the Arch repositories and the AUR in one place, with screenshots, one-click install, and updates.
 - **Snapshots on every update**, so a bad update is one click (or one reboot into the LTS kernel) away from undone.
 - **Gaming in one click:** Steam, Proton tools, GameMode, MangoHud, gamescope and an optional Steam Game Mode session.
+- **Tuned out of the box,** CachyOS-style: per-disk I/O schedulers, NTSYNC and gaming sysctls, plus live-switchable sched-ext CPU schedulers and the zen kernel with `lumen tune`.
+- **Extras in one command,** like Bazzite's `ujust`: game streaming (Sunshine), Decky, RGB, GPU control, Android apps, containers, VMs, Tailscale.
 
 ![The Start menu, the App Store, settings search in Start, and the welcome tour](docs/images/start-store-welcome.jpg)
 <sub>The Start menu, App Store, a settings search in Start, and the welcome tour, rendered from the real apps during testing (with a fallback font instead of Inter).</sub>
@@ -46,6 +48,9 @@ Answer a few questions (browser, terminal, editor, gaming), wait a few minutes, 
 | **System** | Wi-Fi menu, Bluetooth, audio mixer and output switcher, display arrangement with automatic revert, power profiles, night light, idle and sleep, lock screen, login screen with keyring unlock, fingerprint, printing, firewall |
 | **Apps** | Browser, terminal (Ghostty) and code editor of your choice, file manager, image viewer, video player, PDF viewer, plus a searchable installer for the repos, AUR and Flathub, and one-click bundles for development and gaming |
 | **Shell** | zsh with autosuggestions, syntax highlighting, the starship prompt, zoxide, fzf, eza and bat |
+| **Performance** | Tuned sysctls, I/O schedulers and NTSYNC by default; `lumen tune` for sched-ext CPU schedulers (bpfland, lavd, …), the zen kernel and mirror ranking |
+| **Extras** | `lumen extras`: Sunshine, Decky Loader, controllers, Handheld Daemon, OpenRGB, LACT, Distrobox, Waydroid, virt-manager, Tailscale |
+| **Development** | `lumen dev`: languages through mise, Docker, and local Postgres, MySQL, Redis or MongoDB in one command |
 | **Updates** | One key updates Lumen, packages, Flatpaks and firmware. Your config files are never overwritten |
 
 ## The keyboard in one minute
@@ -80,6 +85,7 @@ The pattern: <kbd>SUPER</kbd> for apps and windows, <kbd>+SHIFT</kbd> to move an
 | [Troubleshooting](docs/07-troubleshooting.md) | `lumen doctor`, logs, recovery |
 | [How Lumen works](docs/08-architecture.md) | Architecture, theme engine, tests |
 | [Lumen OS](docs/09-lumen-os.md) | The ISO and installer, Start menu, App Store, gaming, snapshots and rescue |
+| [Power tools](docs/10-power-tools.md) | `lumen tune`, `lumen extras`, `lumen dev`, theme sharing, battery warnings |
 
 On the desktop: <kbd>SUPER</kbd> + <kbd>F1</kbd>, or `lumen manual` in a terminal.
 

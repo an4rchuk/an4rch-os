@@ -83,3 +83,25 @@ declare -A PKG_FOR=(
 PKGS_GPU_INTEL=(mesa vulkan-intel intel-media-driver)
 PKGS_GPU_AMD=(mesa vulkan-radeon)
 PKGS_GPU_NVIDIA=(nvidia-open-dkms nvidia-utils libva-nvidia-driver egl-wayland)
+
+# --- Optional features, installed on demand -----------------------------------
+# Kept here so CI checks every name against the repos and the AUR.
+
+# lumen-tune (CachyOS-style performance)
+PKGS_TUNE_SCX=(scx-scheds)
+PKGS_TUNE_ZEN=(linux-zen linux-zen-headers)
+PKGS_TUNE_MIRRORS=(reflector)
+
+# lumen-extras (Bazzite-style one-command recipes)
+PKGS_X_OPENRGB=(openrgb)
+PKGS_X_LACT=(lact)
+PKGS_X_DISTROBOX=(distrobox podman)
+PKGS_X_WAYDROID=(waydroid)
+PKGS_X_VIRT=(qemu-desktop libvirt virt-manager dnsmasq edk2-ovmf swtpm)
+PKGS_X_TAILSCALE=(tailscale)
+PKGS_X_HANDHELD=(hhd)
+PKGS_X_CONTROLLERS=(game-devices-udev)
+
+# lumen-dev (development environment)
+PKGS_DEV_BASE=(mise github-cli lazygit)
+PKGS_DEV_DOCKER=(docker docker-compose docker-buildx lazydocker)
