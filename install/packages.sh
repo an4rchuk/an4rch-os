@@ -81,5 +81,5 @@ declare -A PKG_FOR=(
 
 # GPU drivers by vendor.
 PKGS_GPU_INTEL=(mesa vulkan-intel intel-media-driver)
-PKGS_GPU_AMD=(mesa vulkan-radeon libva-mesa-driver)
+PKGS_GPU_AMD=(mesa vulkan-radeon)
 PKGS_GPU_NVIDIA=(nvidia-open-dkms nvidia-utils libva-nvidia-driver egl-wayland)
