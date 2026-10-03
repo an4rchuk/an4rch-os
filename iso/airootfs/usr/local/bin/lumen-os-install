@@ -33,8 +33,32 @@ title() {
 
 note() { gum style --foreground "$DIM" --margin "0 2" "$@"; }
 fail() {
-  gum style --foreground "#f2777a" --bold --margin "1 2" "✗ $*" "" "The full log is in $LOG. Run lumen-os-install to try again."
+  gum style --foreground "#f2777a" --bold --margin "1 2" "✗ $*"
+  if [[ -s "$LOG" ]]; then
+    gum style --foreground "$DIM" --margin "0 2" "Last lines of the log:"
+    tail -n 15 "$LOG" | sed 's/^/    /' >&3
+  fi
+  # Keep the log on the installed system too, when there is one.
+  [[ -d "$MNT/var/log" ]] && cp "$LOG" "$MNT/var/log/lumen-os-install.log" 2>/dev/null
+  echo >&3
+  if [[ -s "$LOG" ]] && gum confirm --default=true "Upload the log so you can share it for help? (it contains no passwords)"; then
+    share_log
+  fi
+  gum style --foreground "$DIM" --margin "1 2" "The full log is in $LOG. Run lumen-os-install to try again."
   exit 1
+}
+
+# share_log — upload the install log to a paste service and print the link.
+share_log() {
+  local url=""
+  url=$(curl -fsS --max-time 20 -F "file=@$LOG" https://0x0.st 2>/dev/null) ||
+    url=$(curl -fsS --max-time 20 --data-binary "@$LOG" https://paste.rs 2>/dev/null) || true
+  if [[ "$url" == http* ]]; then
+    gum style --border rounded --border-foreground "$ACCENT" --padding "1 2" --margin "1 2" \
+      "Log uploaded. Share this link:" "" "$url"
+  else
+    gum style --foreground "$DIM" --margin "1 2" "Couldn't upload the log (no internet?)."
+  fi
 }
 step() { printf '\n==> %s\n' "$*" >>"$LOG"; }
 # spin TITLE CMD... — run with a spinner, output to the log.
@@ -61,13 +85,28 @@ title "Welcome! This installs Lumen OS on this computer. It takes about 15 minut
 gum confirm --affirmative "Let's go" --negative "Not now" "Ready to begin?" || exit 0
 
 # --- network --------------------------------------------------------------------------
-online() { curl -fsS --max-time 6 -o /dev/null https://archlinux.org; }
+online() {
+  curl -fsS --max-time 6 -o /dev/null https://archlinux.org ||
+    curl -fsS --max-time 6 -o /dev/null https://geo.mirror.pkgbuild.com
+}
+# Wired and virtual-machine connections come up by themselves, but DHCP can
+# take a little while after boot: wait for it before asking about Wi-Fi.
+if ! online; then
+  title "Connecting to the internet…"
+  for _ in $(seq 1 20); do
+    online && break
+    sleep 2
+  done
+fi
 until online; do
   title "Connect to the internet"
   dev=$(iwctl device list 2>/dev/null | awk '/station/ {print $2; exit}')
   if [[ -z "$dev" ]]; then
-    note "No internet connection, and no Wi-Fi adapter was found." "Plug in an Ethernet cable, then press Enter."
-    read -r
+    note "No internet connection yet, and this computer has no Wi-Fi adapter." "" \
+      "• Plug in an Ethernet cable." \
+      "• In a virtual machine: set the network adapter to NAT (VirtualBox: Settings → Network)." "" \
+      "Retrying every few seconds… (press Ctrl+C to open a shell)"
+    sleep 5
     continue
   fi
   note "Scanning for Wi-Fi networks…"

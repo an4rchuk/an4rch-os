@@ -75,6 +75,26 @@ run() {
   fi
 }
 
+# booted — true on a running system; false in a chroot or container (the
+# Lumen OS installer runs install.sh inside a chroot), where services can be
+# enabled but not started, and the kernel's firewall can't be touched.
+booted() {
+  [[ "$(ps -p 1 -o comm= 2>/dev/null)" == systemd ]] && ! systemd-detect-virt -q --chroot 2>/dev/null
+}
+
+# try DESCRIPTION CMD... — like run, but a failure is only a warning.
+try() {
+  local desc="$1"
+  shift
+  printf 'TRY: %s\n' "$*" >>"$LOG"
+  info "$desc"
+  if "$@" >>"$LOG" 2>&1; then
+    ok "$desc"
+  else
+    warn "$desc didn't finish (details in $LOG)"
+  fi
+}
+
 ask_yes() { # ask_yes QUESTION [default y|n]
   local q="$1" def="${2:-y}" reply
   [[ -n "${LUMEN_YES:-}" ]] && { [[ "$def" == y ]]; return; }

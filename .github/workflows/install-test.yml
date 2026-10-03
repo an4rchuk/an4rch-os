@@ -1,0 +1,53 @@
+name: install-test
+
+# Runs the Lumen desktop installer the way the Lumen OS ISO does: inside an
+# Arch Linux root that isn't booted (no running systemd), as a normal user
+# with sudo, fully unattended. Catches missing packages and steps that only
+# work on a running system.
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - install.sh
+      - install/**
+      - bin/lumen-gaming
+      - lib/**
+      - .github/workflows/install-test.yml
+
+jobs:
+  install:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    container:
+      image: archlinux:latest
+      options: --privileged
+    steps:
+      - name: Prepare Arch
+        run: |
+          pacman -Syu --noconfirm --needed git sudo base-devel pciutils
+          useradd -m -G wheel -s /bin/bash lumen
+          echo 'lumen ALL=(ALL) NOPASSWD: ALL' >/etc/sudoers.d/lumen
+
+      - uses: actions/checkout@v4
+
+      - name: Copy Lumen into the user's home
+        run: |
+          mkdir -p /home/lumen/.local/share
+          cp -a "$GITHUB_WORKSPACE" /home/lumen/.local/share/lumen
+          chown -R lumen:lumen /home/lumen
+
+      - name: Run the installer (unattended, as the ISO does)
+        run: |
+          sudo -u lumen env HOME=/home/lumen USER=lumen LUMEN_YES=1 LUMEN_VERBOSE=1 \
+            bash /home/lumen/.local/share/lumen/install.sh --yes --distro --gaming --no-reboot \
+            --browser firefox --terminal ghostty --editor code
+
+      - name: Show the end of the install log
+        if: always()
+        run: tail -n 80 /home/lumen/.local/state/lumen/install.log || true
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: install-log
+          path: /home/lumen/.local/state/lumen/install.log

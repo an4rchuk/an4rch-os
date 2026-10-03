@@ -155,10 +155,12 @@ install_packages() {
   wv=$(pacman -Q waybar 2>/dev/null | awk '{print $2}')
   if [[ -n "$wv" && "$(vercmp "${wv%-*}" 0.15.0)" -le 0 ]]; then
     info "Waybar $wv can't switch workspaces with Hyprland's Lua config; the fix is only in waybar-git."
-    if ask_yes "Build waybar-git from the AUR now? (a few minutes)" y; then
-      run "Removing repo waybar" sudo pacman -Rdd --noconfirm waybar
-      pkg_install OPTIONAL waybar-git
-      installed waybar-git || pkg_install REQUIRED waybar
+    if [[ -n "${LUMEN_YES:-}" ]]; then
+      # Unattended: replacing waybar needs a yes to a package conflict, which
+      # --noconfirm answers "no". Leave it for later.
+      warn "Workspace buttons in the bar won't respond to clicks until you run: yay -S waybar-git (keys work)."
+    elif ask_yes "Build waybar-git from the AUR now? (a few minutes, answer y to replace waybar)" y; then
+      yay -S --needed waybar-git || warn "waybar-git didn't build; keeping waybar $wv"
     else
       warn "Keeping waybar $wv: workspace buttons in the bar won't respond to clicks (keys still work)."
     fi
@@ -270,7 +272,15 @@ setup_system() {
   # Firewall: block incoming connections, allow everything outgoing.
   if command -v ufw >/dev/null; then
     [[ -n "${SSH_CONNECTION:-}" ]] && run "Keeping SSH reachable" sudo ufw allow ssh
-    run "Turning on the firewall" bash -c 'sudo ufw default deny incoming >/dev/null && sudo ufw default allow outgoing >/dev/null && sudo ufw --force enable && sudo systemctl enable ufw'
+    if booted; then
+      try "Turning on the firewall" bash -c 'sudo ufw default deny incoming >/dev/null && sudo ufw default allow outgoing >/dev/null && sudo ufw --force enable && sudo systemctl enable ufw'
+    else
+      # Not booted (installer chroot): write the settings; ufw applies them at boot.
+      try "Turning on the firewall (applies at first boot)" bash -c '
+        sudo sed -i -e "s/^DEFAULT_INPUT_POLICY=.*/DEFAULT_INPUT_POLICY=\"DROP\"/" -e "s/^DEFAULT_OUTPUT_POLICY=.*/DEFAULT_OUTPUT_POLICY=\"ACCEPT\"/" /etc/default/ufw &&
+        sudo sed -i "s/^ENABLED=.*/ENABLED=yes/" /etc/ufw/ufw.conf &&
+        sudo systemctl enable ufw'
+    fi
   fi
 
   # Power button opens Lumen's power menu instead of shutting down at once;
@@ -375,7 +385,7 @@ setup_look() {
   ok "Theme: $THEME"
 
   if python3 -c 'import PIL' 2>/dev/null; then
-    run "Painting wallpapers for every theme" python3 "$LUMEN_PATH/bin/lumen-wallgen" --all --out "${XDG_DATA_HOME:-$HOME/.local/share}/backgrounds/lumen"
+    try "Painting wallpapers for every theme" python3 "$LUMEN_PATH/bin/lumen-wallgen" --all --out "${XDG_DATA_HOME:-$HOME/.local/share}/backgrounds/lumen"
     "$LUMEN_PATH/bin/lumen-wallpaper" theme >>"$LOG" 2>&1 || true
   else
     warn "python-pillow missing: run 'lumen-wallpaper generate' later"
