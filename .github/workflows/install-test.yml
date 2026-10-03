@@ -11,6 +11,9 @@ on:
       - install.sh
       - install/**
       - bin/lumen-gaming
+      - bin/lumen-tune
+      - bin/lumen-extras
+      - bin/lumen-dev
       - lib/**
       - .github/workflows/install-test.yml
 
@@ -26,7 +29,10 @@ jobs:
         run: |
           pacman -Syu --noconfirm --needed git sudo base-devel pciutils
           useradd -m -G wheel -s /bin/bash lumen
-          echo 'lumen ALL=(ALL) NOPASSWD: ALL' >/etc/sudoers.d/lumen
+          # The same sudo rules the ISO installer leaves in place during the install.
+          echo '%wheel ALL=(ALL:ALL) ALL' >/etc/sudoers.d/10-wheel
+          printf 'Defaults:lumen verifypw=any, listpw=any\nlumen ALL=(ALL) NOPASSWD: ALL\n' >/etc/sudoers.d/99-lumen-install
+          chmod 440 /etc/sudoers.d/*
 
       - uses: actions/checkout@v4
 
@@ -36,9 +42,9 @@ jobs:
           pacman -Sy >/dev/null
           pacman -Slq | sort -u >/tmp/repo-pkgs
           bash -c 'source install/packages.sh
-            for p in "${PKGS_AUDIO[@]}" "${PKGS_DESKTOP[@]}" "${PKGS_SYSTEM[@]}" "${PKGS_TOOLS[@]}" "${PKGS_FONTS[@]}" \
-                     "${PKGS_LOOK[@]}" "${PKGS_OPTIONAL[@]}" "${PKG_FOR[@]}" "${PKGS_GPU_INTEL[@]}" "${PKGS_GPU_AMD[@]}" "${PKGS_GPU_NVIDIA[@]}"; do
-              echo "$p"
+            for v in $(compgen -A variable PKGS_) PKG_FOR; do
+              declare -n arr=$v
+              printf "%s\n" "${arr[@]}"
             done' | sort -u >/tmp/wanted
           comm -23 /tmp/wanted /tmp/repo-pkgs >/tmp/not-in-repos
           echo "Not in the official repos (should be AUR packages):"

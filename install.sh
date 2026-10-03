@@ -61,7 +61,8 @@ preflight() {
   ok "Arch Linux, user $USER"
 
   info "Lumen needs administrator rights to install packages."
-  sudo -v || fail "sudo authentication failed"
+  # sudo -n first: with password-less sudo, -v can still prompt (verifypw=all).
+  sudo -n true 2>/dev/null || sudo -v || fail "sudo authentication failed"
   # Keep sudo alive for the whole install.
   while true; do sudo -n true; sleep 50; kill -0 "$$" 2>/dev/null || exit; done 2>/dev/null &
 

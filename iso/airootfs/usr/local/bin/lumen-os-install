@@ -378,7 +378,9 @@ fi
 
 # Lumen itself, installed as the new user with temporary password-less sudo.
 spin "Copying Lumen" bash -c "mkdir -p '$MNT/home/$USERNAME/.local/share' && cp -a '$LUMEN_SRC' '$MNT/home/$USERNAME/.local/share/lumen' && arch-chroot '$MNT' chown -R '$USERNAME:$USERNAME' '/home/$USERNAME/.local'"
-echo "$USERNAME ALL=(ALL) NOPASSWD: ALL" >"$MNT/etc/sudoers.d/99-lumen-install"
+# verifypw/listpw=any: otherwise `sudo -v` (used by yay and makepkg) still asks
+# for a password, because the wheel rule above has no NOPASSWD.
+printf 'Defaults:%s verifypw=any, listpw=any\n%s ALL=(ALL) NOPASSWD: ALL\n' "$USERNAME" "$USERNAME" >"$MNT/etc/sudoers.d/99-lumen-install"
 chmod 440 "$MNT/etc/sudoers.d/99-lumen-install"
 
 lumen_args=(--yes --distro --no-reboot --browser "$BROWSER" --terminal "$TERMINAL_APP" --editor "$EDITOR_APP" --theme "$THEME")
@@ -386,8 +388,8 @@ lumen_args=(--yes --distro --no-reboot --browser "$BROWSER" --terminal "$TERMINA
 [[ "${K[autologin]:-0}" == 1 ]] && lumen_args+=(--autologin)
 step "Lumen installer: ${lumen_args[*]}"
 gum style --foreground "$DIM" --margin "1 2 0" "Installing the Lumen desktop and apps (10–20 minutes). Progress: $LOG"
-if ! arch-chroot "$MNT" sudo -u "$USERNAME" env HOME="/home/$USERNAME" USER="$USERNAME" LUMEN_YES=1 LUMEN_VERBOSE=1 \
-  bash "/home/$USERNAME/.local/share/lumen/install.sh" "${lumen_args[@]}" >>"$LOG" 2>&1; then
+if ! setsid -w arch-chroot "$MNT" sudo -u "$USERNAME" env HOME="/home/$USERNAME" USER="$USERNAME" LUMEN_YES=1 LUMEN_VERBOSE=1 \
+  bash "/home/$USERNAME/.local/share/lumen/install.sh" "${lumen_args[@]}" </dev/null >>"$LOG" 2>&1; then
   rm -f "$MNT/etc/sudoers.d/99-lumen-install"
   fail "The Lumen desktop didn't install completely. The system boots to a console; log in and run ~/.local/share/lumen/install.sh to finish."
 fi
