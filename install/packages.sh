@@ -3,6 +3,11 @@
 # Package sets. REQUIRED packages stop the install if missing; everything else
 # is best-effort and reported at the end.
 
+# Sound (installed first, see install_packages).
+PKGS_AUDIO=(
+  pipewire pipewire-alsa pipewire-pulse pipewire-jack wireplumber
+)
+
 # The compositor and its family.
 PKGS_DESKTOP=(
   hyprland hyprlock hypridle hyprpicker hyprsunset hyprpolkitagent
@@ -17,7 +22,6 @@ PKGS_DESKTOP=(
 
 # Sound, network, Bluetooth, power.
 PKGS_SYSTEM=(
-  pipewire pipewire-alsa pipewire-pulse pipewire-jack wireplumber
   networkmanager bluez bluez-utils
   power-profiles-daemon upower brightnessctl
   playerctl

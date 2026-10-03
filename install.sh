@@ -134,6 +134,10 @@ detect_gpu() {
 
 install_packages() {
   step "Installing the desktop"
+  # Audio first: media libraries depend on "jack", and if PipeWire's JACK
+  # isn't installed yet pacman picks jack2, which later conflicts with
+  # pipewire-jack (unattended installs can't answer that question).
+  pkg_install REQUIRED "${PKGS_AUDIO[@]}"
   pkg_install REQUIRED "${PKGS_DESKTOP[@]}"
   pkg_install REQUIRED "${PKGS_SYSTEM[@]}" wpa_supplicant
   pkg_install REQUIRED "${PKGS_TOOLS[@]}"
