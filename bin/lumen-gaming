@@ -24,8 +24,7 @@ say() { printf '\n\e[1;35m󰊴  %s\e[0m\n' "$*"; }
 enable_multilib() {
   if ! grep -q '^\[multilib\]' /etc/pacman.conf; then
     say "Enabling 32-bit libraries (multilib) for Steam and Proton"
-    sudo sed -i '/^#\[multilib\]/,/^#Include/ s/^#//' /etc/pacman.conf
-    sudo pacman -Sy
+    sudo bash "$LUMEN_PATH/install/enable-multilib.sh"
   fi
 }
 

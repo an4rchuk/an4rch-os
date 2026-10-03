@@ -154,8 +154,7 @@ bundle() {
   header "Bundle: $name" "${pkgs[*]}"
   if [[ "$name" == gaming ]] && ! grep -q '^\[multilib\]' /etc/pacman.conf; then
     echo "Steam needs the multilib repository. Enabling it…"
-    sudo sed -i '/^#\[multilib\]/,/^#Include/ s/^#//' /etc/pacman.conf
-    sudo pacman -Sy
+    sudo bash "$LUMEN_PATH/install/enable-multilib.sh"
   fi
   add "${pkgs[@]}"
   if [[ "$name" == dev ]]; then

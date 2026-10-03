@@ -54,10 +54,8 @@ install -Dm644 "$LUMEN_PATH/share/icons/hicolor/scalable/apps/lumen-logo.svg" /u
 gtk-update-icon-cache -q -t /usr/share/icons/hicolor 2>/dev/null || true
 
 # --- Packages for the OS layer ------------------------------------------------------
-if ! grep -q '^\[multilib\]' /etc/pacman.conf; then
-  sed -i '/^#\[multilib\]/,/^#Include/ s/^#//' /etc/pacman.conf
-fi
-pacman -Sy --needed --noconfirm plymouth zram-generator pacman-contrib arch-install-scripts >/dev/null
+bash "$LUMEN_PATH/install/enable-multilib.sh"
+pacman -S --needed --noconfirm plymouth zram-generator pacman-contrib arch-install-scripts >/dev/null
 
 # --- Boot splash --------------------------------------------------------------------
 # bgrt shows the firmware's logo with a spinner and handles disk passwords.

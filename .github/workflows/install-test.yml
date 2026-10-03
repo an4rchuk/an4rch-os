@@ -38,8 +38,7 @@ jobs:
 
       - name: Check every package name against the Arch repos and AUR
         run: |
-          sed -i 's/^#\[multilib\]/[multilib]/; /^\[multilib\]/{n;s/^#Include/Include/}' /etc/pacman.conf
-          pacman -Sy >/dev/null
+          bash install/enable-multilib.sh
           pacman -Slq | sort -u >/tmp/repo-pkgs
           bash -c 'source install/packages.sh
             for v in $(compgen -A variable PKGS_) PKG_FOR; do
