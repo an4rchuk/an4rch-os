@@ -447,8 +447,12 @@ lumen_args=(--yes --distro --no-reboot --browser "$BROWSER" --terminal "$TERMINA
 [[ "${K[autologin]:-0}" == 1 ]] && lumen_args+=(--autologin)
 [[ "${K[taskbar]:-0}" == 1 ]] && lumen_args+=(--taskbar)
 [[ "${K[titlebars]:-1}" == 0 ]] && lumen_args+=(--no-titlebars)
-# The title bar plugin, already built on the stick for this Hyprland.
-lumen-hyprpm-seed "$MNT" "$USERNAME" >>"$LOG" 2>&1 || true
+# The title bar plugin, built with the stick for the Hyprland on it
+# (lumen-titlebars setup sees it's current and skips building).
+if [[ -f /usr/lib/lumen/hyprbars.so && -f /var/lib/lumen/hyprbars-hyprland ]]; then
+  install -D -m755 /usr/lib/lumen/hyprbars.so "$MNT/usr/lib/lumen/hyprbars.so"
+  install -D -m644 /var/lib/lumen/hyprbars-hyprland "$MNT/var/lib/lumen/hyprbars-hyprland"
+fi
 offline_on
 step "Lumen installer: ${lumen_args[*]}"
 gum style --foreground "$DIM" --margin "1 2 0" "Installing the Lumen desktop and apps (a few minutes). Progress: $LOG"

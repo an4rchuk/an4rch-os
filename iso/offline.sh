@@ -5,8 +5,8 @@
 #   /opt/lumen-repo     every package an install uses (with dependencies),
 #                       plus yay and the cursor theme prebuilt from the AUR,
 #                       as a pacman repository ("lumen-offline")
-#   /opt/lumen-hyprpm   the title bar plugin (hyprbars), already built by
-#                       hyprpm for the Hyprland version in the repository
+#   /usr/lib/lumen/hyprbars.so   the title bar plugin, compiled for the
+#                       Hyprland in the repository (stamp: /var/lib/lumen)
 #
 # The installer puts lumen-offline first in pacman's list while it installs,
 # so packages come from the stick; anything else (another browser, gaming) is
@@ -20,7 +20,6 @@ set -euo pipefail
 
 root="$1" profile="$2" work="$3"
 repo="$profile/airootfs/opt/lumen-repo"
-hyprpm_out="$profile/airootfs/opt/lumen-hyprpm"
 builder="$work/builder"
 dbpath="$work/offline-db"
 # shellcheck source-path=SCRIPTDIR/..
@@ -83,38 +82,36 @@ arch-chroot "$builder" useradd -m lumenbuild
 echo 'lumenbuild ALL=(ALL) NOPASSWD: ALL' >"$builder/etc/sudoers.d/lumenbuild"
 
 # AUR packages, built once here instead of on every install.
+built_aur=()
 for p in "${aur_pkgs[@]}"; do
   echo "  building $p (AUR)"
   if arch-chroot "$builder" runuser -u lumenbuild -- bash -c "
       set -e; cd ~ && rm -rf '$p' && git clone -q --depth 1 'https://aur.archlinux.org/$p.git' && cd '$p' &&
       [[ -f PKGBUILD ]] && makepkg --nodeps --noconfirm >/dev/null 2>&1"; then
-    cp "$builder/home/lumenbuild/$p"/*.pkg.tar.zst "$repo/" 2>/dev/null || echo "  (no package file for $p)"
+    for f in "$builder/home/lumenbuild/$p"/*.pkg.tar.zst; do
+      [[ -f "$f" ]] && cp "$f" "$repo/" && built_aur+=("$repo/${f##*/}")
+    done
   else
     echo "  (could not build $p; installs will fetch it from the AUR)"
   fi
 done
-repo-add -q -n "$repo/lumen-offline.db.tar.gz" "$repo"/*.pkg.tar.zst
+if ((${#built_aur[@]})); then
+  repo-add -q "$repo/lumen-offline.db.tar.gz" "${built_aur[@]}"
+fi
 rm -f "$repo"/*.old
 
 # --- 3. The title bar plugin ----------------------------------------------------------
-# hyprpm keeps its build in /var/cache/hyprpm/<user>; the installer moves it
-# to the new user's name. It doesn't need Hyprland running: it reads the
-# installed version (Hyprland --version-json).
+# Compiled once here; the live system and every install use this copy.
 echo "==> Title bars: building the hyprbars plugin for $(arch-chroot "$builder" pacman -Q hyprland)"
-if arch-chroot "$builder" runuser -u lumenbuild -- bash -c '
-    set -e; cd ~
-    hyprpm update
-    yes | hyprpm add https://github.com/hyprwm/hyprland-plugins
-    hyprpm enable hyprbars
-    hyprpm list' >"$work/hyprpm.log" 2>&1 &&
-  [[ -f "$builder/var/cache/hyprpm/lumenbuild/hyprland-plugins/hyprbars.so" ]]; then
-  mkdir -p "$hyprpm_out"
-  tar -C "$builder/var/cache/hyprpm/lumenbuild" -cf "$hyprpm_out/hyprpm.tar" .
-  arch-chroot "$builder" pacman -Q hyprland | awk '{print $2}' >"$hyprpm_out/hyprland-version"
-  echo "  ✓ built ($(du -sh "$hyprpm_out/hyprpm.tar" | cut -f1))"
+install -D -m755 "$root/bin/lumen-hyprbars-build" "$builder/usr/local/bin/lumen-hyprbars-build"
+if arch-chroot "$builder" /usr/local/bin/lumen-hyprbars-build /root/hyprbars.so >"$work/hyprbars.log" 2>&1; then
+  install -D -m755 "$builder/root/hyprbars.so" "$profile/airootfs/usr/lib/lumen/hyprbars.so"
+  arch-chroot "$builder" pacman -Q hyprland | awk '{print $2}' |
+    install -D -m644 /dev/stdin "$profile/airootfs/var/lib/lumen/hyprbars-hyprland"
+  echo "  ✓ $(grep -m1 'building hyprbars' "$work/hyprbars.log")"
 else
-  echo "  ✗ the plugin didn't build; installs will build it themselves. Last lines:"
-  tail -n 40 "$work/hyprpm.log" | sed 's/^/    /'
+  echo "  ✗ the plugin didn't build; installs will try themselves. Last lines:"
+  tail -n 40 "$work/hyprbars.log" | sed 's/^/    /'
   [[ "${LUMEN_STRICT:-0}" == 1 ]] && exit 1
 fi
 

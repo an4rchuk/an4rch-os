@@ -164,11 +164,10 @@ else
   say "--- title bars diagnostics"
   as_user lumen-titlebars status 2>&1
   say "stamp: $(cat /var/lib/lumen/hyprbars-hyprland 2>&1) installed: $(pacman -Q hyprland 2>&1)"
-  ls -la /var/cache/hyprpm /var/cache/hyprpm/* 2>&1 | head -n 30
-  as_user hyprpm list 2>&1 | head -n 20
+  ls -la /usr/lib/lumen 2>&1
   say "login load log:"; cat "$home/.local/state/lumen/titlebars.log" 2>&1 | tail -n 20
-  say "reload now:"; as_user hyprpm reload -nn 2>&1 | tail -n 20
-  say "install log:"; grep -n -i -A12 'title bars\|hyprpm' /var/log/lumen-os-install.log 2>/dev/null | tail -n 60
+  say "load now:"; as_user hyprctl plugin load /usr/lib/lumen/hyprbars.so 2>&1 | tail -n 20
+  say "install log:"; grep -n -i -A12 'title bars\|hyprbars' /var/log/lumen-os-install.log 2>/dev/null | tail -n 60
 fi
 shot 17b-titlebars
 task "minimise the calculator" as_user lumen-window minimize

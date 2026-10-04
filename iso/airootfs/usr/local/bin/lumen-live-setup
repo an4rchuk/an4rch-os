@@ -27,8 +27,8 @@ systemctl start NetworkManager
 
 # Title bars, if the ISO carries the plugin built for this Hyprland.
 titlebars=no
-if /usr/local/bin/lumen-hyprpm-seed / "$user" 2>/dev/null &&
-  [[ "$(cat /var/lib/lumen/hyprbars-hyprland)" == "$(pacman -Q hyprland | awk '{print $2}')" ]]; then
+if [[ -f /usr/lib/lumen/hyprbars.so &&
+  "$(cat /var/lib/lumen/hyprbars-hyprland 2>/dev/null)" == "$(pacman -Q hyprland | awk '{print $2}')" ]]; then
   titlebars=yes
 fi
 
