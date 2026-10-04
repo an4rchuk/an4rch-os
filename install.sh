@@ -214,6 +214,7 @@ install_configs() {
   update-desktop-database -q "$data/applications" 2>/dev/null || true
   gtk-update-icon-cache -q -t "$data/icons/hicolor" 2>/dev/null || true
   ok "App Store, Start menu and Welcome launchers"
+  "$LUMEN_PATH/bin/lumen-session" autostart
 
   mkdir -p "$HOME/.config/lumen"
   local settings="$HOME/.config/lumen/settings.conf"
@@ -389,8 +390,13 @@ setup_look() {
   } >>"$LOG" 2>&1 || true
   ok "Default apps"
 
-  "$LUMEN_PATH/bin/lumen-theme" set "$THEME" >>"$LOG" 2>&1 || warn "Theme could not be applied"
-  ok "Theme: $THEME"
+  local theme_out
+  if theme_out=$("$LUMEN_PATH/bin/lumen-theme" set "$THEME" 2>&1); then
+    ok "Theme: $THEME"
+  else
+    warn "Theme could not be applied: $(tail -n 1 <<<"$theme_out")"
+  fi
+  printf '%s\n' "$theme_out" >>"$LOG"
 
   if python3 -c 'import PIL' 2>/dev/null; then
     try "Painting wallpapers for every theme" python3 "$LUMEN_PATH/bin/lumen-wallgen" --all --out "${XDG_DATA_HOME:-$HOME/.local/share}/backgrounds/lumen"

@@ -2,6 +2,7 @@
 # lumen-session — start session services and answer session questions.
 #
 #   lumen-session start          start bar, notifications, idle, clipboard, …
+#   lumen-session autostart      (re)write the login autostart entry for `start`
 #   lumen-session restart NAME   restart one of: bar, notifications, idle, wallpaper
 #   lumen-session logout         end the session cleanly
 #   lumen-session can-suspend    exit 0 if idle suspend is allowed right now
@@ -27,7 +28,13 @@ restart() {
 }
 
 start() {
+  # Only inside Hyprland (the autostart entry also runs in other desktops).
+  [[ -n "${HYPRLAND_INSTANCE_SIGNATURE:-}" ]] || exit 0
   mkdir -p "$LUMEN_STATE" "$LUMEN_CACHE"
+  # Started both by Hyprland's start hook and by XDG autostart (whichever
+  # works first); the lock keeps the two from starting things twice.
+  exec 9>"$LUMEN_STATE/session.lock"
+  flock -n 9 || exit 0
   # Keep a log of this session's startup, for troubleshooting.
   exec >"$LUMEN_STATE/session.log" 2>&1
   echo "Lumen session starting: $(date)"
@@ -75,6 +82,21 @@ start() {
       ) &
     fi
   fi
+}
+
+# autostart — the XDG autostart entry uwsm runs once the session is up. A
+# second route besides Hyprland's start hook, with Lumen's absolute path.
+autostart() {
+  local dir="${XDG_CONFIG_HOME:-$HOME/.config}/autostart"
+  mkdir -p "$dir"
+  cat >"$dir/lumen-session.desktop" <<EOF
+[Desktop Entry]
+Type=Application
+Name=Lumen session
+Comment=Wallpaper, top bar, notifications, Start menu and other session services
+Exec=$LUMEN_PATH/bin/lumen-session start
+NoDisplay=true
+EOF
 }
 
 logout() {
@@ -129,9 +151,10 @@ lock_status() {
 
 case "${1:-}" in
   start) start ;;
+  autostart) autostart ;;
   restart) restart "${2:?usage: lumen-session restart bar|notifications|idle|wallpaper}" ;;
   logout) logout ;;
   can-suspend) can_suspend ;;
   lock-status) lock_status ;;
-  *) sed -n '2,9s/^# \{0,1\}//p' "$0"; exit 1 ;;
+  *) sed -n '2,10s/^# \{0,1\}//p' "$0"; exit 1 ;;
 esac

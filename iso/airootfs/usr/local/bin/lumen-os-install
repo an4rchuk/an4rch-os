@@ -418,7 +418,9 @@ done
 echo "--- user journal"; journalctl -b _UID=1000 --no-pager -o short-monotonic | tail -n 150
 echo "--- greetd"; journalctl -b -u greetd --no-pager | tail -n 30
 echo "--- errors"; journalctl -b -p err --no-pager | tail -n 60
-echo "--- lumen state"; ls -la "/home/$u/.config/lumen/current/" 2>&1 | head; cat "/home/$u/.local/state/lumen/session.log" 2>/dev/null | tail -n 40
+echo "--- lumen state"; ls -la "/home/$u/.config/lumen/" "/home/$u/.config/lumen/current/" "/home/$u/.config/autostart/" 2>&1 | head -n 40
+echo "--- session.log"; tail -n 60 "/home/$u/.local/state/lumen/session.log" 2>&1
+echo "--- install log: theme"; grep -n -B3 -A12 'lumen-theme\|Theme' "/home/$u/.local/state/lumen/install.log" 2>&1 | tail -n 60
 echo "=== LUMEN-E2E-REPORT-END ==="
 REPORT
   chmod 755 "$MNT/usr/local/bin/lumen-e2e-report"
