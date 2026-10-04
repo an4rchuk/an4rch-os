@@ -79,3 +79,8 @@ ExecStart=
 ExecStart=-/sbin/agetty -o '-p -f -- \\\\u' --noclear --autologin $user - \$TERM
 EOF
 systemctl daemon-reload
+
+# VM test (lumen.livecheck=1): report on the live desktop once it's up.
+case " $(</proc/cmdline) " in
+  *" lumen.livecheck=1 "*) systemd-run --on-active=100 --unit=lumen-live-check /usr/local/bin/lumen-live-check ;;
+esac

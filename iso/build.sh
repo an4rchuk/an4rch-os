@@ -79,7 +79,7 @@ sed -i \
 # mkarchiso copies airootfs without file modes, so everything that must stay
 # executable is listed: our installer, and every executable in Lumen's tree
 # (otherwise every lumen-* command fails with "Permission denied").
-perms='  ["/usr/local/bin/lumen-os-install"]="0:0:755"\n  ["/usr/local/bin/lumen-rescue"]="0:0:755"\n  ["/usr/local/bin/lumen-live-setup"]="0:0:755"\n  ["/usr/local/bin/lumen-installer"]="0:0:755"'
+perms='  ["/usr/local/bin/lumen-os-install"]="0:0:755"\n  ["/usr/local/bin/lumen-rescue"]="0:0:755"\n  ["/usr/local/bin/lumen-live-setup"]="0:0:755"\n  ["/usr/local/bin/lumen-installer"]="0:0:755"\n  ["/usr/local/bin/lumen-live-check"]="0:0:755"'
 while IFS= read -r f; do
   perms+="\\n  [\"/opt/lumen/${f#./}\"]=\"0:0:755\""
 done < <(cd "$profile/airootfs/opt/lumen" && find . -path ./.git -prune -o -type f -perm -u+x -print | sort)

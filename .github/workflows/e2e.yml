@@ -53,7 +53,7 @@ jobs:
             -drive if=pflash,format=raw,file=live-vars.fd \
             -drive file="$iso",media=cdrom,readonly=on \
             -kernel arch/boot/x86_64/vmlinuz-linux -initrd arch/boot/x86_64/initramfs-linux.img \
-            -append "archisobasedir=arch archisolabel=$label console=tty0 console=ttyS0,115200" \
+            -append "archisobasedir=arch archisolabel=$label console=tty0 console=ttyS0,115200 lumen.livecheck=1" \
             -vga none -device virtio-vga,xres=1920,yres=1080 \
             -nic user,model=virtio-net-pci -display none \
             -monitor unix:live.sock,server,nowait -serial file:live-serial.log &
@@ -61,10 +61,15 @@ jobs:
           shot() { mon "screendump $PWD/$1.ppm"; sleep 2; python3 -c "from PIL import Image; Image.open('$1.ppm').save('$1.png')" && rm -f "$1.ppm" || true; }
           mkdir -p shots
           sleep 90;  shot shots/00a-live-installer
-          sleep 45;  shot shots/00b-live-installer-later
+          # lumen-live-check reports on the live desktop over serial (~100 s after boot).
+          for _ in $(seq 60); do grep -aq LUMEN-LIVE-CHECK-END live-serial.log && break; sleep 3; done
+          shot shots/00b-live-installer-later
           mon "quit" || true
-          echo "--- live boot console (end) ---"
-          tr -d '\r' <live-serial.log | sed 's/\x1b\[[0-9;?]*[a-zA-Z]//g' | grep -av '^\s*$' | tail -n 40 || true
+          tr -d '\r' <live-serial.log | sed 's/\x1b\[[0-9;?]*[a-zA-Z]//g' >live-clean.log
+          sed -n '/=== LUMEN-LIVE-CHECK ===/,/LUMEN-LIVE-CHECK-END/p' live-clean.log >live-check.log
+          grep -a -o 'E2E-RESULT live: .*' live-check.log >live-results.txt || true
+          [ -s live-results.txt ] || echo "E2E-RESULT live: report received FAIL (no LUMEN-LIVE-CHECK on serial)" >live-results.txt
+          cat live-check.log
 
       - name: Install Lumen OS in a VM (unattended)
         run: |
@@ -147,13 +152,15 @@ jobs:
           strip | sed -n '/=== LUMEN-E2E-REPORT ===/,/LUMEN-E2E-REPORT-END/p' | head -n 400 || true
           strip | sed -n '/=== LUMEN-E2E-TASKS/,/E2E-DONE/p' | grep -v '^E2E-\(SHOT\|KEYS\|TYPE\)' > tasks.log || true
           strip | grep -a -o 'E2E-RESULT.*' > results.txt || true
+          cat live-results.txt >> results.txt 2>/dev/null || true
 
       # The screenshots, downscaled, as base64 text in this log, so they can be
       # read through the job-log API where artifact downloads aren't possible.
       - name: Print screenshots as text
         if: always()
         run: |
-          for f in shots/*.png; do
+          # Live USB shots last: the job-log API only returns the log's tail.
+          for f in $(ls shots/*.png | grep -v '/00') $(ls shots/*.png | grep '/00'); do
             [ -f "$f" ] || continue
             python3 -c "from PIL import Image; im=Image.open('$f').convert('RGB'); im.thumbnail((1280,720)); im.save('/tmp/s.jpg', quality=60)"
             echo "=== SHOT $(basename "$f" .png) ==="
@@ -164,6 +171,7 @@ jobs:
       - name: Task results
         if: always()
         run: |
+          echo "--- live USB check ---"; cat live-check.log 2>/dev/null || true
           echo "--- tasks ---"; head -n 800 tasks.log || true
           echo
           [ -s results.txt ] || { echo "::error::No task results (the task runner never reported)"; exit 1; }
@@ -184,3 +192,4 @@ jobs:
             results.txt
             tasks.log
             boot-serial.log
+            live-clean.log
