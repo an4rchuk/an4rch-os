@@ -42,5 +42,7 @@ echo
 echo "settings:"; cat "/home/$u/.config/lumen/settings.conf" 2>&1
 echo "plugins: $(as_live hyprctl plugin list 2>&1 | head -n 3 | tr '\n' ' ')"
 echo "user services failed:"; as_live systemctl --user --failed --no-legend 2>&1 | head -n 10
+echo "live setup log:"; tail -n 40 /var/log/lumen-live-setup.log 2>&1
+echo "live session log:"; tail -n 20 "/home/$u/.local/state/lumen/live-session.log" 2>&1
 echo "user journal errors:"; journalctl _UID="$uid" -p err -b --no-pager -o cat 2>&1 | tail -n 30
 echo "=== LUMEN-LIVE-CHECK-END ==="

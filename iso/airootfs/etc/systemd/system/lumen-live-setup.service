@@ -1,6 +1,6 @@
 [Unit]
 Description=Lumen OS live desktop
-Before=getty@tty1.service systemd-user-sessions.service
+Before=getty@tty1.service
 After=systemd-sysusers.service local-fs.target
 
 [Service]

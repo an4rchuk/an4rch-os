@@ -13,6 +13,11 @@ case " $(</proc/cmdline) " in
   *" lumen.auto=1 "* | *" lumen.text=1 "*) exit 0 ;;
 esac
 
+# Everything this does is logged for diagnosis (lumen-live-check prints it).
+exec >>/var/log/lumen-live-setup.log 2>&1
+echo "== $(date '+%T') lumen-live-setup"
+set -x
+
 user=live
 home=/home/$user
 lumen=/opt/lumen
@@ -39,7 +44,11 @@ if [[ -f /usr/lib/lumen/hyprbars.so &&
 fi
 
 # The user's desktop: the same files the Lumen installer writes.
-timeout 90 runuser -u "$user" -- env HOME="$home" LUMEN_PATH="$lumen" TITLEBARS="$titlebars" bash -s <<'SETUP'
+# setpriv, not runuser: runuser opens a PAM login session, which waits for
+# logins to be allowed, which waits for this boot step: a deadlock.
+timeout 90 setpriv --reuid="$user" --regid="$user" --init-groups -- \
+  env -i HOME="$home" USER="$user" LOGNAME="$user" PATH=/usr/local/bin:/usr/bin LUMEN_PATH="$lumen" TITLEBARS="$titlebars" \
+  bash -s <<'SETUP'
 set -u
 mkdir -p ~/.config/lumen ~/.local/share/applications ~/.local/share/icons/hicolor/scalable/apps \
   ~/.local/share/backgrounds ~/.local/state/lumen ~/.config/autostart
