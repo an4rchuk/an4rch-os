@@ -5,3 +5,4 @@
   Rescue:    lumen-rescue        (roll back a system that won't start)
   Wi-Fi:     iwctl               (station wlan0 connect "Network")
 
+  Desktop stuck?  Ctrl+Alt+F2, log in as root (no password), then run lumen-os-install
