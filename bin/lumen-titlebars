@@ -5,7 +5,7 @@
 #   lumen-titlebars off      turn them off: a clean, borderless tiling look
 #   lumen-titlebars toggle   switch between the two
 #   lumen-titlebars status   show whether they're on and the plugin is loaded
-#   lumen-titlebars setup    (re)build the plugin, e.g. after a Hyprland update
+#   lumen-titlebars setup    build the plugin if Hyprland changed (--force: always)
 #   lumen-titlebars load     load the plugin into the running session (used at login)
 #
 # The bars come from hyprbars, Hyprland's official plugin, built for your
@@ -19,7 +19,18 @@ REPO=https://github.com/hyprwm/hyprland-plugins
 in_session() { [[ -n "${HYPRLAND_INSTANCE_SIGNATURE:-}" ]]; }
 built() { hyprpm list 2>/dev/null | grep -q hyprbars; }
 
+# The Hyprland version the plugin was last built for (written after a build,
+# or by the installer when it brings the plugin prebuilt on the USB stick).
+STAMP=/var/lib/lumen/hyprbars-hyprland
+hyprland_version() { pacman -Q hyprland 2>/dev/null | awk '{print $2}'; }
+up_to_date() { built && [[ -f "$STAMP" && "$(cat "$STAMP")" == "$(hyprland_version)" ]]; }
+
 setup() {
+  if [[ "${1:-}" != --force ]] && up_to_date; then
+    echo "Title bars plugin is already built for Hyprland $(hyprland_version)."
+    hyprpm enable hyprbars >/dev/null 2>&1 || true
+    return 0
+  fi
   local missing=() p
   for p in "${PKGS_TITLEBARS[@]}"; do pacman -Q "$p" >/dev/null 2>&1 || missing+=("$p"); done
   if ((${#missing[@]})); then
@@ -32,6 +43,7 @@ setup() {
     yes | hyprpm add "$REPO"
   fi
   hyprpm enable hyprbars
+  hyprland_version | sudo install -D -m644 /dev/stdin "$STAMP"
 }
 
 set_setting() {
@@ -49,7 +61,8 @@ load() {
   [[ "${LUMEN_TITLEBARS:-yes}" == yes ]] || return 0
   in_session || return 0
   built || return 0
-  hyprpm reload -nn >/dev/null 2>&1 || true
+  mkdir -p "$LUMEN_STATE"
+  hyprpm reload -nn >"$LUMEN_STATE/titlebars.log" 2>&1 || true
 }
 
 on() {
@@ -88,7 +101,7 @@ case "${1:-toggle}" in
   off) off ;;
   toggle) if [[ "${LUMEN_TITLEBARS:-yes}" == yes ]] && built; then off; else on; fi ;;
   status) status ;;
-  setup) setup ;;
+  setup) setup "${2:-}" ;;
   load) load ;;
   -h | --help | help) sed -n '2,13s/^# \{0,1\}//p' "$0" ;;
   *) die "Unknown command '$1'. See: lumen-titlebars --help" ;;

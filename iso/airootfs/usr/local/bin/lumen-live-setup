@@ -25,8 +25,15 @@ chmod 440 /etc/sudoers.d/90-lumen-live
 # Wi-Fi through NetworkManager (on top of iwd); wired stays with networkd.
 systemctl start NetworkManager
 
+# Title bars, if the ISO carries the plugin built for this Hyprland.
+titlebars=no
+if /usr/local/bin/lumen-hyprpm-seed / "$user" 2>/dev/null &&
+  [[ "$(cat /var/lib/lumen/hyprbars-hyprland)" == "$(pacman -Q hyprland | awk '{print $2}')" ]]; then
+  titlebars=yes
+fi
+
 # The user's desktop: the same files the Lumen installer writes.
-runuser -u "$user" -- env HOME="$home" LUMEN_PATH="$lumen" bash -s <<'SETUP'
+runuser -u "$user" -- env HOME="$home" LUMEN_PATH="$lumen" TITLEBARS="$titlebars" bash -s <<'SETUP'
 set -u
 mkdir -p ~/.config/lumen ~/.local/share/applications ~/.local/share/icons/hicolor/scalable/apps \
   ~/.local/share/backgrounds ~/.local/state/lumen ~/.config/autostart
@@ -43,12 +50,12 @@ cd "$LUMEN_PATH/config" && find . -type f | while read -r f; do
 done
 cp "$LUMEN_PATH"/share/applications/*.desktop ~/.local/share/applications/
 cp "$LUMEN_PATH"/share/icons/hicolor/scalable/apps/*.svg ~/.local/share/icons/hicolor/scalable/apps/
-cat >~/.config/lumen/settings.conf <<'CONF'
+cat >~/.config/lumen/settings.conf <<CONF
 LUMEN_TERMINAL=ghostty
 LUMEN_BROWSER=firefox
 LUMEN_EDITOR=nvim
 LUMEN_FILES=nautilus
-LUMEN_TITLEBARS=no
+LUMEN_TITLEBARS=$TITLEBARS
 LUMEN_TASKBAR=no
 LUMEN_IDLE_SUSPEND=never
 CONF

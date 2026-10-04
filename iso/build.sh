@@ -46,9 +46,16 @@ git -C "$profile/airootfs/opt/lumen" remote set-url origin "${LUMEN_REPO:-https:
 # now so booting stays fast (needs python-pillow on the build host).
 if python3 -c 'import PIL' 2>/dev/null; then
   echo "==> Painting wallpapers"
-  python3 "$root/bin/lumen-wallgen" --all --out "$profile/airootfs/opt/lumen-wallpapers" --size 1920x1080 >/dev/null
+  LUMEN_PATH="$root" python3 "$root/bin/lumen-wallgen" --all --out "$profile/airootfs/opt/lumen-wallpapers" --size 1920x1080 >/dev/null
 else
   echo "  (python-pillow not installed: the live desktop will have no wallpapers)"
+fi
+
+# The packages an install needs and the prebuilt title bar plugin, so
+# installing copies from the stick instead of downloading (LUMEN_OFFLINE=0
+# for a small ISO that downloads everything).
+if [[ "${LUMEN_OFFLINE:-1}" == 1 ]]; then
+  "$root/iso/offline.sh" "$root" "$profile" "$work"
 fi
 
 # Identity of the image.
@@ -62,16 +69,25 @@ sed -i \
 # mkarchiso copies airootfs without file modes, so everything that must stay
 # executable is listed: our installer, and every executable in Lumen's tree
 # (otherwise every lumen-* command fails with "Permission denied").
-perms='  ["/usr/local/bin/lumen-os-install"]="0:0:755"\n  ["/usr/local/bin/lumen-rescue"]="0:0:755"\n  ["/usr/local/bin/lumen-live-setup"]="0:0:755"\n  ["/usr/local/bin/lumen-installer"]="0:0:755"'
+perms='  ["/usr/local/bin/lumen-os-install"]="0:0:755"\n  ["/usr/local/bin/lumen-rescue"]="0:0:755"\n  ["/usr/local/bin/lumen-live-setup"]="0:0:755"\n  ["/usr/local/bin/lumen-installer"]="0:0:755"\n  ["/usr/local/bin/lumen-hyprpm-seed"]="0:0:755"'
 while IFS= read -r f; do
   perms+="\\n  [\"/opt/lumen/${f#./}\"]=\"0:0:755\""
 done < <(cd "$profile/airootfs/opt/lumen" && find . -path ./.git -prune -o -type f -perm -u+x -print | sort)
 sed -i "s|^file_permissions=(|file_permissions=(\\n$perms|" "$profile/profiledef.sh"
 
+# zstd squashes faster than xz and barely differs here: most of the image is
+# already-compressed packages.
+sed -i "s/^airootfs_image_tool_options=.*/airootfs_image_tool_options=('-comp' 'zstd' '-Xcompression-level' '15' '-b' '1M')/" "$profile/profiledef.sh"
+
 # Boot menu branding.
 find "$profile/efiboot" "$profile/syslinux" "$profile/grub" -type f \( -name '*.conf' -o -name '*.cfg' \) \
   -exec sed -i -e 's/Arch Linux install medium/Lumen OS installer/g' -e 's/Arch Linux/Lumen OS/g' {} +
 [[ -f "$root/iso/splash.png" ]] && cp "$root/iso/splash.png" "$profile/syslinux/splash.png"
+
+# Run from the stick rather than copying the (large) image into memory first.
+# (Network boot entries keep copying: there's no stick to run from.)
+find "$profile/efiboot" "$profile/syslinux" "$profile/grub" -type f \( -name '*.conf' -o -name '*.cfg' \) ! -name '*pxe*' \
+  -exec sed -i 's/archisobasedir=/copytoram=n archisobasedir=/' {} +
 
 # The default entry boots the live desktop with the graphical installer; a
 # second entry runs the text-mode installer instead (lumen.text=1).

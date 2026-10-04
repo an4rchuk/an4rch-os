@@ -11,21 +11,26 @@ on:
 jobs:
   build:
     runs-on: ubuntu-24.04
-    container:
-      image: archlinux:latest
-      options: --privileged
     steps:
-      - name: Install archiso
-        run: pacman -Syu --noconfirm --needed archiso git python-pillow
-
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Build the ISO
+      # The ISO carries every package an install needs (iso/offline.sh), so
+      # the build needs more room than the runner leaves free.
+      - name: Free disk space
         run: |
-          git config --global --add safe.directory "$GITHUB_WORKSPACE"
-          WORK=/tmp/lumen-iso iso/build.sh
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL /usr/local/share/boost
+          df -h /
+
+      - name: Build the ISO (Arch container)
+        run: |
+          docker run --rm --privileged -v "$PWD:/src" -e LUMEN_STRICT=1 archlinux:latest bash -c '
+            pacman -Syu --noconfirm --needed archiso git python-pillow >/dev/null &&
+            git config --global --add safe.directory /src &&
+            cd /src && WORK=/tmp/lumen-iso OUT=/src/out iso/build.sh'
+          sudo chown -R "$USER" out
+          ls -lh out
 
       - uses: actions/upload-artifact@v4
         with:

@@ -120,6 +120,10 @@ setup_pacman() {
   fi
   run "Updating the system" sudo pacman -Syu --noconfirm
 
+  # The Lumen OS USB stick carries yay prebuilt; elsewhere it's built from the AUR.
+  if ! command -v yay >/dev/null && pacman -Si yay-bin >/dev/null 2>&1; then
+    pkg_install OPTIONAL yay-bin
+  fi
   if ! command -v yay >/dev/null; then
     pkg_install REQUIRED git base-devel
     local tmp
@@ -389,7 +393,7 @@ EOF
 setup_look() {
   if [[ "$TITLEBARS" == yes ]]; then
     # shellcheck disable=SC2024  # the log is the user's
-    try "Window title bars (building the hyprbars plugin, a few minutes)" "$LUMEN_PATH/bin/lumen-titlebars" setup </dev/null
+    try "Window title bars (the hyprbars plugin)" "$LUMEN_PATH/bin/lumen-titlebars" setup </dev/null
   fi
 
   step "Styling"

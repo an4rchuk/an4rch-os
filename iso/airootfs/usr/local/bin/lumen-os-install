@@ -11,6 +11,8 @@
 set -euo pipefail
 
 LUMEN_SRC=/opt/lumen
+# shellcheck source=/dev/null
+source "$LUMEN_SRC/install/packages.sh"
 LOG=/var/log/lumen-os-install.log
 MNT=/mnt
 ACCENT="#9d8cff"
@@ -285,6 +287,36 @@ SYS=$(part 2)
 
 umount -R "$MNT" 2>/dev/null || true
 cryptsetup close cryptroot 2>/dev/null || true
+# Packages come from the stick (iso/offline.sh) where it has them: its
+# repository goes first in pacman's list, and is also a package cache, so
+# files are used in place instead of copied.
+OFFLINE=/opt/lumen-repo
+pac_opts=()
+offline_section() { # PATH-OF-REPO
+  printf '[lumen-offline]\nSigLevel = Optional TrustAll\nServer = file://%s\n\n[core]' "$1"
+}
+if [[ -e "$OFFLINE/lumen-offline.db" ]]; then
+  sed -e "0,/^\[core\]/s||$(offline_section "$OFFLINE" | sed -z 's/\n/\\n/g')|" \
+    -e "/^\[options\]/a CacheDir = /var/cache/pacman/pkg/\nCacheDir = $OFFLINE/" /etc/pacman.conf >/tmp/lumen-pacman.conf
+  pac_opts=(-c -C /tmp/lumen-pacman.conf)
+fi
+# The same for pacman inside the new system while Lumen installs; undone after.
+offline_on() {
+  [[ ${#pac_opts[@]} -gt 0 ]] || return 0
+  mkdir -p "$MNT/var/cache/lumen-repo"
+  mount --bind "$OFFLINE" "$MNT/var/cache/lumen-repo" && mount -o remount,ro,bind "$MNT/var/cache/lumen-repo"
+  sed -i -e "0,/^\[core\]/s||$(offline_section /var/cache/lumen-repo | sed -z 's/\n/\\n/g')|" \
+    -e "/^\[options\]/a CacheDir = /var/cache/pacman/pkg/\nCacheDir = /var/cache/lumen-repo/" "$MNT/etc/pacman.conf"
+}
+offline_off() {
+  [[ ${#pac_opts[@]} -gt 0 && -f "$MNT/etc/pacman.conf" ]] || return 0
+  sed -i -e '/^\[lumen-offline\]$/,/^$/d' -e '\|^CacheDir = /var/cache/pacman/pkg/$|d' -e '\|^CacheDir = /var/cache/lumen-repo/$|d' "$MNT/etc/pacman.conf"
+  rm -f "$MNT/var/lib/pacman/sync/lumen-offline.db"
+  umount "$MNT/var/cache/lumen-repo" 2>/dev/null && rmdir "$MNT/var/cache/lumen-repo"
+  # Keep the installed kernels' packages, for rolling back to the first snapshot.
+  cp -n "$OFFLINE"/linux-[0-9]*.pkg.tar.zst "$OFFLINE"/linux-lts-[0-9]*.pkg.tar.zst "$MNT/var/cache/pacman/pkg/" 2>/dev/null || true
+}
+
 spin "Mirrors: picking the fastest" timeout 90 reflector --latest 20 --protocol https --sort rate --save /etc/pacman.d/mirrorlist
 spin "Partitioning $DISK" bash -c "wipefs -af '$DISK' && sgdisk -Z '$DISK' && sgdisk -n1:0:+1G -t1:ef00 -c1:EFI -n2:0:0 -t2:8300 -c2:lumen '$DISK' && partprobe '$DISK' && udevadm settle"
 
@@ -323,10 +355,7 @@ HOOKS=(base systemd plymouth autodetect microcode modconf kms keyboard sd-vconso
 EOF
 printf 'KEYMAP=%s\n' "$keymap" >"$MNT/etc/vconsole.conf"
 
-spin "Installing the base system (the longest step)" pacstrap -K "$MNT" \
-  base linux linux-lts linux-firmware sof-firmware $UCODE btrfs-progs cryptsetup \
-  sudo git base-devel networkmanager wpa_supplicant plymouth zram-generator \
-  snapper snap-pac efibootmgr arch-install-scripts pciutils man-db nano reflector
+spin "Installing the base system" pacstrap -K "${pac_opts[@]}" "$MNT" "${PKGS_BASE[@]}" $UCODE
 
 genfstab -U "$MNT" >>"$MNT/etc/fstab"
 # Mount subvolumes by name only: rollbacks replace @ with a new subvolume ID.
@@ -418,14 +447,19 @@ lumen_args=(--yes --distro --no-reboot --browser "$BROWSER" --terminal "$TERMINA
 [[ "${K[autologin]:-0}" == 1 ]] && lumen_args+=(--autologin)
 [[ "${K[taskbar]:-0}" == 1 ]] && lumen_args+=(--taskbar)
 [[ "${K[titlebars]:-1}" == 0 ]] && lumen_args+=(--no-titlebars)
+# The title bar plugin, already built on the stick for this Hyprland.
+lumen-hyprpm-seed "$MNT" "$USERNAME" >>"$LOG" 2>&1 || true
+offline_on
 step "Lumen installer: ${lumen_args[*]}"
-gum style --foreground "$DIM" --margin "1 2 0" "Installing the Lumen desktop and apps (10–20 minutes). Progress: $LOG"
+gum style --foreground "$DIM" --margin "1 2 0" "Installing the Lumen desktop and apps (a few minutes). Progress: $LOG"
 if ! setsid -w arch-chroot "$MNT" sudo -u "$USERNAME" env HOME="/home/$USERNAME" USER="$USERNAME" LUMEN_YES=1 LUMEN_VERBOSE=1 \
   bash "/home/$USERNAME/.local/share/lumen/install.sh" "${lumen_args[@]}" </dev/null >>"$LOG" 2>&1; then
   rm -f "$MNT/etc/sudoers.d/99-lumen-install"
+  offline_off
   fail "The Lumen desktop didn't install completely. The system boots to a console; log in and run ~/.local/share/lumen/install.sh to finish."
 fi
 rm -f "$MNT/etc/sudoers.d/99-lumen-install"
+offline_off
 cp "$LOG" "$MNT/var/log/lumen-os-install.log" 2>/dev/null || true
 gum style --foreground "#9fdc9b" "  ✓ Installed the Lumen desktop"
 

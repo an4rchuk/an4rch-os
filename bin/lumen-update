@@ -45,7 +45,7 @@ update_system() {
   # A new Hyprland needs the title bar plugin rebuilt for it.
   if [[ "${LUMEN_TITLEBARS:-yes}" == yes ]] && has hyprpm && hyprpm list 2>/dev/null | grep -q hyprbars; then
     step "Window title bars"
-    hyprpm update || echo "  Title bars could not be rebuilt; run: lumen titlebars setup"
+    LUMEN_YES=1 "$LUMEN_PATH/bin/lumen-titlebars" setup </dev/null || echo "  Title bars could not be rebuilt; run: lumen titlebars setup --force"
     hyprpm reload >/dev/null 2>&1 || true
   fi
 

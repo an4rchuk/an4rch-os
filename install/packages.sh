@@ -3,6 +3,13 @@
 # Package sets. REQUIRED packages stop the install if missing; everything else
 # is best-effort and reported at the end.
 
+# The base system lumen-os-install puts on the disk (plus the CPU's microcode).
+PKGS_BASE=(
+  base linux linux-lts linux-firmware sof-firmware btrfs-progs cryptsetup
+  sudo git base-devel networkmanager wpa_supplicant plymouth zram-generator
+  snapper snap-pac efibootmgr arch-install-scripts pciutils man-db nano reflector
+)
+
 # Sound (installed first, see install_packages).
 PKGS_AUDIO=(
   pipewire pipewire-alsa pipewire-pulse pipewire-jack wireplumber

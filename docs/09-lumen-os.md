@@ -12,7 +12,7 @@ Under the hood it's still Arch Linux: the official repositories, `pacman`, the A
 ## Getting the ISO
 
 - **Download:** every tagged release on GitHub attaches `lumen-<date>-x86_64.iso` with a `.sha256` checksum.
-- **Build it yourself on Arch:** `sudo pacman -S archiso`, then `sudo iso/build.sh`. The ISO lands in `out/`.
+- **Build it yourself on Arch:** `sudo pacman -S archiso`, then `sudo iso/build.sh`. The ISO lands in `out/`. It is about 4 GB because it carries the packages an install needs (`iso/offline.sh`); `sudo LUMEN_OFFLINE=0 iso/build.sh` makes a small ISO that downloads everything while installing.
 - **Build it on GitHub:** Actions → *iso* → *Run workflow*. The ISO is attached to the run.
 
 Write it to a USB stick with [Impression](https://flathub.org/apps/io.gitlab.adhami3310.Impression), [Ventoy](https://www.ventoy.net), [Fedora Media Writer](https://flathub.org/apps/org.fedoraproject.MediaWriter), or `dd`:
@@ -40,7 +40,7 @@ sudo dd if=lumen-*.iso of=/dev/sdX bs=4M status=progress oflag=sync
 
 Prefer text? Pick **Lumen OS installer (text mode)** in the boot menu for the original step-by-step console installer.
 
-Installing takes 15–30 minutes, mostly downloading. Progress is logged to `/var/log/lumen-os-install.log`, and the log is copied into the installed system.
+The stick carries every package a default install needs, and the window title bar plugin ready-built, so installing mostly copies from the stick rather than downloading: expect a few minutes plus the disk's write speed. Choices it doesn't carry (another browser or editor, gaming) are downloaded. An internet connection is still needed for the latest package lists and mirrors. Progress is logged to `/var/log/lumen-os-install.log`, and the log is copied into the installed system.
 
 ### What the installer sets up
 
