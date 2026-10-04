@@ -56,7 +56,15 @@ jobs:
             -kernel arch/boot/x86_64/vmlinuz-linux -initrd arch/boot/x86_64/initramfs-linux.img \
             -append "archisobasedir=arch archisolabel=$label console=tty0 console=ttyS0,115200 lumen.auto=1 lumen.disk=/dev/vda lumen.user=lumen lumen.pass=lumen lumen.autologin=1 lumen.poweroff=1" \
             -nic user,model=virtio-net-pci -display none -serial file:install-serial.log -no-reboot || true
-          tail -n 60 install-serial.log
+          # The installer's own output, without systemd's boot/shutdown chatter.
+          sed 's/\x1b\[[0-9;?]*[a-zA-Z]//g; s/\x1b\][^\x1b]*\x1b\\//g' install-serial.log |
+            grep -av -E '^\s*(\[ *OK *\]|\[ *FAILED *\]|Starting|Stopping|Unmounting|Mounting|Mounted|Stopped|Started|Reached|Closed|Finished|Listening|Created slice|Removed slice)' |
+            grep -av '^\s*$' > install-clean.log || true
+          if grep -q LUMEN-INSTALL-FAILED install-clean.log; then
+            sed -n '/LUMEN-INSTALL-FAILED/,$p' install-clean.log | head -n 260
+          else
+            tail -n 200 install-clean.log
+          fi
           grep -q LUMEN-INSTALL-OK install-serial.log
 
       - name: Boot the installed system and take screenshots
@@ -83,6 +91,21 @@ jobs:
           mon "sendkey meta_l-a"; sleep 25; shot shots/05-app-store
           mon "quit" || true
           ls -l shots
+          echo "--- boot console (end) ---"
+          sed 's/\x1b\[[0-9;?]*[a-zA-Z]//g' boot-serial.log | tail -n 60 || true
+
+      # The screenshots, downscaled, as base64 text in this log, so they can be
+      # read through the job-log API where artifact downloads aren't possible.
+      - name: Print screenshots as text
+        if: always()
+        run: |
+          for f in shots/*.png; do
+            [ -f "$f" ] || continue
+            python3 -c "from PIL import Image; im=Image.open('$f').convert('RGB'); im.thumbnail((1280,720)); im.save('/tmp/s.jpg', quality=70)"
+            echo "=== SHOT $(basename "$f" .png) ==="
+            base64 -w 120 /tmp/s.jpg
+            echo "=== END ==="
+          done
 
       - uses: actions/upload-artifact@v4
         if: always()
@@ -91,4 +114,5 @@ jobs:
           path: |
             shots/*.png
             install-serial.log
+            install-clean.log
             boot-serial.log
