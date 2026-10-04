@@ -57,6 +57,7 @@ jobs:
             -vga none -device virtio-vga,xres=1920,yres=1080 \
             -nic user,model=virtio-net-pci -display none \
             -monitor unix:live.sock,server,nowait -serial file:live-serial.log &
+          qpid=$!
           mon() { echo "$1" | socat - UNIX-CONNECT:live.sock >/dev/null; }
           shot() { mon "screendump $PWD/$1.ppm"; sleep 2; python3 -c "from PIL import Image; Image.open('$1.ppm').save('$1.png')" && rm -f "$1.ppm" || true; }
           mkdir -p shots
@@ -64,7 +65,11 @@ jobs:
           # lumen-live-check reports on the live desktop over serial (~100 s after boot).
           for _ in $(seq 60); do grep -aq LUMEN-LIVE-CHECK-END live-serial.log && break; sleep 3; done
           shot shots/00b-live-installer-later
+          # Make sure this VM is gone before the install VM starts (memory).
           mon "quit" || true
+          for _ in $(seq 10); do kill -0 "$qpid" 2>/dev/null || break; sleep 1; done
+          kill -9 "$qpid" 2>/dev/null || true
+          wait "$qpid" 2>/dev/null || true
           tr -d '\r' <live-serial.log | sed 's/\x1b\[[0-9;?]*[a-zA-Z]//g' >live-clean.log
           sed -n '/=== LUMEN-LIVE-CHECK ===/,/LUMEN-LIVE-CHECK-END/p' live-clean.log >live-check.log
           grep -a -o 'E2E-RESULT live: .*' live-check.log >live-results.txt || true
@@ -101,6 +106,7 @@ jobs:
         if: always()
         run: |
           [ -f disk.qcow2 ] || exit 1
+          grep -q LUMEN-INSTALL-OK install-serial.log || { echo "::error::The install didn't finish; nothing to boot"; exit 1; }
           qemu-system-x86_64 -enable-kvm -machine q35 -cpu host -smp 4 -m 8G \
             -drive if=pflash,format=raw,readonly=on,file=/usr/share/OVMF/OVMF_CODE_4M.fd \
             -drive if=pflash,format=raw,file=vars.fd \
