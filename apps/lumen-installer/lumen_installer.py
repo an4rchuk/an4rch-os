@@ -291,7 +291,7 @@ class Installer(Adw.ApplicationWindow):
         text = Gtk.Label(wrap=True, justify=Gtk.Justification.CENTER, css_classes=["installer-sub"],
                          label="You're running Lumen from the USB stick right now: look around, open apps, try the "
                                "Start menu (tap the Windows key). When you're ready, this installer asks a few "
-                               "questions and puts Lumen on your computer. It takes about 15 minutes.")
+                               "questions and puts Lumen on your computer. It only takes a few minutes.")
         keymap = Adw.ComboRow(title="Keyboard layout", subtitle="Used for the disk password and the console")
         self.keymaps = keymaps()
         keymap.set_model(Gtk.StringList.new(self.keymaps))
@@ -691,7 +691,7 @@ class Installer(Adw.ApplicationWindow):
         self.progress = Gtk.ProgressBar(show_text=False, margin_top=12)
         self.progress_label = Gtk.Label(label="Starting…", xalign=0, css_classes=["title-4"])
         tip = Gtk.Label(wrap=True, xalign=0, css_classes=["dim-label"],
-                        label="This takes 10–30 minutes, mostly downloading. Keep exploring the live desktop meanwhile; "
+                        label="This takes a few minutes: almost everything comes from the USB stick. Keep exploring the live desktop meanwhile; "
                               "just don't switch the computer off.")
         self.log_view = Gtk.TextView(editable=False, monospace=True, cursor_visible=False, wrap_mode=Gtk.WrapMode.CHAR,
                                      css_classes=["installer-log"])

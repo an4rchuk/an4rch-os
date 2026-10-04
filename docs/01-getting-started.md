@@ -19,7 +19,7 @@ Any Intel, AMD or recent NVIDIA (Turing / GTX 16-series or newer) graphics card 
 Log in as your user on the text console and run:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/twil09/linux/main/boot.sh | bash
+curl -fsSL https://raw.githubusercontent.com/twil09/linux/HEAD/boot.sh | bash
 ```
 
 This clones Lumen to `~/.local/share/lumen` and starts the installer. If you'd rather look first:
