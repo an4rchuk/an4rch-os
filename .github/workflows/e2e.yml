@@ -79,22 +79,60 @@ jobs:
             -nic user,model=virtio-net-pci -display none \
             -monitor unix:mon.sock,server,nowait -serial file:boot-serial.log &
           mon() { echo "$1" | socat - UNIX-CONNECT:mon.sock >/dev/null; }
-          shot() { mon "screendump $PWD/$1.ppm"; sleep 2; python3 -c "from PIL import Image; Image.open('$1.ppm').save('$1.png')"; }
+          shot() { mon "screendump $PWD/$1.ppm"; sleep 2; python3 -c "from PIL import Image; Image.open('$1.ppm').save('$1.png')" && rm -f "$1.ppm" || true; }
+          type_text() {
+            local s="$1" i c k
+            for ((i = 0; i < ${#s}; i++)); do
+              c="${s:i:1}"
+              case "$c" in
+                [a-z0-9]) k="$c" ;; ' ') k=spc ;; '-') k=minus ;; '.') k=dot ;; '/') k=slash ;; *) continue ;;
+              esac
+              mon "sendkey $k"; sleep 0.15
+            done
+          }
           mkdir -p shots
-          sleep 60;  shot shots/01-boot
-          sleep 120; shot shots/02-desktop
-          sleep 120; shot shots/03-desktop-later
-          # Close the welcome tour (Escape), then tap the Windows key for Start.
-          mon "sendkey esc"; sleep 3
-          mon "sendkey meta_l"; sleep 6; shot shots/04-start-menu
+          # First login: desktop with the welcome tour, Start (Windows-key tap)
+          # and the App Store (Windows + A).
+          sleep 45;  shot shots/01-boot
+          sleep 95;  shot shots/02-desktop
+          mon "sendkey meta_l"; sleep 6; shot shots/03-start-menu
           mon "sendkey esc"; sleep 2
-          mon "sendkey meta_l-a"; sleep 25; shot shots/05-app-store
+          mon "sendkey meta_l-a"; sleep 30; shot shots/04-app-store
+
+          # Then tests/vm/tasks.sh (inside the VM) drives the rest: it asks for
+          # screenshots, key presses and typing on the serial console.
+          seen=0 deadline=$((SECONDS + 1500))
+          while ((SECONDS < deadline)); do
+            mapfile -t ev < <(tr -d '\r' <boot-serial.log | grep -a -o 'E2E-\(SHOT\|KEYS\|TYPE\|DONE\).*')
+            while ((seen < ${#ev[@]})); do
+              e="${ev[$seen]}"; seen=$((seen + 1))
+              case "$e" in
+                E2E-SHOT\ *) sleep 3; shot "shots/${e#E2E-SHOT }" ;;
+                E2E-KEYS\ *) for k in ${e#E2E-KEYS }; do mon "sendkey $k"; sleep 0.4; done ;;
+                E2E-TYPE\ *) type_text "${e#E2E-TYPE }" ;;
+                E2E-DONE*) break 2 ;;
+              esac
+            done
+            sleep 1
+          done
           mon "quit" || true
           ls -l shots
+          strip() { tr -d '\r' <boot-serial.log | sed 's/\x1b\[[0-9;?]*[a-zA-Z]//g'; }
           echo "--- installed system's report ---"
-          sed 's/\x1b\[[0-9;?]*[a-zA-Z]//g' boot-serial.log | sed -n '/LUMEN-E2E-REPORT/,/LUMEN-E2E-REPORT-END/p' | head -n 700 || true
-          echo "--- boot console (end) ---"
-          sed 's/\x1b\[[0-9;?]*[a-zA-Z]//g' boot-serial.log | tail -n 40 || true
+          strip | sed -n '/=== LUMEN-E2E-REPORT ===/,/LUMEN-E2E-REPORT-END/p' | head -n 400 || true
+          echo "--- tasks ---"
+          strip | sed -n '/=== LUMEN-E2E-TASKS/,/E2E-DONE/p' | grep -v '^E2E-\(SHOT\|KEYS\|TYPE\)' | head -n 800 || true
+          strip | grep -a -o 'E2E-RESULT.*' > results.txt || true
+
+      - name: Task results
+        if: always()
+        run: |
+          [ -s results.txt ] || { echo "::error::No task results (the task runner never reported)"; exit 1; }
+          sed -e 's/^E2E-RESULT //' results.txt | awk '{ s=($0 ~ / PASS/)?"✓":"✗"; print "  " s " " $0 }'
+          if grep -q ' FAIL' results.txt; then
+            grep ' FAIL' results.txt | sed 's/^E2E-RESULT /::error::/'
+            exit 1
+          fi
 
       # The screenshots, downscaled, as base64 text in this log, so they can be
       # read through the job-log API where artifact downloads aren't possible.
@@ -103,7 +141,7 @@ jobs:
         run: |
           for f in shots/*.png; do
             [ -f "$f" ] || continue
-            python3 -c "from PIL import Image; im=Image.open('$f').convert('RGB'); im.thumbnail((1280,720)); im.save('/tmp/s.jpg', quality=70)"
+            python3 -c "from PIL import Image; im=Image.open('$f').convert('RGB'); im.thumbnail((1280,720)); im.save('/tmp/s.jpg', quality=60)"
             echo "=== SHOT $(basename "$f" .png) ==="
             base64 -w 120 /tmp/s.jpg
             echo "=== END ==="
@@ -117,4 +155,5 @@ jobs:
             shots/*.png
             install-serial.log
             install-clean.log
+            results.txt
             boot-serial.log

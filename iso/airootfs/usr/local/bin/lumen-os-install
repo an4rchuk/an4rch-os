@@ -401,32 +401,15 @@ gum style --foreground "#9fdc9b" "  ✓ Installed the Lumen desktop"
 # port, and reports on its desktop session a few minutes after booting.
 if [[ "${K[serial]:-0}" == 1 ]]; then
   sed -i '/^options / s/$/ console=tty0 console=ttyS0,115200/' "$MNT"/boot/loader/entries/*.conf
-  cat >"$MNT/usr/local/bin/lumen-e2e-report" <<'REPORT'
-#!/bin/bash
-# Test-only: describe the desktop session on the serial console.
-exec >/dev/ttyS0 2>&1
-u=$(id -un 1000 2>/dev/null)
-echo "=== LUMEN-E2E-REPORT ==="
-echo "--- processes"; ps -eo user,pid,etime,args | grep -E 'hypr|waybar|swaybg|mako|lumen|greetd|uwsm|fuzzel' | grep -v grep
-echo "--- failed units"; systemctl --failed --no-pager; machinectl shell --quiet "$u@" /usr/bin/systemctl --user --failed --no-pager 2>/dev/null
-echo "--- hyprland log"; for f in /run/user/1000/hypr/*/hyprland.log; do tail -n 120 "$f"; done
-sig=$(ls /run/user/1000/hypr 2>/dev/null | head -n1)
-for q in configerrors layers clients monitors; do
-  echo "--- hyprctl $q"
-  sudo -u "$u" env XDG_RUNTIME_DIR=/run/user/1000 HYPRLAND_INSTANCE_SIGNATURE="$sig" hyprctl "$q" 2>&1 | head -n 60
-done
-echo "--- user journal"; journalctl -b _UID=1000 --no-pager -o short-monotonic | tail -n 150
-echo "--- greetd"; journalctl -b -u greetd --no-pager | tail -n 30
-echo "--- errors"; journalctl -b -p err --no-pager | tail -n 60
-echo "--- lumen state"; ls -la "/home/$u/.config/lumen/" "/home/$u/.config/lumen/current/" "/home/$u/.config/autostart/" 2>&1 | head -n 40
-echo "--- session.log"; tail -n 60 "/home/$u/.local/state/lumen/session.log" 2>&1
-echo "--- install log: theme"; grep -n -B3 -A12 'lumen-theme\|Theme' "/home/$u/.local/state/lumen/install.log" 2>&1 | tail -n 60
-echo "=== LUMEN-E2E-REPORT-END ==="
-REPORT
-  chmod 755 "$MNT/usr/local/bin/lumen-e2e-report"
-  printf '[Unit]\nDescription=Lumen test report\n[Service]\nType=oneshot\nExecStart=/usr/local/bin/lumen-e2e-report\n' >"$MNT/etc/systemd/system/lumen-e2e-report.service"
-  printf '[Unit]\nDescription=Lumen test report\n[Timer]\nOnBootSec=150\n[Install]\nWantedBy=timers.target\n' >"$MNT/etc/systemd/system/lumen-e2e-report.timer"
-  arch-chroot "$MNT" systemctl enable lumen-e2e-report.timer >>"$LOG" 2>&1
+  # tests/vm: a report on the session (150 s after boot), then a run through
+  # everyday tasks that the e2e workflow screenshots (240 s).
+  for t in report:150 tasks:240; do
+    name=${t%%:*} after=${t#*:}
+    install -m755 "$LUMEN_SRC/tests/vm/$name.sh" "$MNT/usr/local/bin/lumen-e2e-$name"
+    printf '[Unit]\nDescription=Lumen VM test: %s\n[Service]\nType=oneshot\nTimeoutStartSec=infinity\nExecStart=/usr/local/bin/lumen-e2e-%s\n' "$name" "$name" >"$MNT/etc/systemd/system/lumen-e2e-$name.service"
+    printf '[Unit]\nDescription=Lumen VM test: %s\n[Timer]\nOnBootSec=%s\n[Install]\nWantedBy=timers.target\n' "$name" "$after" >"$MNT/etc/systemd/system/lumen-e2e-$name.timer"
+    arch-chroot "$MNT" systemctl enable "lumen-e2e-$name.timer" >>"$LOG" 2>&1
+  done
 fi
 
 # A first snapshot of the fresh system, to always be able to go back.

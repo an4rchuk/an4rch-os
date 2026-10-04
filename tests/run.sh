@@ -52,7 +52,7 @@ else
 fi
 
 step "Shell scripts"
-mapfile -t scripts < <(grep -lE '^#!/usr/bin/env bash|^#!/bin/bash' "$root"/bin/* "$root"/install.sh "$root"/boot.sh "$root"/install/*.sh "$root"/tests/*.sh "$root"/iso/*.sh "$root"/iso/airootfs/usr/local/bin/* 2>/dev/null)
+mapfile -t scripts < <(grep -lE '^#!/usr/bin/env bash|^#!/bin/bash' "$root"/bin/* "$root"/install.sh "$root"/boot.sh "$root"/install/*.sh "$root"/tests/*.sh "$root"/tests/vm/*.sh "$root"/iso/*.sh "$root"/iso/airootfs/usr/local/bin/* 2>/dev/null)
 if command -v shellcheck >/dev/null; then
   if LC_ALL=C.UTF-8 shellcheck -x -P "$root/lib" -e SC1091 -S warning "${scripts[@]}" "$root/lib/lumen.sh"; then
     ok "shellcheck: ${#scripts[@]} scripts"

@@ -278,7 +278,11 @@ setup_system() {
   done
   run "Enabling NetworkManager, Bluetooth, power profiles and time sync" \
     sudo systemctl enable NetworkManager bluetooth power-profiles-daemon systemd-timesyncd fstrim.timer
+  # Without a running user manager (the ISO installer's chroot), enable them
+  # for all users instead; same result at the next login.
+  # shellcheck disable=SC2024  # the log is the user's; only systemctl needs root
   systemctl --user enable pipewire.socket pipewire-pulse.socket wireplumber.service >>"$LOG" 2>&1 ||
+    sudo systemctl --global enable pipewire.socket pipewire-pulse.socket wireplumber.service >>"$LOG" 2>&1 ||
     warn "Could not enable PipeWire for your user; run: systemctl --user enable --now pipewire.socket pipewire-pulse.socket wireplumber"
 
   # Firewall: block incoming connections, allow everything outgoing.
@@ -303,7 +307,8 @@ setup_system() {
   ok "Power button shows the power menu (hold to force off)"
 
   # Polkit agent runs as a user service in the graphical session.
-  systemctl --user enable hyprpolkitagent.service >/dev/null 2>&1 || true
+  systemctl --user enable hyprpolkitagent.service >/dev/null 2>&1 ||
+    sudo systemctl --global enable hyprpolkitagent.service >/dev/null 2>&1 || true
 
   if [[ "$(getent passwd "$USER" | cut -d: -f7)" != */zsh ]]; then
     run "Making zsh your shell" sudo chsh -s /usr/bin/zsh "$USER"
