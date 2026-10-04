@@ -15,6 +15,7 @@ It checks every component Lumen relies on, the session services, system services
 | The installer | `~/.local/state/lumen/install.log` |
 | Hyprland | `hyprctl rollinglog`, or `$XDG_RUNTIME_DIR/hypr/*/hyprland.log` |
 | Hyprland config errors | `hyprctl configerrors` |
+| Session startup (wallpaper, bar, Start menu) | `~/.local/state/lumen/session.log` |
 | The session (bar, notifications, apps started by Lumen) | `journalctl --user -b` |
 | Login screen | `journalctl -u greetd -b` |
 | System | `journalctl -b -p warning` |

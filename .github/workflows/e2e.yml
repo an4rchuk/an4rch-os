@@ -54,7 +54,7 @@ jobs:
             -drive file=disk.qcow2,if=virtio,format=qcow2 \
             -drive file="$iso",media=cdrom,readonly=on \
             -kernel arch/boot/x86_64/vmlinuz-linux -initrd arch/boot/x86_64/initramfs-linux.img \
-            -append "archisobasedir=arch archisolabel=$label console=tty0 console=ttyS0,115200 lumen.auto=1 lumen.disk=/dev/vda lumen.user=lumen lumen.pass=lumen lumen.autologin=1 lumen.poweroff=1" \
+            -append "archisobasedir=arch archisolabel=$label console=tty0 console=ttyS0,115200 lumen.auto=1 lumen.disk=/dev/vda lumen.user=lumen lumen.pass=lumen lumen.autologin=1 lumen.poweroff=1 lumen.serial=1" \
             -nic user,model=virtio-net-pci -display none -serial file:install-serial.log -no-reboot || true
           # The installer's own output, without systemd's boot/shutdown chatter.
           sed 's/\x1b\[[0-9;?]*[a-zA-Z]//g; s/\x1b\][^\x1b]*\x1b\\//g' install-serial.log |
@@ -91,8 +91,10 @@ jobs:
           mon "sendkey meta_l-a"; sleep 25; shot shots/05-app-store
           mon "quit" || true
           ls -l shots
+          echo "--- installed system's report ---"
+          sed 's/\x1b\[[0-9;?]*[a-zA-Z]//g' boot-serial.log | sed -n '/LUMEN-E2E-REPORT/,/LUMEN-E2E-REPORT-END/p' | head -n 700 || true
           echo "--- boot console (end) ---"
-          sed 's/\x1b\[[0-9;?]*[a-zA-Z]//g' boot-serial.log | tail -n 60 || true
+          sed 's/\x1b\[[0-9;?]*[a-zA-Z]//g' boot-serial.log | tail -n 40 || true
 
       # The screenshots, downscaled, as base64 text in this log, so they can be
       # read through the job-log API where artifact downloads aren't possible.

@@ -28,6 +28,10 @@ restart() {
 
 start() {
   mkdir -p "$LUMEN_STATE" "$LUMEN_CACHE"
+  # Keep a log of this session's startup, for troubleshooting.
+  exec >"$LUMEN_STATE/session.log" 2>&1
+  echo "Lumen session starting: $(date)"
+  set -x
 
   # A theme must exist before the bar and notifications read it.
   [[ -d "$LUMEN_CURRENT/theme" ]] || "$LUMEN_PATH/bin/lumen-theme" set lumen

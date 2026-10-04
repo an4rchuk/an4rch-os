@@ -397,6 +397,36 @@ rm -f "$MNT/etc/sudoers.d/99-lumen-install"
 cp "$LOG" "$MNT/var/log/lumen-os-install.log" 2>/dev/null || true
 gum style --foreground "#9fdc9b" "  ✓ Installed the Lumen desktop"
 
+# Test runs (lumen.serial=1): the installed system also logs to the serial
+# port, and reports on its desktop session a few minutes after booting.
+if [[ "${K[serial]:-0}" == 1 ]]; then
+  sed -i '/^options / s/$/ console=tty0 console=ttyS0,115200/' "$MNT"/boot/loader/entries/*.conf
+  cat >"$MNT/usr/local/bin/lumen-e2e-report" <<'REPORT'
+#!/bin/bash
+# Test-only: describe the desktop session on the serial console.
+exec >/dev/ttyS0 2>&1
+u=$(id -un 1000 2>/dev/null)
+echo "=== LUMEN-E2E-REPORT ==="
+echo "--- processes"; ps -eo user,pid,etime,args | grep -E 'hypr|waybar|swaybg|mako|lumen|greetd|uwsm|fuzzel' | grep -v grep
+echo "--- failed units"; systemctl --failed --no-pager; machinectl shell --quiet "$u@" /usr/bin/systemctl --user --failed --no-pager 2>/dev/null
+echo "--- hyprland log"; for f in /run/user/1000/hypr/*/hyprland.log; do tail -n 120 "$f"; done
+sig=$(ls /run/user/1000/hypr 2>/dev/null | head -n1)
+for q in configerrors layers clients monitors; do
+  echo "--- hyprctl $q"
+  sudo -u "$u" env XDG_RUNTIME_DIR=/run/user/1000 HYPRLAND_INSTANCE_SIGNATURE="$sig" hyprctl "$q" 2>&1 | head -n 60
+done
+echo "--- user journal"; journalctl -b _UID=1000 --no-pager -o short-monotonic | tail -n 150
+echo "--- greetd"; journalctl -b -u greetd --no-pager | tail -n 30
+echo "--- errors"; journalctl -b -p err --no-pager | tail -n 60
+echo "--- lumen state"; ls -la "/home/$u/.config/lumen/current/" 2>&1 | head; cat "/home/$u/.local/state/lumen/session.log" 2>/dev/null | tail -n 40
+echo "=== LUMEN-E2E-REPORT-END ==="
+REPORT
+  chmod 755 "$MNT/usr/local/bin/lumen-e2e-report"
+  printf '[Unit]\nDescription=Lumen test report\n[Service]\nType=oneshot\nExecStart=/usr/local/bin/lumen-e2e-report\n' >"$MNT/etc/systemd/system/lumen-e2e-report.service"
+  printf '[Unit]\nDescription=Lumen test report\n[Timer]\nOnBootSec=150\n[Install]\nWantedBy=timers.target\n' >"$MNT/etc/systemd/system/lumen-e2e-report.timer"
+  arch-chroot "$MNT" systemctl enable lumen-e2e-report.timer >>"$LOG" 2>&1
+fi
+
 # A first snapshot of the fresh system, to always be able to go back.
 arch-chroot "$MNT" snapper --no-dbus -c root create --description "Fresh install" --userdata important=yes >>"$LOG" 2>&1 || true
 
