@@ -69,6 +69,29 @@ CONF
 touch ~/.local/state/lumen/welcome-done
 printf '["lumen-installer.desktop", "com.mitchellh.ghostty.desktop", "lumen-store.desktop"]\n' >~/.config/lumen/start-pins.json
 cp /usr/share/applications/lumen-installer.desktop ~/.config/autostart/
+# Start the desktop on the first console. Unlike an installed system's
+# ~/.zprofile this doesn't depend on uwsm's may-start check, and if the
+# desktop can't start (or stops) on this hardware, the text installer
+# takes over instead of leaving a bare prompt.
+cat >~/.zprofile <<'PROFILE'
+export LUMEN_PATH="${LUMEN_PATH:-$HOME/.local/share/lumen}"
+export PATH="$LUMEN_PATH/bin:$HOME/.local/bin:$PATH"
+export EDITOR=nvim VISUAL=nvim
+if [[ "$(tty)" == /dev/tty1 && -z "${WAYLAND_DISPLAY:-}" && -z "${LUMEN_LIVE_TRIED:-}" ]]; then
+  export LUMEN_LIVE_TRIED=1
+  mkdir -p ~/.local/state/lumen
+  uwsm start -- hyprland.desktop >~/.local/state/lumen/live-session.log 2>&1
+  clear
+  echo
+  echo "  The Lumen live desktop stopped or couldn't start on this computer."
+  echo "  (Details: ~/.local/state/lumen/live-session.log)"
+  echo
+  echo "  Starting the text installer instead. To try the desktop again: uwsm start -- hyprland.desktop"
+  echo
+  sleep 4
+  sudo lumen-os-install
+fi
+PROFILE
 SETUP
 
 # Log the live user in on tty1 instead of root's text installer.
