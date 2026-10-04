@@ -1,5 +1,7 @@
 # Customising
 
+The quickest way is the **Settings** app (<kbd>SUPER</kbd> + <kbd>I</kbd>, or Start → Settings): theme and wallpaper, the top bar and taskbar, title bars, the window layout, night light, gaps, borders, rounded corners, animations, blur, shadows and transparency, sound devices, Wi-Fi and Bluetooth, displays, keyboard repeat, pointer speed and touchpad behaviour, power and sleep, default apps, and system information. Window and input choices are saved to `~/.config/lumen/desktop.lua`; everything below goes further by hand.
+
 Lumen keeps two kinds of files apart:
 
 - **Lumen's defaults** live in `~/.local/share/lumen` (a git checkout). `lumen update` replaces them, so don't edit them.

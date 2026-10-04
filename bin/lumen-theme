@@ -114,6 +114,8 @@ apply() {
   fi
 
   "$LUMEN_PATH/bin/lumen-wallpaper" theme >/dev/null 2>&1 || true
+  # The login screen follows the theme and wallpaper.
+  "$LUMEN_PATH/bin/lumen-login" sync >/dev/null 2>&1 || true
 }
 
 set_theme() {

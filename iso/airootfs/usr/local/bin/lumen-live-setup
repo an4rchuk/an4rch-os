@@ -78,7 +78,7 @@ CONF
 "$LUMEN_PATH/bin/lumen-theme" set lumen >/dev/null 2>&1
 "$LUMEN_PATH/bin/lumen-session" autostart
 touch ~/.local/state/lumen/welcome-done
-printf '["lumen-installer.desktop", "lumen-welcome.desktop", "com.mitchellh.ghostty.desktop", "lumen-store.desktop"]\n' >~/.config/lumen/start-pins.json
+printf '["lumen-installer.desktop", "lumen-welcome.desktop", "lumen-settings.desktop", "com.mitchellh.ghostty.desktop", "lumen-store.desktop"]\n' >~/.config/lumen/start-pins.json
 cp /usr/share/applications/lumen-installer.desktop ~/.config/autostart/
 # Start the desktop on the first console. Unlike an installed system's
 # ~/.zprofile this doesn't depend on uwsm's may-start check, and if the

@@ -73,7 +73,7 @@ Closing the laptop lid suspends, and the screen is always locked before the comp
 
 ## Logging in, passwords and the keyring
 
-Lumen's login screen is **greetd** with the **tuigreet** greeter. It remembers the last user, so you usually just type your password.
+Lumen's login screen is **greetd** with the graphical **ReGreet** greeter, showing your wallpaper and your theme's colours (both follow you when you change them: `lumen-login sync`). It remembers the last user, so you usually just type your password. If it can't start on your graphics hardware, the text login screen (tuigreet) appears instead; `lumen-login text on` always uses the text one, and `lumen-login preview` shows the graphical one in a window.
 
 - Your login password also unlocks the **GNOME keyring**, where browsers, Git and other apps store secrets. You won't get a second password prompt.
 - When an app needs administrator rights (changing the time zone, mounting a disk), a centred password dialog appears. This is the Hyprland polkit agent.

@@ -32,7 +32,7 @@ PKGS_SYSTEM=(
   networkmanager bluez bluez-utils
   power-profiles-daemon upower brightnessctl
   playerctl
-  greetd greetd-tuigreet
+  greetd greetd-regreet greetd-tuigreet cage
   ufw
   git base-devel curl
 )

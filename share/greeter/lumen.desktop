@@ -1,0 +1,6 @@
+[Desktop Entry]
+Name=Lumen
+Comment=The Lumen desktop (Hyprland)
+Exec=uwsm start -- hyprland.desktop
+Type=Application
+DesktopNames=Hyprland

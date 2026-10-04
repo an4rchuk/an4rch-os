@@ -200,6 +200,9 @@ class Welcome(Adw.ApplicationWindow):
     def page_tips(self) -> Gtk.Widget:
         group = Adw.PreferencesGroup()
         tips = [
+            ("emblem-system-symbolic", "Make it yours in Settings",
+             "Press ⊞ + I (or Start → Settings): themes, wallpaper, the taskbar, window gaps and corners, "
+             "effects, mouse and touchpad, sound, power and default apps."),
             ("software-update-available-symbolic", "Keep it up to date",
              "Click the update icon in the top bar, or press ⊞ + Alt + U. Lumen takes a snapshot first."),
             ("document-revert-symbolic", "Every update can be undone",
@@ -208,7 +211,7 @@ class Welcome(Adw.ApplicationWindow):
             ("network-wireless-symbolic", "Wi-Fi and Bluetooth",
              "Click their icons in the top bar, or press ⊞ + Alt + W and ⊞ + Alt + B."),
             ("audio-volume-high-symbolic", "Sound",
-             "Scroll on the volume icon to change it, click it for the mixer, right-click to mute."),
+             "Click the volume icon for the sound panel (volume, speakers or headphones, microphone); scroll on it to change the volume."),
             ("battery-good-symbolic", "Battery life",
              "⊞ + Ctrl + P switches between power saver, balanced and performance."),
             ("view-grid-symbolic", "Windows tile by themselves",

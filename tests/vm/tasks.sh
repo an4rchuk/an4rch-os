@@ -208,6 +208,52 @@ task "firewall active" systemctl is-active ufw
 task "NetworkManager online" nmcli -t -f STATE general
 task "zram swap" swapon --show
 
+# --- Settings, the sound panel and the login screen ------------------------------------------
+as_user lumen-settings windows >/dev/null 2>&1 &
+if wait_window "Settings opens" 'lumen.Settings' 40; then
+  sleep 3
+  shot 21a-settings
+fi
+# A change made in Settings reaches Hyprland (desktop.json → desktop.lua → reload).
+as_user bash -c 'mkdir -p ~/.config/lumen && printf "{\"gaps_in\": 9}\n" > ~/.config/lumen/desktop.json'
+task "Settings writes the window config" as_user python3 "$lumen/apps/lumen-settings/lumen_settings.py" --write-desktop
+as_user hyprctl reload >/dev/null 2>&1
+sleep 2
+gaps=$(as_user hyprctl getoption general:gaps_in -j 2>/dev/null | tr -d ' \n')
+[[ "$gaps" == *9* ]] || gaps=$(as_user hyprctl repl 'return hl.get_config("general.gaps_in")' 2>/dev/null | tail -n1)
+if [[ "$gaps" == *9* ]]; then result "Settings change applied" PASS "$gaps"; else result "Settings change applied" FAIL "${gaps:-no answer}"; fi
+as_user rm -f "$home/.config/lumen/desktop.json" "$home/.config/lumen/desktop.lua"
+as_user hyprctl reload >/dev/null 2>&1
+pkill -f lumen_settings.py
+
+as_user lumen-audio >/dev/null 2>&1 &
+sleep 6
+if as_user hyprctl layers -j 2>/dev/null | grep -q '"lumen-audio"'; then
+  result "sound panel opens" PASS
+else
+  result "sound panel opens" FAIL "$(pgrep -af lumen_audio | head -n 2 | tr '\n' ' ')"
+fi
+shot 21b-sound-panel
+as_user lumen-audio >/dev/null 2>&1
+sleep 2
+
+if [[ -x /usr/local/bin/lumen-greeter ]] && grep -q lumen-greeter /etc/greetd/config.toml 2>/dev/null; then
+  result "login screen installed" PASS
+else
+  result "login screen installed" FAIL "$(grep -m1 command /etc/greetd/config.toml 2>&1)"
+fi
+if [[ -s /var/lib/lumen/login/wallpaper && -s /var/lib/lumen/login/regreet.css ]]; then
+  result "login screen has the theme and wallpaper" PASS
+else
+  result "login screen has the theme and wallpaper" FAIL "$(ls -la /var/lib/lumen/login 2>&1 | tr '\n' ' ')"
+fi
+as_user lumen-login preview >/dev/null 2>&1
+if wait_window "login screen preview" 'regreet' 30; then
+  sleep 3
+  shot 21c-login-screen
+fi
+pkill -x regreet
+
 # --- Lock screen ---------------------------------------------------------------------------
 pkill -x firefox
 pkill -x nautilus

@@ -1,0 +1,30 @@
+button.theme-tile {
+  padding: 12px 8px;
+  border-radius: 14px;
+  background: alpha(@lumen_fg, 0.05);
+  border: 2px solid alpha(@lumen_fg, 0.07);
+  font-weight: 600;
+}
+
+button.theme-tile:hover {
+  border-color: alpha(@lumen_accent, 0.5);
+}
+
+button.theme-tile.theme-tile-active {
+  border-color: @lumen_accent;
+  background: alpha(@lumen_accent, 0.14);
+}
+
+button.wall-tile {
+  padding: 3px;
+  border-radius: 12px;
+}
+
+button.wall-tile picture {
+  border-radius: 9px;
+}
+
+.swatch {
+  border-radius: 999px;
+  border: 1px solid alpha(white, 0.15);
+}

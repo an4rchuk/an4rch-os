@@ -366,17 +366,9 @@ setup_greeter() {
     fi
   fi
 
-  sudo mkdir -p /etc/greetd
-  sudo tee /etc/greetd/config.toml >/dev/null <<'EOF'
-# Lumen login screen (greetd + tuigreet).
-[terminal]
-vt = 1
-
-[default_session]
-command = "tuigreet --time --time-format '%A %d %B  ·  %H:%M' --remember --asterisks --greeting 'Welcome to Lumen' --cmd 'uwsm start -- hyprland.desktop'"
-user = "greeter"
-EOF
-  if [[ $AUTOLOGIN -eq 1 ]]; then
+  # The graphical login screen in Lumen's theme (text login as a fallback).
+  run "Setting up the login screen" "$LUMEN_PATH/bin/lumen-login" setup
+  if [[ $AUTOLOGIN -eq 1 ]] && ! grep -q '^\[initial_session\]' /etc/greetd/config.toml; then
     printf '\n[initial_session]\ncommand = "uwsm start -- hyprland.desktop"\nuser = "%s"\n' "$USER" | sudo tee -a /etc/greetd/config.toml >/dev/null
     ok "Auto-login enabled"
   fi

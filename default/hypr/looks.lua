@@ -41,7 +41,7 @@ hl.config({
         blur = {
             enabled           = true,
             size              = 6,
-            passes            = 3,
+            passes            = 2,
             vibrancy          = 0.18,
             noise             = 0.012,
             new_optimizations = true,
@@ -110,21 +110,23 @@ hl.config({
     },
 })
 
--- Motion: quick, soft and never bouncy. Only bezier curves are used, which
--- keeps this file valid across Hyprland releases.
+-- Motion: quick, soft and never bouncy. Speed is in tenths of a second, so
+-- windows open in about a quarter of a second, as on Windows and macOS.
+-- Only bezier curves are used, which keeps this file valid across Hyprland
+-- releases.
 hl.curve("lumenOut",  { type = "bezier", points = { {0.16, 1},   {0.3, 1} } })
 hl.curve("lumenIn",   { type = "bezier", points = { {0.7, 0},    {0.84, 0} } })
 hl.curve("lumenSoft", { type = "bezier", points = { {0.25, 0.1}, {0.25, 1} } })
 hl.curve("linear",    { type = "bezier", points = { {0, 0},      {1, 1} } })
 
-hl.animation({ leaf = "global",          enabled = true, speed = 6,   bezier = "lumenSoft" })
-hl.animation({ leaf = "windowsIn",       enabled = true, speed = 3.6, bezier = "lumenOut", style = "popin 90%" })
-hl.animation({ leaf = "windowsOut",      enabled = true, speed = 2.4, bezier = "lumenIn",  style = "popin 90%" })
-hl.animation({ leaf = "windowsMove",     enabled = true, speed = 3.6, bezier = "lumenOut" })
-hl.animation({ leaf = "border",          enabled = true, speed = 4,   bezier = "lumenSoft" })
-hl.animation({ leaf = "fade",            enabled = true, speed = 3,   bezier = "lumenSoft" })
-hl.animation({ leaf = "layersIn",        enabled = true, speed = 3,   bezier = "lumenOut", style = "fade" })
-hl.animation({ leaf = "layersOut",       enabled = true, speed = 2,   bezier = "lumenIn",  style = "fade" })
-hl.animation({ leaf = "workspaces",      enabled = true, speed = 4,   bezier = "lumenOut", style = "slide" })
-hl.animation({ leaf = "specialWorkspace", enabled = true, speed = 3.6, bezier = "lumenOut", style = "slidevert" })
+hl.animation({ leaf = "global",          enabled = true, speed = 4,   bezier = "lumenSoft" })
+hl.animation({ leaf = "windowsIn",       enabled = true, speed = 2.4, bezier = "lumenOut", style = "popin 92%" })
+hl.animation({ leaf = "windowsOut",      enabled = true, speed = 1.6, bezier = "lumenIn",  style = "popin 92%" })
+hl.animation({ leaf = "windowsMove",     enabled = true, speed = 2.6, bezier = "lumenOut" })
+hl.animation({ leaf = "border",          enabled = true, speed = 3,   bezier = "lumenSoft" })
+hl.animation({ leaf = "fade",            enabled = true, speed = 2,   bezier = "lumenSoft" })
+hl.animation({ leaf = "layersIn",        enabled = true, speed = 1.8, bezier = "lumenOut", style = "fade" })
+hl.animation({ leaf = "layersOut",       enabled = true, speed = 1.4, bezier = "lumenIn",  style = "fade" })
+hl.animation({ leaf = "workspaces",      enabled = true, speed = 2.8, bezier = "lumenOut", style = "slide" })
+hl.animation({ leaf = "specialWorkspace", enabled = true, speed = 2.6, bezier = "lumenOut", style = "slidevert" })
 hl.animation({ leaf = "zoomFactor",      enabled = true, speed = 5,   bezier = "lumenOut" })

@@ -88,12 +88,46 @@ print(f"  {len(ids)} apps in {len(cats)} categories")
 PY
 then ok "store catalogue is valid"; else bad "store catalogue"; fi
 
+# Every menu entry, Start search action, Settings button, bar click, key
+# binding and app shortcut must point at a command Lumen ships (or a
+# well-known system one), so no menu item silently does nothing.
+if python3 - "$root" <<'PY'
+import re, sys
+from pathlib import Path
+root = Path(sys.argv[1])
+ours = {p.name for p in (root / "bin").iterdir()}
+refs = []  # (where, command)
+def add(where, cmd):
+    if cmd.startswith("lumen-"):
+        refs.append((where, cmd))
+for f in [root / "bin/lumen-menu", *root.glob("apps/*/*.py"), root / "config/waybar/config.jsonc",
+          root / "config/waybar/taskbar.jsonc", root / "default/hypr/binds.lua"]:
+    text = f.read_text()
+    for m in re.finditer(r'\$bin/(lumen-[a-z-]+)', text): add(f.name, m.group(1))
+    for m in re.finditer(r'["\[]\s*"?(lumen-[a-z-]+)"', text): add(f.name, m.group(1))
+    for m in re.finditer(r'"on-click[a-z-]*":\s*"(lumen-[a-z-]+)', text): add(f.name, m.group(1))
+    for m in re.finditer(r'(?<![\w.])cmd\("([a-z-]+)"', text): add(f.name, "lumen-" + m.group(1))
+for f in root.glob("share/applications/*.desktop"):
+    m = re.search(r"^Exec=(\S+)", f.read_text(), re.M)
+    if m: add(f.name, m.group(1))
+# Lua files are referenced as lumen-<name>.lua etc. and app ids as lumen-start; keep real commands only.
+skip = {"lumen-logo", "lumen-installer", "lumen-floating", "lumen-start.desktop"}
+missing = sorted({(w, c) for w, c in refs if c not in ours and c not in skip and not c.endswith((".desktop", "-"))
+                  and c != "lumen-os-install" and (root / "iso/airootfs/usr/local/bin" / c).exists() is False})
+for w, c in missing:
+    print(f"  {w}: {c} doesn't exist")
+print(f"  {len(set(c for _, c in refs))} commands referenced from menus, bars, binds and apps")
+sys.exit(1 if missing else 0)
+PY
+then ok "every menu item points at a real command"; else bad "menu items point at missing commands"; fi
+
 # Headless smoke test: each GTK app starts and renders without a traceback.
 if command -v xvfb-run >/dev/null && python3 -c 'import gi; gi.require_version("Gtk", "4.0"); gi.require_version("Adw", "1")' 2>/dev/null; then
-  for app in "lumen-start/lumen_start.py --show" "lumen-store/lumen_store.py" "lumen-welcome/lumen_welcome.py" "lumen-installer/lumen_installer.py"; do
+  for app in "lumen-start/lumen_start.py --show" "lumen-store/lumen_store.py" "lumen-welcome/lumen_welcome.py" "lumen-installer/lumen_installer.py" \
+    "lumen-settings/lumen_settings.py" "lumen-audio/lumen_audio.py --show"; do
     log="$tmp/gui.log"
     # shellcheck disable=SC2086
-    LUMEN_INSTALLER_DEMO=1 GDK_BACKEND=x11 GSK_RENDERER=cairo GTK_A11Y=none timeout 25 xvfb-run -a dbus-run-session -- \
+    LUMEN_INSTALLER_DEMO=1 LUMEN_SETTINGS_ALL_PAGES=1 GDK_BACKEND=x11 GSK_RENDERER=cairo GTK_A11Y=none timeout 25 xvfb-run -a dbus-run-session -- \
       bash -c "python3 $root/apps/$app & pid=\$!; sleep 6; kill -0 \$pid && echo LUMEN-ALIVE; kill \$pid" >"$log" 2>&1 || true
     if grep -qE 'Traceback|Error:' "$log" || ! grep -q LUMEN-ALIVE "$log"; then
       bad "${app%%/*}: $(grep -v 'fd limit' "$log" | grep -m1 -E 'Error|error|No such' || echo "exited early")"
