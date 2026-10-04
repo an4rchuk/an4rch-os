@@ -1,0 +1,70 @@
+#!/bin/bash
+# lumen-live-setup — prepare the live desktop on the Lumen OS USB (runs at boot).
+#
+# Creates the "live" user with Lumen's desktop, starts NetworkManager for the
+# installer's Wi-Fi picker, and logs that user in on the first console, where
+# Hyprland starts with the graphical installer open, Bazzite-style.
+#
+# Booting with lumen.text=1 ("text mode" in the boot menu) or lumen.auto=1
+# (automated tests) skips all of this: root logs in and the text-mode
+# installer runs, as before.
+set -u
+case " $(</proc/cmdline) " in
+  *" lumen.auto=1 "* | *" lumen.text=1 "*) exit 0 ;;
+esac
+
+user=live
+home=/home/$user
+lumen=/opt/lumen
+
+id "$user" >/dev/null 2>&1 || useradd -m -G wheel,video,input,audio -s /usr/bin/zsh -c "Lumen live" "$user"
+passwd -d "$user" >/dev/null
+printf '%s ALL=(ALL) NOPASSWD: ALL\n' "$user" >/etc/sudoers.d/90-lumen-live
+chmod 440 /etc/sudoers.d/90-lumen-live
+
+# Wi-Fi through NetworkManager (on top of iwd); wired stays with networkd.
+systemctl start NetworkManager
+
+# The user's desktop: the same files the Lumen installer writes.
+runuser -u "$user" -- env HOME="$home" LUMEN_PATH="$lumen" bash -s <<'SETUP'
+set -u
+mkdir -p ~/.config/lumen ~/.local/share/applications ~/.local/share/icons/hicolor/scalable/apps \
+  ~/.local/share/backgrounds ~/.local/state/lumen ~/.config/autostart
+ln -sfn "$LUMEN_PATH" ~/.local/share/lumen
+cd "$LUMEN_PATH/config" && find . -type f | while read -r f; do
+  rel="${f#./}"
+  case "$rel" in
+    zsh/zshrc) dest=~/.zshrc ;;
+    zsh/zprofile) dest=~/.zprofile ;;
+    *) dest=~/.config/$rel ;;
+  esac
+  mkdir -p "$(dirname "$dest")"
+  cp "$f" "$dest"
+done
+cp "$LUMEN_PATH"/share/applications/*.desktop ~/.local/share/applications/
+cp "$LUMEN_PATH"/share/icons/hicolor/scalable/apps/*.svg ~/.local/share/icons/hicolor/scalable/apps/
+cat >~/.config/lumen/settings.conf <<'CONF'
+LUMEN_TERMINAL=ghostty
+LUMEN_BROWSER=firefox
+LUMEN_EDITOR=nvim
+LUMEN_FILES=nautilus
+LUMEN_TITLEBARS=no
+LUMEN_TASKBAR=no
+LUMEN_IDLE_SUSPEND=never
+CONF
+[[ -d /opt/lumen-wallpapers ]] && ln -sfn /opt/lumen-wallpapers ~/.local/share/backgrounds/lumen
+"$LUMEN_PATH/bin/lumen-theme" set lumen >/dev/null 2>&1
+"$LUMEN_PATH/bin/lumen-session" autostart
+touch ~/.local/state/lumen/welcome-done
+printf '["lumen-installer.desktop", "com.mitchellh.ghostty.desktop", "lumen-store.desktop"]\n' >~/.config/lumen/start-pins.json
+cp /usr/share/applications/lumen-installer.desktop ~/.config/autostart/
+SETUP
+
+# Log the live user in on tty1 instead of root's text installer.
+mkdir -p /run/systemd/system/getty@tty1.service.d
+cat >/run/systemd/system/getty@tty1.service.d/zz-lumen-live.conf <<EOF
+[Service]
+ExecStart=
+ExecStart=-/sbin/agetty -o '-p -f -- \\\\u' --noclear --autologin $user - \$TERM
+EOF
+systemctl daemon-reload

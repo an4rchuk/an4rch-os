@@ -1,0 +1,3 @@
+#!/bin/bash
+# lumen-installer — the graphical Lumen OS installer (live USB).
+exec python3 /opt/lumen/apps/lumen-installer/lumen_installer.py "$@"

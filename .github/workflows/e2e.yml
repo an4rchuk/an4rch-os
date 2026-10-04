@@ -26,7 +26,7 @@ jobs:
       - name: Build the ISO (Arch container)
         run: |
           docker run --rm --privileged -v "$PWD:/src" archlinux:latest bash -c '
-            pacman -Syu --noconfirm --needed archiso git >/dev/null &&
+            pacman -Syu --noconfirm --needed archiso git python-pillow >/dev/null &&
             git config --global --add safe.directory /src &&
             cd /src && WORK=/tmp/lumen-iso OUT=/src/out iso/build.sh'
           sudo chown -R "$USER" out
@@ -40,6 +40,31 @@ jobs:
           sudo apt-get update -q
           sudo apt-get install -y -q qemu-system-x86 qemu-utils ovmf libarchive-tools socat python3-pil
           ls -l /dev/kvm
+
+      - name: Boot the live USB (desktop with the graphical installer)
+        continue-on-error: true
+        run: |
+          iso=$(ls out/lumen-*.iso | head -n1)
+          label=$(blkid -o value -s LABEL "$iso")
+          bsdtar -xf "$iso" arch/boot/x86_64/vmlinuz-linux arch/boot/x86_64/initramfs-linux.img
+          cp /usr/share/OVMF/OVMF_VARS_4M.fd live-vars.fd
+          qemu-system-x86_64 -enable-kvm -machine q35 -cpu host -smp 4 -m 8G \
+            -drive if=pflash,format=raw,readonly=on,file=/usr/share/OVMF/OVMF_CODE_4M.fd \
+            -drive if=pflash,format=raw,file=live-vars.fd \
+            -drive file="$iso",media=cdrom,readonly=on \
+            -kernel arch/boot/x86_64/vmlinuz-linux -initrd arch/boot/x86_64/initramfs-linux.img \
+            -append "archisobasedir=arch archisolabel=$label console=tty0 console=ttyS0,115200" \
+            -vga none -device virtio-vga,xres=1920,yres=1080 \
+            -nic user,model=virtio-net-pci -display none \
+            -monitor unix:live.sock,server,nowait -serial file:live-serial.log &
+          mon() { echo "$1" | socat - UNIX-CONNECT:live.sock >/dev/null; }
+          shot() { mon "screendump $PWD/$1.ppm"; sleep 2; python3 -c "from PIL import Image; Image.open('$1.ppm').save('$1.png')" && rm -f "$1.ppm" || true; }
+          mkdir -p shots
+          sleep 90;  shot shots/00a-live-installer
+          sleep 45;  shot shots/00b-live-installer-later
+          mon "quit" || true
+          echo "--- live boot console (end) ---"
+          tr -d '\r' <live-serial.log | sed 's/\x1b\[[0-9;?]*[a-zA-Z]//g' | grep -av '^\s*$' | tail -n 40 || true
 
       - name: Install Lumen OS in a VM (unattended)
         run: |

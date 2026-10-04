@@ -1,0 +1,12 @@
+[Unit]
+Description=Lumen OS live desktop
+Before=getty@tty1.service systemd-user-sessions.service
+After=systemd-sysusers.service local-fs.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/lumen-live-setup
+
+[Install]
+WantedBy=multi-user.target

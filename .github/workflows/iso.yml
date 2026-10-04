@@ -16,7 +16,7 @@ jobs:
       options: --privileged
     steps:
       - name: Install archiso
-        run: pacman -Syu --noconfirm --needed archiso git
+        run: pacman -Syu --noconfirm --needed archiso git python-pillow
 
       - uses: actions/checkout@v4
         with:

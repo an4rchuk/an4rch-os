@@ -42,6 +42,15 @@ tar -C "$root" --exclude=./out --exclude=./work --exclude='./iso/*.iso' --exclud
   tar -C "$profile/airootfs/opt/lumen" -xf -
 git -C "$profile/airootfs/opt/lumen" remote set-url origin "${LUMEN_REPO:-https://github.com/twil09/linux.git}" 2>/dev/null || true
 
+# Wallpapers for the live desktop and the installer's theme picker, painted
+# now so booting stays fast (needs python-pillow on the build host).
+if python3 -c 'import PIL' 2>/dev/null; then
+  echo "==> Painting wallpapers"
+  python3 "$root/bin/lumen-wallgen" --all --out "$profile/airootfs/opt/lumen-wallpapers" --size 1920x1080 >/dev/null
+else
+  echo "  (python-pillow not installed: the live desktop will have no wallpapers)"
+fi
+
 # Identity of the image.
 version="$(date +%Y.%m.%d)"
 sed -i \
@@ -53,7 +62,7 @@ sed -i \
 # mkarchiso copies airootfs without file modes, so everything that must stay
 # executable is listed: our installer, and every executable in Lumen's tree
 # (otherwise every lumen-* command fails with "Permission denied").
-perms='  ["/usr/local/bin/lumen-os-install"]="0:0:755"\n  ["/usr/local/bin/lumen-rescue"]="0:0:755"'
+perms='  ["/usr/local/bin/lumen-os-install"]="0:0:755"\n  ["/usr/local/bin/lumen-rescue"]="0:0:755"\n  ["/usr/local/bin/lumen-live-setup"]="0:0:755"\n  ["/usr/local/bin/lumen-installer"]="0:0:755"'
 while IFS= read -r f; do
   perms+="\\n  [\"/opt/lumen/${f#./}\"]=\"0:0:755\""
 done < <(cd "$profile/airootfs/opt/lumen" && find . -path ./.git -prune -o -type f -perm -u+x -print | sort)
@@ -63,6 +72,16 @@ sed -i "s|^file_permissions=(|file_permissions=(\\n$perms|" "$profile/profiledef
 find "$profile/efiboot" "$profile/syslinux" "$profile/grub" -type f \( -name '*.conf' -o -name '*.cfg' \) \
   -exec sed -i -e 's/Arch Linux install medium/Lumen OS installer/g' -e 's/Arch Linux/Lumen OS/g' {} +
 [[ -f "$root/iso/splash.png" ]] && cp "$root/iso/splash.png" "$profile/syslinux/splash.png"
+
+# The default entry boots the live desktop with the graphical installer; a
+# second entry runs the text-mode installer instead (lumen.text=1).
+for entry in "$profile"/efiboot/loader/entries/*.conf; do
+  case "$entry" in *speech* | *memtest* | *shell* | *accessib*) continue ;; esac
+  [[ -f "$entry" ]] || continue
+  text="${entry%.conf}-text.conf"
+  sed -e 's/^title .*/& (text mode)/' -e 's/^options .*/& lumen.text=1/' "$entry" >"$text"
+  break
+done
 
 echo "==> Building (this takes a while)"
 mkarchiso -v -w "$work/build" -o "$out" "$profile"

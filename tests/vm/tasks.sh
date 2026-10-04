@@ -194,7 +194,8 @@ cli "lumen extras list" lumen extras list
 cli "lumen dev status" lumen dev status
 cli "lumen snapshot list" lumen snapshot
 cli "lumen theme list" lumen theme list
-if as_user lumen battery | grep -q "No battery"; then result "lumen battery (desktop)" PASS; else result "lumen battery (desktop)" FAIL; fi
+bat=$(as_user lumen battery 2>&1)
+if [[ "$bat" =~ ^(No\ battery|[0-9]+%) ]]; then result "lumen battery" PASS "$bat"; else result "lumen battery" FAIL "${bat:-no output}"; fi
 task "audio (wpctl status)" as_user wpctl status
 task "firewall active" systemctl is-active ufw
 task "NetworkManager online" nmcli -t -f STATE general

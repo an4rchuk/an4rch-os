@@ -1,0 +1,48 @@
+/* Lumen OS installer. Theme colours come from apps.css (@lumen_*). */
+.installer-sub {
+  font-size: 15px;
+}
+
+button.theme-card {
+  padding: 10px;
+  border-radius: 16px;
+  background: alpha(@lumen_fg, 0.04);
+  border: 2px solid alpha(@lumen_fg, 0.06);
+}
+
+button.theme-card:hover {
+  border-color: alpha(@lumen_accent, 0.5);
+}
+
+button.theme-card.theme-card-active {
+  border-color: @lumen_accent;
+  background: alpha(@lumen_accent, 0.12);
+}
+
+.theme-preview {
+  border-radius: 10px;
+}
+
+.swatch {
+  border-radius: 999px;
+  border: 1px solid alpha(black, 0.25);
+}
+
+.dot {
+  border-radius: 999px;
+}
+
+.dot-idle {
+  background: alpha(@lumen_fg, 0.2);
+}
+
+.dot-active {
+  background: @lumen_accent;
+}
+
+.installer-log {
+  font-family: "JetBrainsMono Nerd Font", monospace;
+  font-size: 11px;
+  padding: 8px;
+  border-radius: 10px;
+}

@@ -25,18 +25,20 @@ sudo dd if=lumen-*.iso of=/dev/sdX bs=4M status=progress oflag=sync
 
 1. Turn off Secure Boot in your firmware settings (Arch kernels aren't signed by Microsoft), and make sure the computer boots in **UEFI** mode.
 2. Boot the USB stick and pick **Lumen OS installer**.
-3. The installer starts by itself and walks you through:
+3. You land on a live Lumen desktop, Bazzite-style, with the **Install Lumen OS** app open. Look around first if you like: the Start menu, terminal and App Store work. The installer asks:
 
-| Step | Notes |
+| Page | Notes |
 | --- | --- |
-| Internet | Pick a Wi-Fi network from a list, or plug in a cable. The Wi-Fi network is remembered in the installed system |
-| Keyboard | Layout for the console and the disk password |
-| Disk | **The whole disk is erased.** At least 20 GB |
-| Encryption | Recommended for laptops. You type the password at every start |
+| Welcome | Keyboard layout |
+| Internet | Pick a Wi-Fi network, or plug in a cable. The Wi-Fi network is remembered in the installed system |
+| Disk | **The whole disk is erased.** At least 20 GB. Optional encryption (recommended for laptops; you type the password at every start) |
 | Account | Your name, username, password and computer name. The root account is locked; you use `sudo` |
-| Time zone and language | Detected from your internet connection; confirm or pick |
-| Apps | Browser, terminal and code editor, gaming yes/no, and a starting theme |
-| Review | A summary, then **Erase and install** |
+| Region | Time zone and language, guessed from your internet connection |
+| Look | Pick a theme from a gallery (including **Cachy**, a CachyOS-inspired teal) and a layout: Lumen (top bar), Classic (top bar + taskbar) or Minimal. The live desktop restyles as you click, so you see it before installing |
+| Apps | Browser, terminal and code editor, and gaming yes/no |
+| Review | A summary, then **Erase and install**, with a progress bar and the live log |
+
+Prefer text? Pick **Lumen OS installer (text mode)** in the boot menu for the original step-by-step console installer.
 
 Installing takes 15–30 minutes, mostly downloading. Progress is logged to `/var/log/lumen-os-install.log`, and the log is copied into the installed system.
 
