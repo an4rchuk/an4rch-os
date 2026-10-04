@@ -147,14 +147,17 @@ if [[ $AUTO -eq 1 ]]; then
   GAMING="${K[gaming]:-0}"
   THEME="${K[theme]:-lumen}"
 else
-title "Welcome! This installs Lumen OS on this computer. It takes about 15 minutes."
+title "Welcome! This installs Lumen OS on this computer. It only takes a few minutes."
 gum confirm --affirmative "Let's go" --negative "Not now" "Ready to begin?" || exit 0
 
 # --- network --------------------------------------------------------------------------
 online() {
-  curl -fsS --max-time 6 -o /dev/null https://archlinux.org ||
-    curl -fsS --max-time 6 -o /dev/null https://geo.mirror.pkgbuild.com
+  curl -fsS --max-time 6 -o /dev/null https://archlinux.org 2>/dev/null ||
+    curl -fsS --max-time 6 -o /dev/null https://geo.mirror.pkgbuild.com 2>/dev/null
 }
+# On the live desktop's USB boot NetworkManager runs Wi-Fi (through iwd), and
+# connecting with iwctl behind its back doesn't stick: use nmcli then.
+use_nm() { systemctl is-active -q NetworkManager 2>/dev/null && command -v nmcli >/dev/null; }
 # Wired and virtual-machine connections come up by themselves, but DHCP can
 # take a little while after boot: wait for it before asking about Wi-Fi.
 if ! online; then
@@ -166,7 +169,11 @@ if ! online; then
 fi
 until online; do
   title "Connect to the internet"
-  dev=$(iwctl device list 2>/dev/null | awk '/station/ {print $2; exit}')
+  if use_nm; then
+    dev=$(nmcli -t -f DEVICE,TYPE device 2>/dev/null | awk -F: '$2 == "wifi" {print $1; exit}')
+  else
+    dev=$(iwctl device list 2>/dev/null | awk '/station/ {print $2; exit}')
+  fi
   if [[ -z "$dev" ]]; then
     note "No internet connection yet, and this computer has no Wi-Fi adapter." "" \
       "• Plug in an Ethernet cable." \
@@ -176,14 +183,24 @@ until online; do
     continue
   fi
   note "Scanning for Wi-Fi networks…"
-  iwctl station "$dev" scan >/dev/null 2>&1 || true
-  sleep 3
-  mapfile -t nets < <(iwctl station "$dev" get-networks 2>/dev/null | sed 's/\x1b\[[0-9;]*m//g' | awk 'NR>4 && NF {sub(/^ *> */, ""); sub(/ +(psk|open|8021x) +\**$/, ""); sub(/ +$/, ""); if ($0 != "") print}')
+  if use_nm; then
+    mapfile -t nets < <(nmcli -t -f SSID device wifi list --rescan yes 2>/dev/null | sed 's/\\:/:/g' | awk 'NF && !seen[$0]++')
+  else
+    iwctl station "$dev" scan >/dev/null 2>&1 || true
+    sleep 3
+    mapfile -t nets < <(iwctl station "$dev" get-networks 2>/dev/null | sed 's/\x1b\[[0-9;]*m//g' | awk 'NR>4 && NF {sub(/^ *> */, ""); sub(/ +(psk|open|8021x) +\**$/, ""); sub(/ +$/, ""); if ($0 != "") print}')
+  fi
   [[ ${#nets[@]} -gt 0 ]] || { note "No networks found. Press Enter to scan again."; read -r; continue; }
   ssid=$(printf '%s\n' "${nets[@]}" "Other network…" | gum choose --header "Choose your Wi-Fi network") || continue
   [[ "$ssid" == "Other network…" ]] && { ssid=$(gum input --header "Network name") || continue; }
   pass=$(gum input --password --placeholder "Password (leave empty for open networks)" --header "Password for $ssid") || continue
-  if [[ -n "$pass" ]]; then
+  if use_nm; then
+    if [[ -n "$pass" ]]; then
+      nmcli device wifi connect "$ssid" password "$pass" ifname "$dev" >>"$LOG" 2>&1 || true
+    else
+      nmcli device wifi connect "$ssid" ifname "$dev" >>"$LOG" 2>&1 || true
+    fi
+  elif [[ -n "$pass" ]]; then
     iwctl --passphrase "$pass" station "$dev" connect "$ssid" >>"$LOG" 2>&1 || true
   else
     iwctl station "$dev" connect "$ssid" >>"$LOG" 2>&1 || true
