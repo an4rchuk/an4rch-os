@@ -79,7 +79,7 @@ sed -i \
 # mkarchiso copies airootfs without file modes, so everything that must stay
 # executable is listed: our installer, and every executable in Lumen's tree
 # (otherwise every lumen-* command fails with "Permission denied").
-perms='  ["/usr/local/bin/lumen-os-install"]="0:0:755"\n  ["/usr/local/bin/lumen-rescue"]="0:0:755"\n  ["/usr/local/bin/lumen-live-setup"]="0:0:755"\n  ["/usr/local/bin/lumen-installer"]="0:0:755"\n  ["/usr/local/bin/lumen-live-check"]="0:0:755"'
+perms='  ["/usr/local/bin/lumen-os-install"]="0:0:755"\n  ["/usr/local/bin/lumen-rescue"]="0:0:755"\n  ["/usr/local/bin/lumen-live-setup"]="0:0:755"\n  ["/usr/local/bin/lumen-installer"]="0:0:755"\n  ["/usr/local/bin/lumen-live-check"]="0:0:755"\n  ["/usr/local/bin/lumen-live-preload"]="0:0:755"'
 while IFS= read -r f; do
   perms+="\\n  [\"/opt/lumen/${f#./}\"]=\"0:0:755\""
 done < <(cd "$profile/airootfs/opt/lumen" && find . -path ./.git -prune -o -type f -perm -u+x -print | sort)
@@ -98,6 +98,12 @@ find "$profile/efiboot" "$profile/syslinux" "$profile/grub" -type f \( -name '*.
 # (Network boot entries keep copying: there's no stick to run from.)
 find "$profile/efiboot" "$profile/syslinux" "$profile/grub" -type f \( -name '*.conf' -o -name '*.cfg' \) ! -name '*pxe*' \
   -exec sed -i 's/archisobasedir=/copytoram=n archisobasedir=/' {} +
+
+# Boot quietly: no kernel or service messages on screen (firmware warnings
+# such as ACPI errors on some laptops look alarming but are harmless), so
+# the boot goes straight from the menu to the desktop.
+find "$profile/efiboot" "$profile/syslinux" "$profile/grub" -type f \( -name '*.conf' -o -name '*.cfg' \) \
+  -exec sed -i 's/archisobasedir=/quiet loglevel=3 systemd.show_status=auto rd.udev.log_level=3 archisobasedir=/' {} +
 
 # The default entry boots the live desktop with the graphical installer; a
 # second entry runs the text-mode installer instead (lumen.text=1).

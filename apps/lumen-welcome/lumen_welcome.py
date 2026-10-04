@@ -20,6 +20,8 @@ LUMEN_PATH = Path(os.environ.get("LUMEN_PATH", HOME / ".local/share/lumen"))
 CONFIG = Path(os.environ.get("XDG_CONFIG_HOME", HOME / ".config")) / "lumen"
 STATE = Path(os.environ.get("XDG_STATE_HOME", HOME / ".local/state")) / "lumen"
 HERE = Path(__file__).resolve().parent
+# Running from the Lumen OS USB stick (archiso), not an installed system.
+LIVE = Path("/run/archiso").exists()
 
 
 def tool(*argv: str) -> None:
@@ -70,6 +72,7 @@ class Welcome(Adw.ApplicationWindow):
         self.carousel.append(self.page_hello())
         self.carousel.append(self.page_look())
         self.carousel.append(self.page_essentials())
+        self.carousel.append(self.page_tips())
         self.carousel.append(self.page_learn())
 
         # LUMEN_WELCOME_PAGE opens straight at a page (used by the docs screenshots).
@@ -193,6 +196,35 @@ class Welcome(Adw.ApplicationWindow):
         row("Snapshots", "Every update can be undone — see how", "document-revert-symbolic", ["lumen-snapshot", "menu"])
         return self.page("Set up the essentials", "Everything here is also in the Start menu and the Lumen menu.",
                          group, self.nav())
+
+    def page_tips(self) -> Gtk.Widget:
+        group = Adw.PreferencesGroup()
+        tips = [
+            ("software-update-available-symbolic", "Keep it up to date",
+             "Click the update icon in the top bar, or press ⊞ + Alt + U. Lumen takes a snapshot first."),
+            ("document-revert-symbolic", "Every update can be undone",
+             "If something breaks after an update, pick an older snapshot in the boot menu, "
+             "or run lumen-rescue from the USB stick."),
+            ("network-wireless-symbolic", "Wi-Fi and Bluetooth",
+             "Click their icons in the top bar, or press ⊞ + Alt + W and ⊞ + Alt + B."),
+            ("audio-volume-high-symbolic", "Sound",
+             "Scroll on the volume icon to change it, click it for the mixer, right-click to mute."),
+            ("battery-good-symbolic", "Battery life",
+             "⊞ + Ctrl + P switches between power saver, balanced and performance."),
+            ("view-grid-symbolic", "Windows tile by themselves",
+             "Drag with ⊞ held to move one; ⊞ + T lets a window float, ⊞ + W closes it."),
+            ("system-search-symbolic", "Something not working?",
+             "Open a terminal (⊞ + Enter) and run: lumen doctor. It checks the system and suggests fixes."),
+        ]
+        if LIVE:
+            tips.insert(0, ("drive-removable-media-symbolic", "You're running from the USB stick",
+                            "Apps open more slowly than they will once Lumen is installed, and nothing you "
+                            "change here is kept. Use the installer when you're ready."))
+        for icon, title, sub in tips:
+            r = Adw.ActionRow(title=title, subtitle=sub)
+            r.add_prefix(Gtk.Image.new_from_icon_name(icon))
+            group.add(r)
+        return self.page("Good to know", "A few tips that make Lumen easier to live with.", group, self.nav())
 
     def page_learn(self) -> Gtk.Widget:
         grid = Gtk.Grid(column_spacing=18, row_spacing=10, halign=Gtk.Align.CENTER)

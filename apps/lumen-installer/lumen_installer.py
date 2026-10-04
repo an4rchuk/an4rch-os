@@ -298,8 +298,10 @@ class Installer(Adw.ApplicationWindow):
         keymap.connect("notify::selected", lambda r, *_: self.answers.__setitem__("keymap", self.keymaps[r.get_selected()]))
         group = Adw.PreferencesGroup(margin_top=12)
         group.add(keymap)
+        tips = Gtk.Button(label="New to Lumen? Open the tips", css_classes=["flat"], halign=Gtk.Align.CENTER)
+        tips.connect("clicked", lambda *_: lumen("lumen-welcome"))
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14, halign=Gtk.Align.CENTER)
-        for w in (logo, hello, text, group):
+        for w in (logo, hello, text, group, tips):
             box.append(w)
         return self.page("", "", box)
 
