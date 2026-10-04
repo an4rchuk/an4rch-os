@@ -24,6 +24,9 @@ set -euo pipefail
 
 LUMEN_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 export LUMEN_PATH
+# Copies that lost file modes (zip downloads, some image builders) would make
+# every lumen-* command fail with "Permission denied": restore them.
+chmod +x "$LUMEN_PATH"/bin/* "$LUMEN_PATH"/install.sh "$LUMEN_PATH"/boot.sh 2>/dev/null || true
 source "$LUMEN_PATH/install/lib.sh"
 source "$LUMEN_PATH/install/packages.sh"
 

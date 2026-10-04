@@ -50,8 +50,14 @@ sed -i \
   -e 's/^iso_publisher=.*/iso_publisher="Lumen OS <https:\/\/github.com\/twil09\/linux>"/' \
   -e 's/^iso_application=.*/iso_application="Lumen OS installer"/' \
   "$profile/profiledef.sh"
-# Our installer must be executable inside the image.
-sed -i 's|^file_permissions=(|file_permissions=(\n  ["/usr/local/bin/lumen-os-install"]="0:0:755"\n  ["/usr/local/bin/lumen-rescue"]="0:0:755"|' "$profile/profiledef.sh"
+# mkarchiso copies airootfs without file modes, so everything that must stay
+# executable is listed: our installer, and every executable in Lumen's tree
+# (otherwise every lumen-* command fails with "Permission denied").
+perms='  ["/usr/local/bin/lumen-os-install"]="0:0:755"\n  ["/usr/local/bin/lumen-rescue"]="0:0:755"'
+while IFS= read -r f; do
+  perms+="\\n  [\"/opt/lumen/${f#./}\"]=\"0:0:755\""
+done < <(cd "$profile/airootfs/opt/lumen" && find . -path ./.git -prune -o -type f -perm -u+x -print | sort)
+sed -i "s|^file_permissions=(|file_permissions=(\\n$perms|" "$profile/profiledef.sh"
 
 # Boot menu branding.
 find "$profile/efiboot" "$profile/syslinux" "$profile/grub" -type f \( -name '*.conf' -o -name '*.cfg' \) \
