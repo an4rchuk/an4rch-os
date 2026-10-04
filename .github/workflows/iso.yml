@@ -24,6 +24,11 @@ jobs:
     env:
       # The release tag: the pushed tag, or the one typed when running it by hand.
       TAG: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || inputs.release }}
+      # Releases also put the full ISO, as one file, on Hugging Face (no
+      # 2 GB limit there): a dataset repo, twil09/lumen-os unless the HF_REPO
+      # variable names another. Skipped without the HF_TOKEN secret.
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      HF_REPO: ${{ vars.HF_REPO || 'twil09/lumen-os' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -62,6 +67,27 @@ jobs:
           sudo chown -R "$USER" out-online
           ls -lh out-online
 
+      - name: Upload the full ISO to Hugging Face (releases)
+        if: env.TAG != '' && env.HF_TOKEN != ''
+        run: |
+          python3 -m venv /tmp/hf && /tmp/hf/bin/pip install -q huggingface_hub
+          full=$(ls out/lumen-*.iso | head -n1)
+          /tmp/hf/bin/python - "$full" <<'PY'
+          import os, sys
+          from huggingface_hub import HfApi
+          iso = sys.argv[1]
+          name, repo, tag = os.path.basename(iso), os.environ["HF_REPO"], os.environ["TAG"]
+          api = HfApi(token=os.environ["HF_TOKEN"])
+          api.create_repo(repo, repo_type="dataset", exist_ok=True)
+          for path in (iso, iso + ".sha256"):
+              api.upload_file(path_or_fileobj=path, path_in_repo=f"{tag}/{os.path.basename(path)}",
+                              repo_id=repo, repo_type="dataset", commit_message=f"Lumen OS {tag}")
+          url = f"https://huggingface.co/datasets/{repo}/resolve/main/{tag}/{name}"
+          with open(os.environ["GITHUB_ENV"], "a") as f:
+              f.write(f"HF_URL={url}\n")
+          print("Uploaded:", url)
+          PY
+
       - name: Prepare release files
         if: env.TAG != ''
         run: |
@@ -80,8 +106,21 @@ jobs:
           fi
           parts=$(cd release && ls "$name".iso.part* | tr '\n' ' ')
           win_join=$(cd release && ls "$name".iso.part* | sed ':a;N;$!ba;s/\n/ + /g')
-          cat >notes.md <<EOF
+          {
+          if [ -n "${HF_URL:-}" ]; then
+            cat <<EOF
           ## Download
+
+          **[⬇ ${name}.iso](${HF_URL})**: the full ISO as one file (about 5 GB, hosted on Hugging Face because GitHub limits release files to 2 GB). It installs in minutes from the USB stick. Checksum: [${name}.iso.sha256](${HF_URL}.sha256).
+
+          The same ISO is also attached below in parts, as a backup: download every \`.part\` file and join them (see below).
+
+          ### Joining the parts (backup download)
+          EOF
+          else
+            echo "## Download"
+          fi
+          cat <<EOF
 
           **Full ISO (recommended): installs in minutes from the USB stick.** Download all of: \`${parts% }\`, then join them into one file:
 
@@ -98,6 +137,7 @@ jobs:
 
           See the [Lumen OS manual](https://github.com/${GITHUB_REPOSITORY}/blob/${TAG}/docs/09-lumen-os.md).
           EOF
+          } >notes.md
           sed -i 's/^          //' notes.md
           ls -lh release
 
