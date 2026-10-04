@@ -343,7 +343,10 @@ offline_off() {
   cp -n "$OFFLINE"/linux-[0-9]*.pkg.tar.zst "$OFFLINE"/linux-lts-[0-9]*.pkg.tar.zst "$MNT/var/cache/pacman/pkg/" 2>/dev/null || true
 }
 
-spin "Mirrors: picking the fastest" timeout 90 reflector --latest 20 --protocol https --sort rate --save /etc/pacman.d/mirrorlist
+# Ranking mirrors is a nicety: if Arch's mirror status can't be reached
+# (it times out now and then), keep the mirror list the USB already has.
+spin "Mirrors: picking the fastest" bash -c 'timeout 90 reflector --latest 20 --protocol https --sort rate --save /etc/pacman.d/mirrorlist ||
+  echo "Mirror ranking unavailable; keeping the current mirror list"'
 spin "Partitioning $DISK" bash -c "wipefs -af '$DISK' && sgdisk -Z '$DISK' && sgdisk -n1:0:+1G -t1:ef00 -c1:EFI -n2:0:0 -t2:8300 -c2:lumen '$DISK' && partprobe '$DISK' && udevadm settle"
 
 ROOTDEV="$SYS"
