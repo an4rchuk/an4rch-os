@@ -188,7 +188,10 @@ until online; do
   else
     iwctl station "$dev" scan >/dev/null 2>&1 || true
     sleep 3
-    mapfile -t nets < <(iwctl station "$dev" get-networks 2>/dev/null | sed 's/\x1b\[[0-9;]*m//g' | awk 'NR>4 && NF {sub(/^ *> */, ""); sub(/ +(psk|open|8021x) +\**$/, ""); sub(/ +$/, ""); if ($0 != "") print}')
+    # Columns are padded with runs of spaces (names may hold single spaces):
+    # the name is everything before the first run of two or more.
+    mapfile -t nets < <(iwctl station "$dev" get-networks 2>/dev/null | sed 's/\x1b\[[0-9;]*[A-Za-z]//g; s/\r//g' |
+      awk 'NR > 4 && NF { sub(/^[ \t>]+/, ""); split($0, f, /  +|\t/); if (f[1] != "" && f[1] !~ /^-+$/) print f[1] }')
   fi
   [[ ${#nets[@]} -gt 0 ]] || { note "No networks found. Press Enter to scan again."; read -r; continue; }
   ssid=$(printf '%s\n' "${nets[@]}" "Other network…" | gum choose --header "Choose your Wi-Fi network") || continue
@@ -206,7 +209,13 @@ until online; do
     iwctl station "$dev" connect "$ssid" >>"$LOG" 2>&1 || true
   fi
   WIFI_SSID="$ssid" WIFI_PASS="$pass"
-  sleep 4
+  note "Connecting to $ssid…"
+  for _ in $(seq 1 10); do online && break; sleep 2; done
+  if ! online; then
+    note "Couldn't connect to \"$ssid\". Check the password (it's case-sensitive) and try again." "" \
+      "Details: $(tail -n 1 "$LOG" 2>/dev/null)" "" "Press Enter to continue."
+    read -r
+  fi
 done
 timedatectl set-ntp true >/dev/null 2>&1 || true
 
