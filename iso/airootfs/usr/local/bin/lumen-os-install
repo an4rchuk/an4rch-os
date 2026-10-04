@@ -474,7 +474,7 @@ chmod 440 "$MNT/etc/sudoers.d/99-lumen-install"
 lumen_args=(--yes --distro --no-reboot --browser "$BROWSER" --terminal "$TERMINAL_APP" --editor "$EDITOR_APP" --theme "$THEME")
 [[ $GAMING -eq 1 ]] && lumen_args+=(--gaming)
 [[ "${K[autologin]:-0}" == 1 ]] && lumen_args+=(--autologin)
-[[ "${K[taskbar]:-0}" == 1 ]] && lumen_args+=(--taskbar)
+[[ "${K[taskbar]:-1}" == 1 ]] && lumen_args+=(--taskbar)
 [[ "${K[titlebars]:-1}" == 0 ]] && lumen_args+=(--no-titlebars)
 # The title bar plugin, built with the stick for the Hyprland on it
 # (lumen-titlebars setup sees it's current and skips building).

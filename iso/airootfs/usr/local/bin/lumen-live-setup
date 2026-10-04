@@ -71,7 +71,7 @@ LUMEN_BROWSER=firefox
 LUMEN_EDITOR=nvim
 LUMEN_FILES=nautilus
 LUMEN_TITLEBARS=$TITLEBARS
-LUMEN_TASKBAR=no
+LUMEN_TASKBAR=yes
 LUMEN_IDLE_SUSPEND=never
 CONF
 [[ -d /opt/lumen-wallpapers ]] && ln -sfn /opt/lumen-wallpapers ~/.local/share/backgrounds/lumen

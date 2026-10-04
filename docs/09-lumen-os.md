@@ -34,7 +34,7 @@ sudo dd if=lumen-*.iso of=/dev/sdX bs=4M status=progress oflag=sync
 | Disk | **The whole disk is erased.** At least 20 GB. Optional encryption (recommended for laptops; you type the password at every start) |
 | Account | Your name, username, password and computer name. The root account is locked; you use `sudo` |
 | Region | Time zone and language, guessed from your internet connection |
-| Look | Pick a theme from a gallery (including **Cachy**, a CachyOS-inspired teal) and a layout: Lumen (top bar), Classic (top bar + taskbar) or Minimal. The live desktop restyles as you click, so you see it before installing |
+| Look | Pick a theme from a gallery (including **Cachy**, a CachyOS-inspired teal) and a layout: Lumen (top bar + taskbar, the default), Top bar only or Minimal. The live desktop restyles as you click, so you see it before installing |
 | Apps | Browser, terminal and code editor, and gaming yes/no |
 | Review | A summary, then **Erase and install**, with a progress bar and the live log |
 

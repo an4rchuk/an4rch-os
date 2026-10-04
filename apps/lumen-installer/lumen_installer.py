@@ -41,8 +41,8 @@ TERMINALS = [("ghostty", "Ghostty", "Fast and modern (recommended)"), ("alacritt
              ("kitty", "Kitty", "Feature-rich")]
 EDITORS = [("code", "VS Code", "Code - OSS, with extensions"), ("zed", "Zed", "Fast, collaborative"),
            ("nvim", "Neovim", "In the terminal")]
-LAYOUTS = [("modern", "Lumen", "Top bar and title bars. Tap the Windows key for Start", "no", "yes"),
-           ("classic", "Classic", "A taskbar along the bottom too, like Windows", "yes", "yes"),
+LAYOUTS = [("classic", "Lumen", "Top bar, title bars and a taskbar along the bottom", "yes", "yes"),
+           ("modern", "Top bar only", "No taskbar: tap the Windows key for Start and your apps", "no", "yes"),
            ("minimal", "Minimal", "Edge-to-edge tiling windows, no title bars", "no", "no")]
 # Steps of the engine and of the desktop installer, for the progress bar.
 STEPS = ["Mirrors", "Partitioning", "Encrypting", "Formatting", "Creating btrfs", "Installing the base system",
@@ -170,7 +170,7 @@ class Installer(Adw.ApplicationWindow):
     def __init__(self, app: Adw.Application):
         super().__init__(application=app, title="Install Lumen OS", default_width=980, default_height=720)
         self.answers: dict[str, str] = {
-            "theme": "lumen", "layout": "modern", "browser": "firefox", "terminal": "ghostty", "editor": "code",
+            "theme": "lumen", "layout": "classic", "browser": "firefox", "terminal": "ghostty", "editor": "code",
             "gaming": "0", "encrypt": "", "keymap": "us", "timezone": "UTC", "autologin": "0",
         }
         self.disk_choice: dict | None = None

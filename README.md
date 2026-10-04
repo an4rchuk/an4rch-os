@@ -5,10 +5,10 @@
 Lumen OS takes inspiration from [Omarchy](https://omarchy.org) (an opinionated, keyboard-first Hyprland desktop on plain Arch), [Bazzite](https://bazzite.gg) (try it live before installing, roll back any update, gaming ready, a friendly app store) and [CachyOS](https://cachyos.org) (tuned for speed, a teal look of its own). It ships as a bootable USB image; the same desktop also installs on any existing Arch system.
 
 ![The Lumen OS desktop: Files and Firefox with window buttons, the top bar, and the taskbar along the bottom](docs/images/desktop.jpg)
-<sub>A real Lumen OS install, screenshotted by the automated VM test: title bars with minimise, maximise and close on every window, and the optional taskbar along the bottom.</sub>
+<sub>A real Lumen OS install, screenshotted by the automated VM test: title bars with minimise, maximise and close on every window, and the taskbar along the bottom.</sub>
 
 - **Try it before you install.** The USB boots to a live Lumen desktop with the installer open. Pick a theme and the desktop restyles as you click, then install in a few minutes: the packages come on the stick.
-- **Windows behave like you expect:** title bars with minimise, maximise and close buttons, double-click to maximise, and an optional Windows-style taskbar along the bottom (one switch in Settings).
+- **Windows behave like you expect:** title bars with minimise, maximise and close buttons, double-click to maximise, and a Windows-style taskbar along the bottom (on by default, one switch to turn off).
 - **Tap the Windows key** for the Start menu: pinned apps, recent apps, everything A–Z, and a search that also finds settings, does maths and searches the web.
 - **App Store** for Flathub, the Arch repositories and the AUR in one place, with screenshots, one-click install, and updates.
 - **Snapshots on every update**, so a bad update is one click (or one reboot into the LTS kernel) away from undone.

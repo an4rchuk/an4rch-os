@@ -26,6 +26,7 @@ check() { # check NAME CMD...
 echo "=== LUMEN-LIVE-CHECK ==="
 check "desktop session running" test -n "$sig"
 check "top bar running" pgrep -u "$u" -x waybar
+check "taskbar running" pgrep -u "$u" -f "waybar -c .*taskbar.jsonc"
 check "wallpaper (swaybg) running" pgrep -u "$u" -x swaybg
 check "installer window open" pgrep -u "$u" -f lumen_installer.py
 check "sound (PipeWire) running" as_live wpctl status
