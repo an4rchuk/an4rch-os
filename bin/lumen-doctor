@@ -79,13 +79,25 @@ if pgrep -f 'wl-paste.*cliphist' >/dev/null; then pass "clipboard history record
 
 section "System services"
 for s in NetworkManager bluetooth power-profiles-daemon; do
-  if systemctl is-active -q "$s" 2>/dev/null; then pass "$s"; else note "$s not active — sudo systemctl enable --now $s"; fi
+  if systemctl is-active -q "$s" 2>/dev/null; then
+    pass "$s"
+  elif [[ "$s" == bluetooth ]] && ! compgen -G '/sys/class/bluetooth/*' >/dev/null; then
+    pass "bluetooth: no adapter in this computer"
+  else
+    note "$s not active — sudo systemctl enable --now $s"
+  fi
 done
 for s in pipewire wireplumber; do
   if systemctl --user is-active -q "$s" 2>/dev/null; then pass "$s"; else fail "$s not active — systemctl --user enable --now $s"; fi
 done
 if systemctl is-enabled -q greetd 2>/dev/null; then pass "greetd login screen"; else note "no display manager; logging in on tty1 starts the desktop"; fi
-if has ufw && sudo -n ufw status 2>/dev/null | grep -q active; then pass "firewall active"; elif has ufw; then note "firewall status needs sudo: sudo ufw status"; else note "no firewall (lumen-pkg add ufw)"; fi
+if ! has ufw; then
+  note "no firewall (lumen-pkg add ufw)"
+elif systemctl is-active -q ufw 2>/dev/null || sudo -n ufw status 2>/dev/null | grep -q 'Status: active'; then
+  pass "firewall active"
+else
+  note "firewall off — sudo ufw enable && sudo systemctl enable ufw"
+fi
 
 section "Fonts"
 for f in "Inter" "JetBrainsMono Nerd Font"; do

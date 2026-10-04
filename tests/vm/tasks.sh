@@ -43,9 +43,13 @@ task() {
   local name="$1" out rc
   shift
   say "--- task: $name"
-  out=$("$@" 2>&1)
+  # Output via a file, not $(...): a command may leave a background child
+  # (e.g. a clickable notification) holding the pipe open forever.
+  out=$(mktemp)
+  "$@" >"$out" 2>&1 </dev/null
   rc=$?
-  printf '%s\n' "$out" | sed 's/\x1b\[[0-9;]*m//g' | tail -n 40
+  sed 's/\x1b\[[0-9;]*m//g' "$out" | tail -n 40
+  rm -f "$out"
   if [[ $rc -eq 0 ]]; then result "$name" PASS; else result "$name" FAIL "exit $rc"; fi
   return $rc
 }
