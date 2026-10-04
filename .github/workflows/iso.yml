@@ -2,11 +2,16 @@ name: iso
 
 # Builds the Lumen OS installer ISO in an Arch Linux container.
 # Run it from the Actions tab ("Run workflow"), or push a tag like v1.1.0 to
-# also publish a release. Release files are limited to 2 GB each, so a
+# also publish a release (or type a tag in "Run workflow"). Release files are limited to 2 GB each, so a
 # release carries the full ISO in parts (to join after downloading) plus a
 # small single-file ISO that downloads its packages while installing.
 on:
   workflow_dispatch:
+    inputs:
+      release:
+        description: "Publish as a release with this tag (e.g. v1.0.0); empty: just build"
+        required: false
+        default: ""
   push:
     tags: ["v*"]
 
@@ -16,6 +21,9 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-24.04
+    env:
+      # The release tag: the pushed tag, or the one typed when running it by hand.
+      TAG: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || inputs.release }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -45,7 +53,7 @@ jobs:
           retention-days: 14
 
       - name: Build the small online ISO (releases)
-        if: startsWith(github.ref, 'refs/tags/')
+        if: env.TAG != ''
         run: |
           docker run --rm --privileged -v "$PWD:/src" -e LUMEN_OFFLINE=0 archlinux:latest bash -c '
             pacman -Syu --noconfirm --needed archiso git python-pillow >/dev/null &&
@@ -55,7 +63,7 @@ jobs:
           ls -lh out-online
 
       - name: Prepare release files
-        if: startsWith(github.ref, 'refs/tags/')
+        if: env.TAG != ''
         run: |
           mkdir release
           full=$(ls out/lumen-*.iso | head -n1)
@@ -88,15 +96,17 @@ jobs:
 
           Write the ISO to a USB stick of 8 GB or more (Rufus in DD mode, Ventoy, Impression, Fedora Media Writer or \`dd\`), turn off Secure Boot, and boot it in UEFI mode. Pick **Lumen OS installer** for the live desktop with the graphical installer, or **(text mode)** for the console installer. The disk you install to is erased.
 
-          See the [Lumen OS manual](https://github.com/${GITHUB_REPOSITORY}/blob/${GITHUB_REF_NAME}/docs/09-lumen-os.md).
+          See the [Lumen OS manual](https://github.com/${GITHUB_REPOSITORY}/blob/${TAG}/docs/09-lumen-os.md).
           EOF
           sed -i 's/^          //' notes.md
           ls -lh release
 
       - name: Publish release
-        if: startsWith(github.ref, 'refs/tags/')
+        if: env.TAG != ''
         uses: softprops/action-gh-release@v2
         with:
-          name: Lumen OS ${{ github.ref_name }}
+          tag_name: ${{ env.TAG }}
+          target_commitish: ${{ github.sha }}
+          name: Lumen OS ${{ env.TAG }}
           body_path: notes.md
           files: release/*
