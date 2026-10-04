@@ -31,8 +31,18 @@ cp -a "$releng" "$profile"
 # Our files on top of releng's live system.
 cp -a "$root/iso/airootfs/." "$profile/airootfs/"
 
-# Extra packages for the live environment (installer UI and tools).
+# Extra packages for the live environment (installer UI and tools), plus
+# the same desktop an install gets, so everything on the live desktop's bar
+# and menus works: sound, Bluetooth, idle and night light, fonts and so on.
 cat "$root/iso/packages.x86_64" >>"$profile/packages.x86_64"
+(
+  # shellcheck source=../install/packages.sh
+  source "$root/install/packages.sh"
+  printf '%s\n' "${PKGS_AUDIO[@]}" "${PKGS_DESKTOP[@]}" "${PKGS_TOOLS[@]}" "${PKGS_FONTS[@]}" "${PKGS_LOOK[@]}" \
+    bluez bluez-utils bluetui power-profiles-daemon upower playerctl libnotify \
+    wiremix pavucontrol network-manager-applet pacman-contrib \
+    nautilus gvfs loupe evince gnome-calculator "${PKG_FOR[firefox]}"
+) >>"$profile/packages.x86_64"
 sort -u -o "$profile/packages.x86_64" "$profile/packages.x86_64"
 
 # A copy of Lumen itself (with git history, so `lumen update` works after

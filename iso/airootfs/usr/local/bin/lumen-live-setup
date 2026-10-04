@@ -24,6 +24,10 @@ chmod 440 /etc/sudoers.d/90-lumen-live
 
 # Wi-Fi through NetworkManager (on top of iwd); wired stays with networkd.
 systemctl start NetworkManager
+# What the top bar talks to: Bluetooth, power profiles, battery.
+systemctl start bluetooth power-profiles-daemon upower 2>/dev/null
+# Sound (PipeWire) for every user session, as the installer sets it up.
+systemctl --global enable pipewire.socket pipewire-pulse.socket wireplumber.service 2>/dev/null
 
 # Title bars, if the ISO carries the plugin built for this Hyprland.
 titlebars=no
