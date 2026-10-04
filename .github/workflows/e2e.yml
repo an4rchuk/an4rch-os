@@ -120,19 +120,8 @@ jobs:
           strip() { tr -d '\r' <boot-serial.log | sed 's/\x1b\[[0-9;?]*[a-zA-Z]//g'; }
           echo "--- installed system's report ---"
           strip | sed -n '/=== LUMEN-E2E-REPORT ===/,/LUMEN-E2E-REPORT-END/p' | head -n 400 || true
-          echo "--- tasks ---"
-          strip | sed -n '/=== LUMEN-E2E-TASKS/,/E2E-DONE/p' | grep -v '^E2E-\(SHOT\|KEYS\|TYPE\)' | head -n 800 || true
+          strip | sed -n '/=== LUMEN-E2E-TASKS/,/E2E-DONE/p' | grep -v '^E2E-\(SHOT\|KEYS\|TYPE\)' > tasks.log || true
           strip | grep -a -o 'E2E-RESULT.*' > results.txt || true
-
-      - name: Task results
-        if: always()
-        run: |
-          [ -s results.txt ] || { echo "::error::No task results (the task runner never reported)"; exit 1; }
-          sed -e 's/^E2E-RESULT //' results.txt | awk '{ s=($0 ~ / PASS/)?"✓":"✗"; print "  " s " " $0 }'
-          if grep -q ' FAIL' results.txt; then
-            grep ' FAIL' results.txt | sed 's/^E2E-RESULT /::error::/'
-            exit 1
-          fi
 
       # The screenshots, downscaled, as base64 text in this log, so they can be
       # read through the job-log API where artifact downloads aren't possible.
@@ -147,6 +136,18 @@ jobs:
             echo "=== END ==="
           done
 
+      - name: Task results
+        if: always()
+        run: |
+          echo "--- tasks ---"; head -n 800 tasks.log || true
+          echo
+          [ -s results.txt ] || { echo "::error::No task results (the task runner never reported)"; exit 1; }
+          sed -e 's/^E2E-RESULT //' results.txt | awk '{ s=($0 ~ / PASS/)?"✓":"✗"; print "  " s " " $0 }'
+          if grep -q ' FAIL' results.txt; then
+            grep ' FAIL' results.txt | sed 's/^E2E-RESULT /::error::/'
+            exit 1
+          fi
+
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -156,4 +157,5 @@ jobs:
             install-serial.log
             install-clean.log
             results.txt
+            tasks.log
             boot-serial.log

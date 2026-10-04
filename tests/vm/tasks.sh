@@ -54,6 +54,14 @@ task() {
   return $rc
 }
 
+# cli NAME CMD... — a command-line task, run in a pseudo-terminal like a
+# person typing it (some commands otherwise open their own terminal window).
+cli() {
+  local name="$1"
+  shift
+  task "$name" as_user script -qefc "$(printf '%q ' "$@")" /dev/null
+}
+
 windows() { as_user hyprctl clients -j 2>/dev/null | jq -r '.[].class' 2>/dev/null; }
 count_windows() { windows | grep -ci -- "$1"; }
 
@@ -78,7 +86,7 @@ sleep 2
 shot 10-clean-desktop
 
 # --- Health check ---------------------------------------------------------------------
-task "lumen doctor" as_user lumen-doctor
+cli "lumen doctor" lumen-doctor
 
 # --- Apps from Lumen's launcher ------------------------------------------------------
 as_user lumen-launch terminal
@@ -161,12 +169,12 @@ as_user lumen-launch browser https://archlinux.org
 wait_window "browser opens" 'firefox' 90 && { sleep 15; shot 20-browser; }
 
 # --- Command-line tools -------------------------------------------------------------------
-task "lumen help" as_user lumen help
-task "lumen tune status" as_user lumen tune status
-task "lumen extras list" as_user lumen extras list
-task "lumen dev status" as_user lumen dev status
-task "lumen snapshot list" as_user lumen snapshot
-task "lumen theme list" as_user lumen theme list
+cli "lumen help" lumen help
+cli "lumen tune status" lumen tune status
+cli "lumen extras list" lumen extras list
+cli "lumen dev status" lumen dev status
+cli "lumen snapshot list" lumen snapshot
+cli "lumen theme list" lumen theme list
 if as_user lumen battery | grep -q "No battery"; then result "lumen battery (desktop)" PASS; else result "lumen battery (desktop)" FAIL; fi
 task "audio (wpctl status)" as_user wpctl status
 task "firewall active" systemctl is-active ufw
