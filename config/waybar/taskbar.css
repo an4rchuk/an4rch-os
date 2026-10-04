@@ -1,0 +1,71 @@
+/* Lumen taskbar. Colours come from the active theme. */
+@import "../lumen/current/theme/waybar.css";
+
+* {
+  font-family: "Inter", "JetBrainsMono Nerd Font Propo", sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  min-height: 0;
+  border: none;
+  border-radius: 0;
+}
+
+window#waybar {
+  background: alpha(@bg, 0.86);
+  color: @fg;
+  border-radius: 14px;
+  border: 1px solid alpha(@fg, 0.07);
+}
+
+tooltip {
+  background: alpha(@bg_alt, 0.97);
+  border: 1px solid alpha(@fg, 0.1);
+  border-radius: 10px;
+}
+
+#custom-start {
+  font-size: 20px;
+  color: @accent;
+  padding: 0 14px 0 16px;
+}
+
+#custom-start:hover {
+  color: @accent2;
+}
+
+#taskbar {
+  padding: 0 4px;
+}
+
+#taskbar button {
+  color: @fg_dim;
+  padding: 2px 10px;
+  margin: 5px 2px;
+  border-radius: 10px;
+  border-bottom: 2px solid transparent;
+}
+
+#taskbar button:hover {
+  background: alpha(@fg, 0.08);
+  color: @fg;
+}
+
+#taskbar button.active {
+  background: alpha(@accent, 0.16);
+  color: @fg;
+  border-bottom: 2px solid @accent;
+}
+
+#taskbar button.minimized {
+  opacity: 0.55;
+}
+
+#custom-minimized {
+  color: @fg_dim;
+  padding: 0 10px;
+}
+
+#clock.taskbar {
+  padding: 0 16px 0 10px;
+  font-weight: 600;
+}

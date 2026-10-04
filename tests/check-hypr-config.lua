@@ -52,6 +52,17 @@ end
 
 -- hl.config walks nested tables exactly like Hyprland: a dotted path that is a
 -- known option is a value, otherwise a table is descended into.
+-- The hyprbars plugin's options and Lua API (hyprland-plugins, Lua-config
+-- era). The stub behaves as if the plugin is loaded, so titlebars.lua is
+-- checked too.
+for _, k in ipairs({ "enabled", "bar_color", "col.text", "inactive_button_color", "bar_height",
+    "bar_text_size", "bar_text_weight", "bar_title_enabled", "bar_blur", "bar_text_font",
+    "bar_text_align", "bar_part_of_window", "bar_precedence_over_border", "bar_buttons_alignment",
+    "bar_padding", "bar_button_padding", "icon_on_hover", "buttons_on_hover", "on_double_click" }) do
+    CONFIG["plugin.hyprbars." .. k] = true
+end
+local HYPRBARS_BUTTON = { bg_color = true, fg_color = true, size = true, icon = true, action = true }
+
 local function walk(prefix, t)
     for k, v in pairs(t) do
         local key = prefix == "" and k or (prefix .. "." .. k)
@@ -232,6 +243,24 @@ hl = {
     dispatch = function(d)
         if not (type(d) == "table" and d[DSP_TAG]) then err("hl.dispatch: expected a dispatcher") end
     end,
+
+    plugin = {
+        load = function(path)
+            if type(path) ~= "string" or path == "" then err("hl.plugin.load: expected a path") end
+        end,
+        hyprbars = {
+            add_button = function(t)
+                if type(t) ~= "table" then return err("hl.plugin.hyprbars.add_button: expected a table") end
+                for k in pairs(t) do
+                    if not HYPRBARS_BUTTON[k] then err("hl.plugin.hyprbars.add_button: unknown field '" .. tostring(k) .. "'") end
+                end
+                for k in pairs(HYPRBARS_BUTTON) do
+                    if t[k] == nil then err("hl.plugin.hyprbars.add_button: '" .. k .. "' is required") end
+                end
+                if type(t.size) ~= "number" then err("hl.plugin.hyprbars.add_button: size must be a number") end
+            end,
+        },
+    },
 
     timer = function() return {} end,
     permission = function() end,

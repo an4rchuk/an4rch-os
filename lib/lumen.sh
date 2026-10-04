@@ -23,6 +23,8 @@ LUMEN_FILES=nautilus
 LUMEN_SCREENSHOT_DIR="$HOME/Pictures/Screenshots"
 LUMEN_RECORDING_DIR="$HOME/Videos/Recordings"
 LUMEN_NIGHTLIGHT_TEMP=4300
+LUMEN_TITLEBARS=yes   # title bars with close/maximise/minimise buttons
+LUMEN_TASKBAR=no      # taskbar along the bottom of the screen
 # shellcheck source=/dev/null
 [[ -f "$LUMEN_CONFIG/settings.conf" ]] && source "$LUMEN_CONFIG/settings.conf"
 

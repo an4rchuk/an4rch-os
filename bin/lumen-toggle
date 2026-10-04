@@ -7,6 +7,8 @@
 #   lumen-toggle bar          show/hide the top bar
 #   lumen-toggle gaps         gapless, square windows for small screens
 #   lumen-toggle layout       tiling ↔ scrolling (niri-style) layout
+#   lumen-toggle taskbar      taskbar along the bottom of the screen
+#   lumen-toggle titlebars    title bars with close/maximise/minimise buttons
 #
 # Add `on` or `off` to force a state, e.g. `lumen-toggle nightlight on`.
 set -euo pipefail
@@ -28,6 +30,9 @@ resolve() {
 }
 
 case "$what" in
+  taskbar) exec "$LUMEN_PATH/bin/lumen-taskbar" toggle ;;
+  titlebars) exec "$LUMEN_PATH/bin/lumen-titlebars" toggle ;;
+
   idle)
     # "Keep awake" means hypridle is stopped.
     if pgrep -x hypridle >/dev/null; then cur=off; else cur=on; fi
@@ -73,8 +78,8 @@ case "$what" in
     ;;
 
   bar)
-    if pgrep -x waybar >/dev/null; then
-      pkill -SIGUSR1 -x waybar # waybar toggles visibility on SIGUSR1
+    if pgrep -fx waybar >/dev/null; then
+      pkill -SIGUSR1 -fx waybar # waybar toggles visibility on SIGUSR1
     else
       launch waybar
     fi

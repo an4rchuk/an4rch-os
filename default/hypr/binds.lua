@@ -48,6 +48,8 @@ bind("SUPER + W",          hl.dsp.window.close(),                               
 bind("SUPER + SHIFT + Q",  hl.dsp.window.kill(),                                  "Force quit window")
 bind("SUPER + F",          hl.dsp.window.fullscreen({ mode = "fullscreen" }),     "Fullscreen")
 bind("SUPER + M",          hl.dsp.window.fullscreen({ mode = "maximized" }),      "Maximise (keep bar and gaps)")
+bind("SUPER + comma",      exec(cmd("window", "minimize")),                        "Minimise window")
+bind("SUPER + SHIFT + M",  exec(cmd("window", "restore-menu")),                    "Restore a minimised window")
 bind("SUPER + T",          hl.dsp.window.float({ action = "toggle" }),            "Toggle floating")
 bind("SUPER + P",          hl.dsp.window.pin({ action = "toggle" }),              "Pin floating window to all workspaces")
 bind("SUPER + J",          hl.dsp.layout("togglesplit"),                          "Toggle split direction")

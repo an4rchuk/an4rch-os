@@ -105,3 +105,7 @@ PKGS_X_CONTROLLERS=(game-devices-udev)
 # lumen-dev (development environment)
 PKGS_DEV_BASE=(mise github-cli lazygit)
 PKGS_DEV_DOCKER=(docker docker-compose docker-buildx lazydocker)
+
+# lumen-titlebars: hyprpm builds the hyprbars plugin against Hyprland's
+# headers, which needs Hyprland's build tools.
+PKGS_TITLEBARS=(cmake meson cpio pkgconf gcc git glaze glslang hyprwayland-scanner hyprland-protocols wayland-protocols xorgproto)

@@ -47,3 +47,6 @@ local ok, palette = pcall(require, home .. "/.config/lumen/current/theme/hyprlan
 if ok and type(palette) == "table" then
     lumen.theme = palette
 end
+
+-- Title bars (hyprbars plugin) use the palette, so they load last.
+load("titlebars")

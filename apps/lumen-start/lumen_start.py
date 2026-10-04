@@ -78,6 +78,8 @@ ACTIONS = [
     ("Development environment", "development dev programming node python go rust ruby java docker postgres mysql redis database mise", "applications-engineering-symbolic", ["lumen-dev"]),
     ("Key bindings", "keys shortcuts keyboard help", "preferences-desktop-keyboard-shortcuts-symbolic", ["lumen-keys"]),
     ("Lumen manual", "help manual docs guide", "help-browser-symbolic", ["lumen-manual"]),
+    ("Taskbar", "taskbar bottom bar dock windows panel", "view-app-grid-symbolic", ["lumen-taskbar", "toggle"]),
+    ("Window title bars", "title bars window buttons close minimise minimize maximise maximize decorations", "window-new-symbolic", ["lumen-titlebars", "toggle"]),
     ("Night light", "night light warm blue", "weather-clear-night-symbolic", ["lumen-toggle", "nightlight"]),
     ("Do Not Disturb", "notifications dnd quiet", "notifications-disabled-symbolic", ["lumen-toggle", "dnd"]),
     ("Lock screen", "lock", "system-lock-screen-symbolic", ["loginctl", "lock-session"]),

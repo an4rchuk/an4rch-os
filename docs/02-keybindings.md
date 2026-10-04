@@ -31,6 +31,8 @@ The modifiers follow one pattern: <kbd>SUPER</kbd> alone for apps and windows, <
 | <kbd>SUPER</kbd> + <kbd>SHIFT</kbd> + <kbd>Q</kbd> | Force quit window |
 | <kbd>SUPER</kbd> + <kbd>F</kbd> | Fullscreen |
 | <kbd>SUPER</kbd> + <kbd>M</kbd> | Maximise (keep bar and gaps) |
+| <kbd>SUPER</kbd> + <kbd>,</kbd> | Minimise window |
+| <kbd>SUPER</kbd> + <kbd>SHIFT</kbd> + <kbd>M</kbd> | Restore a minimised window |
 | <kbd>SUPER</kbd> + <kbd>T</kbd> | Toggle floating |
 | <kbd>SUPER</kbd> + <kbd>P</kbd> | Pin floating window to all workspaces |
 | <kbd>SUPER</kbd> + <kbd>J</kbd> | Toggle split direction |

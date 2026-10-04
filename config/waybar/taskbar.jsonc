@@ -1,0 +1,48 @@
+// Lumen taskbar (bottom of the screen). Turn it on or off with:
+//   Lumen menu → Toggle → Taskbar, or `lumen taskbar on|off`.
+// Click an app to switch to it, click the active app to minimise it,
+// middle-click to close. Minimised windows come back with a click.
+{
+  "layer": "top",
+  "position": "bottom",
+  "height": 44,
+  "margin-bottom": 6,
+  "margin-left": 10,
+  "margin-right": 10,
+  "spacing": 4,
+  "reload_style_on_change": true,
+
+  "modules-left": ["custom/start", "wlr/taskbar"],
+  "modules-center": [],
+  "modules-right": ["custom/minimized", "clock#taskbar"],
+
+  "custom/start": {
+    "format": "󰣇",
+    "tooltip-format": "Start",
+    "on-click": "lumen-start",
+    "on-click-right": "lumen-menu"
+  },
+
+  "wlr/taskbar": {
+    "format": "{icon} {title:.24}",
+    "icon-size": 20,
+    "icon-theme": "Papirus-Dark",
+    "tooltip-format": "{title}",
+    "on-click": "minimize-raise",
+    "on-click-middle": "close",
+    "on-click-right": "fullscreen",
+    "ignore-list": ["lumen-start"]
+  },
+
+  "custom/minimized": {
+    "exec": "n=$(lumen-window list | wc -l); [ \"$n\" -gt 0 ] && echo \"󰖰 $n\" || echo",
+    "interval": 2,
+    "tooltip-format": "Minimised windows: click to restore one",
+    "on-click": "lumen-window restore-menu"
+  },
+
+  "clock#taskbar": {
+    "format": "{:%H:%M}",
+    "tooltip-format": "{:%A %d %B %Y}"
+  }
+}

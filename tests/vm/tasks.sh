@@ -156,6 +156,25 @@ shot 16-start-search
 keys ret
 wait_window "Start search launches Calculator" 'calculator' 30 && shot 17-calculator
 
+# --- Title bars, minimise and the taskbar -------------------------------------------------
+if as_user hyprctl plugin list 2>/dev/null | grep -q hyprbars; then
+  result "title bars plugin loaded" PASS
+else
+  result "title bars plugin loaded" FAIL "$(as_user hyprctl plugin list 2>&1 | head -n 3 | tr '\n' ' ')"
+fi
+shot 17b-titlebars
+task "minimise the calculator" as_user lumen-window minimize
+sleep 2
+if as_user lumen-window list | grep -qi calculator; then result "minimised window is hidden" PASS; else result "minimised window is hidden" FAIL "$(as_user lumen-window list | tr '\n' ' ')"; fi
+task "taskbar on" as_user lumen-taskbar on
+sleep 4
+if pgrep -f 'waybar -c .*taskbar.jsonc' >/dev/null; then result "taskbar running" PASS; else result "taskbar running" FAIL; fi
+shot 17c-taskbar
+task "restore the calculator" as_user lumen-window restore
+sleep 2
+if as_user lumen-window list | grep -qi calculator; then result "restored window is back" FAIL; else result "restored window is back" PASS; fi
+shot 17d-restored
+
 # --- Bigger apps -------------------------------------------------------------------------
 as_user lumen-store --search "video editor" >/dev/null 2>&1 &
 sleep 20

@@ -16,6 +16,8 @@
 #   --no-reboot        don't offer to restart at the end
 #   --no-greeter       don't set up the greetd login screen
 #   --autologin        log straight in (sensible with full-disk encryption)
+#   --taskbar          add a taskbar along the bottom of the screen
+#   --no-titlebars     no title bars or window buttons (borderless tiling look)
 #   --verbose          show command output instead of spinners
 #
 # Safe to re-run: every step is idempotent, and files you've changed are
@@ -31,7 +33,7 @@ source "$LUMEN_PATH/install/lib.sh"
 source "$LUMEN_PATH/install/packages.sh"
 
 BROWSER="" TERMINAL_APP="" EDITOR_APP="" THEME="lumen"
-GREETER=1 AUTOLOGIN=0 CONFIGS_ONLY=0 GAMING=0 DISTRO=0 REBOOT=1
+GREETER=1 AUTOLOGIN=0 CONFIGS_ONLY=0 GAMING=0 DISTRO=0 REBOOT=1 TASKBAR=no TITLEBARS=yes
 while [[ $# -gt 0 ]]; do
   case "$1" in
     -y | --yes) export LUMEN_YES=1 ;;
@@ -41,12 +43,14 @@ while [[ $# -gt 0 ]]; do
     --theme) THEME="$2"; shift ;;
     --no-greeter) GREETER=0 ;;
     --autologin) AUTOLOGIN=1 ;;
+    --taskbar) TASKBAR=yes ;;
+    --no-titlebars) TITLEBARS=no ;;
     --gaming) GAMING=1 ;;
     --distro) DISTRO=1 ;;
     --no-reboot) REBOOT=0 ;;
     --configs-only) CONFIGS_ONLY=1 ;;
     --verbose) export LUMEN_VERBOSE=1 ;;
-    -h | --help) sed -n '2,20s/^# \{0,1\}//p' "$0"; exit 0 ;;
+    -h | --help) sed -n '2,22s/^# \{0,1\}//p' "$0"; exit 0 ;;
     *) echo "Unknown option: $1 (see --help)"; exit 1 ;;
   esac
   shift
@@ -247,6 +251,12 @@ LUMEN_NIGHTLIGHT_TEMP=4300
 
 # Suspend after 30 idle minutes: always | battery | never
 LUMEN_IDLE_SUSPEND=always
+
+# Title bars with close/maximise/minimise buttons: yes | no
+LUMEN_TITLEBARS=$TITLEBARS
+
+# Taskbar along the bottom of the screen: yes | no
+LUMEN_TASKBAR=$TASKBAR
 EOF
   fi
   ok "Settings in ~/.config/lumen/settings.conf"
@@ -377,6 +387,11 @@ EOF
 
 # --- 7. Look and feel --------------------------------------------------------------
 setup_look() {
+  if [[ "$TITLEBARS" == yes ]]; then
+    # shellcheck disable=SC2024  # the log is the user's
+    try "Window title bars (building the hyprbars plugin, a few minutes)" "$LUMEN_PATH/bin/lumen-titlebars" setup </dev/null
+  fi
+
   step "Styling"
   xdg-user-dirs-update 2>/dev/null || true
   mkdir -p "$HOME/Pictures/Screenshots" "$HOME/Pictures/Wallpapers" "$HOME/Videos/Recordings"

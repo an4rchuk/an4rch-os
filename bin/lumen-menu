@@ -72,13 +72,19 @@ toggle_menu() {
     "󰂛  Do Not Disturb" \
     "󰕮  Gaps and rounding" \
     "󰕰  Tiling / scrolling layout" \
-    "󰍜  Top bar") in
+    "󰍜  Top bar" \
+    "󰍝  Taskbar at the bottom" \
+    "󰖯  Window title bars and buttons" \
+    "󰖰  Restore a minimised window") in
     *awake) "$bin/lumen-toggle" idle ;;
     *Night*) "$bin/lumen-toggle" nightlight ;;
     *Disturb) "$bin/lumen-toggle" dnd ;;
     *Gaps*) "$bin/lumen-toggle" gaps ;;
     *layout) "$bin/lumen-toggle" layout ;;
-    *bar) "$bin/lumen-toggle" bar ;;
+    *"Top bar") "$bin/lumen-toggle" bar ;;
+    *Taskbar*) "$bin/lumen-taskbar" toggle ;;
+    *"title bars"*) "$bin/lumen-titlebars" toggle ;;
+    *minimised*) "$bin/lumen-window" restore-menu ;;
   esac
 }
 

@@ -42,6 +42,13 @@ update_system() {
     sudo pacman -Syu
   fi
 
+  # A new Hyprland needs the title bar plugin rebuilt for it.
+  if [[ "${LUMEN_TITLEBARS:-yes}" == yes ]] && has hyprpm && hyprpm list 2>/dev/null | grep -q hyprbars; then
+    step "Window title bars"
+    hyprpm update || echo "  Title bars could not be rebuilt; run: lumen titlebars setup"
+    hyprpm reload >/dev/null 2>&1 || true
+  fi
+
   if has flatpak && [[ -n "$(flatpak list --app --columns=application 2>/dev/null)" ]]; then
     step "Flatpak apps"
     flatpak update -y
