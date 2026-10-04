@@ -178,6 +178,10 @@ jobs:
         if: always()
         run: |
           echo "--- live USB check ---"; cat live-check.log 2>/dev/null || true
+          if ! grep -q LUMEN-LIVE-CHECK-END live-check.log 2>/dev/null; then
+            echo "--- live USB boot console (end) ---"
+            grep -av '^\s*$' live-clean.log 2>/dev/null | tail -n 80 || true
+          fi
           echo "--- tasks ---"; head -n 800 tasks.log || true
           echo
           [ -s results.txt ] || { echo "::error::No task results (the task runner never reported)"; exit 1; }

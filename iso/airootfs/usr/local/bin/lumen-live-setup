@@ -23,9 +23,11 @@ printf '%s ALL=(ALL) NOPASSWD: ALL\n' "$user" >/etc/sudoers.d/90-lumen-live
 chmod 440 /etc/sudoers.d/90-lumen-live
 
 # Wi-Fi through NetworkManager (on top of iwd); wired stays with networkd.
-systemctl start NetworkManager
+# --no-block: this runs during boot, ordered before the login prompt;
+# waiting here for other services could stall the boot.
+systemctl start --no-block NetworkManager
 # What the top bar talks to: Bluetooth, power profiles, battery.
-systemctl start bluetooth power-profiles-daemon upower 2>/dev/null
+systemctl start --no-block bluetooth power-profiles-daemon upower 2>/dev/null
 # Sound (PipeWire) for every user session, as the installer sets it up.
 systemctl --global enable pipewire.socket pipewire-pulse.socket wireplumber.service 2>/dev/null
 
@@ -37,7 +39,7 @@ if [[ -f /usr/lib/lumen/hyprbars.so &&
 fi
 
 # The user's desktop: the same files the Lumen installer writes.
-runuser -u "$user" -- env HOME="$home" LUMEN_PATH="$lumen" TITLEBARS="$titlebars" bash -s <<'SETUP'
+timeout 90 runuser -u "$user" -- env HOME="$home" LUMEN_PATH="$lumen" TITLEBARS="$titlebars" bash -s <<'SETUP'
 set -u
 mkdir -p ~/.config/lumen ~/.local/share/applications ~/.local/share/icons/hicolor/scalable/apps \
   ~/.local/share/backgrounds ~/.local/state/lumen ~/.config/autostart
