@@ -264,9 +264,12 @@ setup_system() {
   # One network manager only. Others are disabled for the next boot (not
   # stopped now, so an install over Wi-Fi or SSH keeps its connection).
   local s
+  # Only units installed on this system: inside the ISO installer's chroot,
+  # `systemctl is-enabled` can report the live USB's iwd instead.
   for s in iwd systemd-networkd dhcpcd netctl; do
+    [[ -e "/usr/lib/systemd/system/$s.service" || -e "/etc/systemd/system/$s.service" ]] || continue
     if systemctl is-enabled -q "$s" 2>/dev/null; then
-      run "Handing networking over from $s to NetworkManager" sudo systemctl disable "$s"
+      try "Handing networking over from $s to NetworkManager" sudo systemctl disable "$s"
     fi
   done
   run "Enabling NetworkManager, Bluetooth, power profiles and time sync" \
