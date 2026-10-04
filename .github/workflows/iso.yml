@@ -2,11 +2,16 @@ name: iso
 
 # Builds the Lumen OS installer ISO in an Arch Linux container.
 # Run it from the Actions tab ("Run workflow"), or push a tag like v1.1.0 to
-# also publish the ISO as a release.
+# also publish a release. Release files are limited to 2 GB each, so a
+# release carries the full ISO in parts (to join after downloading) plus a
+# small single-file ISO that downloads its packages while installing.
 on:
   workflow_dispatch:
   push:
     tags: ["v*"]
+
+permissions:
+  contents: write # publishing releases
 
 jobs:
   build:
@@ -39,8 +44,59 @@ jobs:
           compression-level: 0
           retention-days: 14
 
+      - name: Build the small online ISO (releases)
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          docker run --rm --privileged -v "$PWD:/src" -e LUMEN_OFFLINE=0 archlinux:latest bash -c '
+            pacman -Syu --noconfirm --needed archiso git python-pillow >/dev/null &&
+            git config --global --add safe.directory /src &&
+            cd /src && WORK=/tmp/lumen-iso OUT=/src/out-online iso/build.sh'
+          sudo chown -R "$USER" out-online
+          ls -lh out-online
+
+      - name: Prepare release files
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          mkdir release
+          full=$(ls out/lumen-*.iso | head -n1)
+          name=$(basename "$full" .iso)
+          # The full ISO in parts under GitHub's 2 GB limit per file.
+          split -b 1900M -d -a 1 "$full" "release/$name.iso.part"
+          (cd out && sha256sum "$name.iso") >"release/$name.iso.sha256"
+          online=$(ls out-online/lumen-*.iso | head -n1)
+          if [ "$(stat -c %s "$online")" -lt 2000000000 ]; then
+            cp "$online" "release/$name-online.iso"
+            (cd release && sha256sum "$name-online.iso" >"$name-online.iso.sha256")
+          else
+            echo "::warning::The online ISO is over 2 GB; leaving it out of the release"
+          fi
+          parts=$(cd release && ls "$name".iso.part* | tr '\n' ' ')
+          win_join=$(cd release && ls "$name".iso.part* | sed ':a;N;$!ba;s/\n/ + /g')
+          cat >notes.md <<EOF
+          ## Download
+
+          **Full ISO (recommended): installs in minutes from the USB stick.** Download all of: \`${parts% }\`, then join them into one file:
+
+          - **Windows** (Command Prompt, in the download folder): \`copy /b ${win_join} ${name}.iso\`
+          - **Linux / macOS:** \`cat ${name}.iso.part* > ${name}.iso\`
+
+          Check it against \`${name}.iso.sha256\` if you like (\`certutil -hashfile ${name}.iso SHA256\` on Windows, \`sha256sum -c\` elsewhere).
+
+          **Online ISO (\`${name}-online.iso\`, if listed): one smaller file**, but it downloads the packages while installing, so installing takes longer.
+
+          ## Install
+
+          Write the ISO to a USB stick of 8 GB or more (Rufus in DD mode, Ventoy, Impression, Fedora Media Writer or \`dd\`), turn off Secure Boot, and boot it in UEFI mode. Pick **Lumen OS installer** for the live desktop with the graphical installer, or **(text mode)** for the console installer. The disk you install to is erased.
+
+          See the [Lumen OS manual](https://github.com/${GITHUB_REPOSITORY}/blob/${GITHUB_REF_NAME}/docs/09-lumen-os.md).
+          EOF
+          sed -i 's/^          //' notes.md
+          ls -lh release
+
       - name: Publish release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: out/lumen-*.iso*
+          name: Lumen OS ${{ github.ref_name }}
+          body_path: notes.md
+          files: release/*
