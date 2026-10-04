@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # Lumen bootstrap. On a fresh Arch install, logged in as your user:
 #
-#   curl -fsSL https://raw.githubusercontent.com/twil09/linux/HEAD/boot.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/twil09/lumen-os/HEAD/boot.sh | bash
 #
 # Clones Lumen to ~/.local/share/lumen and starts the installer. Any
 # arguments are passed on, e.g. `… | bash -s -- --yes --browser chromium`.
 set -euo pipefail
 
-repo="${LUMEN_REPO:-https://github.com/twil09/linux.git}"
+repo="${LUMEN_REPO:-https://github.com/twil09/lumen-os.git}"
 ref="${LUMEN_REF:-}" # branch or tag; empty: the repository's default branch
 dest="$HOME/.local/share/lumen"
 

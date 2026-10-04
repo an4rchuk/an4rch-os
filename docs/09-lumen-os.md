@@ -12,7 +12,7 @@ Under the hood it's still Arch Linux: the official repositories, `pacman`, the A
 ## Getting the ISO
 
 - **Download:** every tagged release on GitHub attaches `lumen-<date>-x86_64.iso` with a `.sha256` checksum.
-- **Build it yourself on Arch:** `sudo pacman -S archiso`, then `sudo iso/build.sh`. The ISO lands in `out/`. It is about 4 GB because it carries the packages an install needs (`iso/offline.sh`); `sudo LUMEN_OFFLINE=0 iso/build.sh` makes a small ISO that downloads everything while installing.
+- **Build it yourself on Arch:** `sudo pacman -S archiso`, then `sudo iso/build.sh`. The ISO lands in `out/`. It is about 5 GB because it carries the packages an install needs (`iso/offline.sh`); `sudo LUMEN_OFFLINE=0 iso/build.sh` makes a small ISO that downloads everything while installing.
 - **Build it on GitHub:** Actions → *iso* → *Run workflow*. The ISO is attached to the run.
 
 Write it to a USB stick with [Impression](https://flathub.org/apps/io.gitlab.adhami3310.Impression), [Ventoy](https://www.ventoy.net), [Fedora Media Writer](https://flathub.org/apps/org.fedoraproject.MediaWriter), or `dd`:
