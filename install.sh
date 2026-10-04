@@ -70,7 +70,16 @@ preflight() {
   while true; do sudo -n true; sleep 50; kill -0 "$$" 2>/dev/null || exit; done 2>/dev/null &
 
   if [[ $CONFIGS_ONLY -eq 0 ]]; then
-    curl -fsS --max-time 10 -o /dev/null https://archlinux.org || fail "No internet connection. Connect first (for Wi-Fi on a fresh install: iwctl)."
+    # Only headers, a few tries, two hosts: a slow moment on the network
+    # shouldn't read as "offline".
+    local online=0 host
+    for _ in 1 2 3; do
+      for host in https://geo.mirror.pkgbuild.com https://archlinux.org; do
+        curl -fsSI --max-time 15 -o /dev/null "$host" 2>>"$LOG" && { online=1; break 2; }
+      done
+      sleep 3
+    done
+    ((online)) || fail "No internet connection. Connect first (for Wi-Fi on a fresh install: iwctl)."
     ok "Internet connection"
     local free
     free=$(df -Pk / | awk 'NR==2 {print int($4/1024/1024)}')
