@@ -14,15 +14,15 @@ DIR=/var/lib/lumen/login
 sync() {
   [[ -d "$DIR" && -w "$DIR" ]] || return 0
   local t="$LUMEN_CURRENT/theme" wall="$LUMEN_CURRENT/wallpaper"
-  [[ -f "$t/regreet.css" ]] && install -m644 "$t/regreet.css" "$DIR/regreet.css"
+  if [[ -f "$t/regreet.css" ]]; then install -m644 "$t/regreet.css" "$DIR/regreet.css"; fi
   if [[ -e "$wall" ]]; then
     cp -L "$wall" "$DIR/wallpaper.new" && chmod 644 "$DIR/wallpaper.new" && mv -f "$DIR/wallpaper.new" "$DIR/wallpaper"
   fi
   local LUMEN_THEME_MODE="dark" LUMEN_THEME_ICONS="Papirus-Dark"
   # shellcheck source=/dev/null
-  [[ -f "$t/theme.env" ]] && source "$t/theme.env"
+  if [[ -f "$t/theme.env" ]]; then source "$t/theme.env"; fi
   local dark=true
-  [[ "$LUMEN_THEME_MODE" == light ]] && dark=false
+  if [[ "$LUMEN_THEME_MODE" == light ]]; then dark=false; fi
   cat >"$DIR/regreet.toml" <<TOML
 # Written by lumen-login sync: change the theme or wallpaper instead.
 [background]
@@ -53,12 +53,12 @@ setup() {
 
   # Keep auto-login ([initial_session]) if it's set.
   local conf=/etc/greetd/config.toml initial=""
-  [[ -f "$conf" ]] && initial=$(sed -n '/^\[initial_session\]/,$p' "$conf")
+  if [[ -f "$conf" ]]; then initial=$(sed -n '/^\[initial_session\]/,$p' "$conf"); fi
   sudo mkdir -p /etc/greetd
   {
     printf '# Lumen login screen: greetd runs lumen-greeter (ReGreet, or tuigreet as a fallback).\n'
     printf '[terminal]\nvt = 1\n\n[default_session]\ncommand = "/usr/local/bin/lumen-greeter"\nuser = "greeter"\n'
-    [[ -n "$initial" ]] && printf '\n%s\n' "$initial"
+    if [[ -n "$initial" ]]; then printf '\n%s\n' "$initial"; fi
   } | sudo tee "$conf" >/dev/null
   sync
 }
