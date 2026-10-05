@@ -12,6 +12,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import shlex
 import subprocess
 import sys
 import tempfile
@@ -102,9 +103,24 @@ def disks() -> list[dict]:
             detail += f" · has {contents}"
         found.append({"path": f"/dev/{d['name']}", "label": model, "size": f"{size / 1000**3:.0f} GB",
                       "detail": detail, "contents": contents})
-    if DEMO and not found:
-        found = [{"path": "/dev/demo", "label": "Demo disk", "size": "500 GB", "detail": "nothing will be written"}]
+    if DEMO:  # never real disks in the demo
+        found = [{"path": "/dev/demo", "label": "Demo disk", "size": "500 GB", "contents": "Windows · 4 partitions",
+                  "detail": "nothing will be written · has Windows · 4 partitions"}]
     return found
+
+
+def alongside_space(path: str) -> dict[str, str]:
+    """Can Lumen go next to the Windows on this disk, and how big can it be?
+    (lumen-disk-info --space: max_gb=…, or error=…)."""
+    if DEMO:
+        return {"max_gb": "180"}
+    out = run("sudo", "-n", "lumen-disk-info", "--space", path, timeout=90)
+    info = {}
+    for line in out.splitlines():
+        if "=" in line:
+            k, v = line.split("=", 1)
+            info[k] = " ".join(shlex.split(v)) if v else ""
+    return info or {"error": "Couldn't check the free space on this disk."}
 
 
 def online() -> bool:
@@ -220,7 +236,9 @@ class Installer(Adw.ApplicationWindow):
         self.toast = Adw.ToastOverlay(child=view)
         self.set_content(self.toast)
         self.index = 0
-        self.show_index(0)
+        # LUMEN_INSTALLER_PAGE=disk opens at a page (screenshots and tests).
+        start = os.environ.get("LUMEN_INSTALLER_PAGE", "")
+        self.show_index(next((i for i, p in enumerate(self.pages) if p[0] == start), 0))
 
     # --- helpers -------------------------------------------------------------------------
     def load_style(self) -> None:
@@ -271,7 +289,8 @@ class Installer(Adw.ApplicationWindow):
         name = self.pages[i][0]
         self.stack.set_visible_child_name(name)
         self.back.set_sensitive(i > 0)
-        self.next.set_label("Erase disk and install" if name == "review" else "Next")
+        review_label = "Install alongside Windows" if self.alongside() else "Erase disk and install"
+        self.next.set_label(review_label if name == "review" else "Next")
         self.next.remove_css_class("destructive-action")
         self.next.remove_css_class("suggested-action")
         self.next.add_css_class("destructive-action" if name == "review" else "suggested-action")
@@ -377,7 +396,8 @@ class Installer(Adw.ApplicationWindow):
 
     # --- 3. disk -------------------------------------------------------------------------------
     def page_disk(self) -> Gtk.Widget:
-        group = Adw.PreferencesGroup(title="Install on", description="Everything on the chosen disk is erased.")
+        group = Adw.PreferencesGroup(title="Install on", description="Erasing a disk deletes everything on it. "
+                                     "A disk with Windows can keep it: Lumen goes alongside.")
         self.disk_list = disks()
         first: Gtk.CheckButton | None = None
         if not self.disk_list:
@@ -390,11 +410,24 @@ class Installer(Adw.ApplicationWindow):
             row.add_prefix(Gtk.Image(icon_name="drive-harddisk-symbolic"))
             if d.get("contents"):
                 row.add_suffix(Gtk.Label(label="Not empty", css_classes=["error", "caption-heading"]))
-            check.connect("toggled", lambda c, d=d: c.get_active() and setattr(self, "disk_choice", d))
+            check.connect("toggled", lambda c, d=d: c.get_active() and self.pick_disk(d))
             group.add(row)
+
+        # A disk with Windows: install alongside it (keep Windows), or erase it.
+        self.space_cache: dict[str, dict] = {}
+        self.how = Adw.PreferencesGroup(title="Windows is on this disk", visible=False)
+        self.how_mode = Adw.ComboRow(title="Install", model=Gtk.StringList.new(
+            ["Alongside Windows (keep it)", "Erase the whole disk"]))
+        self.how_size = Adw.SpinRow.new_with_range(30, 30, 1)
+        self.how_size.set_title("Space for Lumen (GB)")
+        self.how_size.set_subtitle("Windows keeps the rest. You choose which to start at every start-up.")
+        self.how_status = Adw.ActionRow(title="", visible=False, css_classes=["error"])
+        self.how_mode.connect("notify::selected", lambda *_: self.update_how())
+        for w in (self.how_mode, self.how_size, self.how_status):
+            self.how.add(w)
         if first:
             first.set_active(True)
-            self.disk_choice = self.disk_list[0]
+            self.pick_disk(self.disk_list[0])
         crypt = Adw.PreferencesGroup(title="Encryption", description="Recommended for laptops: nobody can read your files "
                                      "without the password, even with the disk in hand. You type it at every start.")
         self.encrypt = Adw.SwitchRow(title="Encrypt the disk")
@@ -404,7 +437,40 @@ class Installer(Adw.ApplicationWindow):
                                                               self.crypt_pass2.set_visible(s.get_active())))
         for w in (self.encrypt, self.crypt_pass, self.crypt_pass2):
             crypt.add(w)
-        return self.page("Where should Lumen go?", "", group, crypt)
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=18)
+        box.append(self.how)
+        box.append(crypt)
+        return self.page("Where should Lumen go?", "", group, box)
+
+    def pick_disk(self, d: dict) -> None:
+        self.disk_choice = d
+        has_windows = "Windows" in d.get("contents", "")
+        self.how.set_visible(has_windows)
+        if has_windows and d["path"] not in self.space_cache:
+            self.space_cache[d["path"]] = alongside_space(d["path"])
+        self.update_how()
+
+    def alongside(self) -> bool:
+        """Installing next to Windows on the chosen disk?"""
+        how = getattr(self, "how", None)
+        return bool(getattr(self, "disk_choice", None) and how and how.get_visible() and self.how_mode.get_selected() == 0)
+
+    def update_how(self) -> None:
+        if not self.how.get_visible():
+            return
+        info = self.space_cache.get(self.disk_choice["path"], {})
+        err = info.get("error", "")
+        max_gb = int(info.get("max_gb", "0") or 0)
+        if not err and max_gb < 30:
+            err = f"Only {max_gb} GB can be freed next to Windows; Lumen needs 30 GB. Free up space in Windows first."
+        along = self.how_mode.get_selected() == 0
+        self.how_status.set_visible(along and bool(err))
+        self.how_status.set_title(err)
+        self.how_size.set_visible(along and not err)
+        if not err and max_gb >= 30:
+            self.how_size.set_range(30, max_gb)
+            if self.how_size.get_value() <= 30:
+                self.how_size.set_value(min(max_gb, max(30, min(60, max_gb // 2 if max_gb // 2 > 60 else max_gb))))
 
     # --- 4. account ----------------------------------------------------------------------------
     def page_account(self) -> Gtk.Widget:
@@ -538,7 +604,9 @@ class Installer(Adw.ApplicationWindow):
         layout = next(l for l in LAYOUTS if l[0] == a["layout"])
         theme = dict(themes()).get(a["theme"], {}).get("name", a["theme"])
         rows = [
-            ("drive-harddisk-symbolic", "Disk", f"{self.disk_choice['label']} · {self.disk_choice['size']} ({a['disk']}) — will be erased" if self.disk_choice else "none"),
+            ("drive-harddisk-symbolic", "Disk", (f"{self.disk_choice['label']} · {self.disk_choice['size']} ({a['disk']}) — "
+                                                 + (f"alongside Windows, {int(self.how_size.get_value())} GB for Lumen" if self.alongside() else "will be erased"))
+             if self.disk_choice else "none"),
             ("channel-secure-symbolic", "Encryption", "On" if a["encrypt"] else "Off"),
             ("avatar-default-symbolic", "Account", f"{a['fullname']} ({a['user']}) on “{a['hostname']}”" + (", logs in automatically" if a["autologin"] == "1" else "")),
             ("preferences-system-time-symbolic", "Time zone", a["timezone"]),
@@ -564,6 +632,9 @@ class Installer(Adw.ApplicationWindow):
         if page == "disk":
             if not self.disk_choice:
                 self.toast_msg("No disk to install on")
+                return False
+            if self.alongside() and self.how_status.get_visible():
+                self.toast_msg("Lumen can't go alongside Windows on this disk yet (see the message)")
                 return False
             if self.encrypt.get_active():
                 p1, p2 = self.crypt_pass.get_text(), self.crypt_pass2.get_text()
@@ -596,6 +667,8 @@ class Installer(Adw.ApplicationWindow):
         layout = next(l for l in LAYOUTS if l[0] == a["layout"])
         a.update({
             "disk": self.disk_choice["path"] if self.disk_choice else "",
+            "mode": "alongside" if self.alongside() else "erase",
+            "size": str(int(self.how_size.get_value())) if self.alongside() else "",
             "encrypt": self.crypt_pass.get_text() if self.encrypt.get_active() else "",
             "fullname": self.fullname.get_text().strip(),
             "user": self.username.get_text(),
@@ -611,6 +684,20 @@ class Installer(Adw.ApplicationWindow):
     # --- install ---------------------------------------------------------------------------------
     def confirm_install(self) -> None:
         d = self.disk_choice
+        if self.alongside():
+            gb = int(self.how_size.get_value())
+            dialog = Adw.AlertDialog(heading="Install alongside Windows?",
+                                     body=f"Windows will be shrunk to make {gb} GB of room for Lumen. Windows and its files "
+                                          "are kept, and you choose which to start every time the computer starts.\n\n"
+                                          "Resizing is safe, but back up anything important first (a power cut during it "
+                                          "could cause damage).")
+            dialog.add_response("cancel", "Cancel")
+            dialog.add_response("install", "Install alongside Windows")
+            dialog.set_response_appearance("install", Adw.ResponseAppearance.SUGGESTED)
+            dialog.set_default_response("cancel")
+            dialog.connect("response", lambda _d, r: r == "install" and self.start_install())
+            dialog.present(self)
+            return
         body = f"Everything on {d['label']} ({d['size']}, {d['path']}) will be permanently erased."
         if d.get("contents"):
             body += (f"\n\nThis disk is not empty: it has {d['contents']}. Installing deletes it all, including "

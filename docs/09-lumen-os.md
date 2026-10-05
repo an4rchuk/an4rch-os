@@ -31,7 +31,7 @@ sudo dd if=lumen-*.iso of=/dev/sdX bs=4M status=progress oflag=sync
 | --- | --- |
 | Welcome | Keyboard layout |
 | Internet | Pick a Wi-Fi network, or plug in a cable. The Wi-Fi network is remembered in the installed system |
-| Disk | **The whole disk is erased, including Windows and every file on it** (Lumen doesn't install alongside another system yet). Disks that aren't empty are marked, and you type ERASE to confirm. At least 20 GB. Optional encryption (recommended for laptops; you type the password at every start) |
+| Disk | On a disk with Windows, choose **Alongside Windows**: Lumen shrinks Windows' drive to make room (you pick the size, at least 30 GB), keeps Windows and its files, and a boot menu lets you choose Windows or Lumen at every start. Or **erase the whole disk**: everything on it is deleted, Windows included; disks that aren't empty are marked, and you type ERASE to confirm. At least 20 GB. Optional encryption (recommended for laptops; you type the password at every start) |
 | Account | Your name, username, password and computer name. The root account is locked; you use `sudo` |
 | Region | Time zone and language, guessed from your internet connection |
 | Look | Pick a theme from a gallery (including **Cachy**, a CachyOS-inspired teal) and a layout: Lumen (top bar + taskbar, the default), Top bar only or Minimal. The live desktop restyles as you click, so you see it before installing |
@@ -132,3 +132,18 @@ sudo LUMEN_PATH=~/.local/share/lumen bash ~/.local/share/lumen/install/distro.sh
 ```
 
 Snapshots need a btrfs root with an `@snapshots` subvolume mounted at `/.snapshots`, as the ISO creates. The boot splash also needs the `plymouth` hook in your mkinitcpio `HOOKS`.
+
+## Dual boot with Windows
+
+Before installing alongside Windows:
+
+- **Back up** anything important. Resizing is safe, but a power cut in the middle isn't.
+- **Turn off Fast Startup** in Windows (Control Panel → Power Options → Choose what the power buttons do) and use **Shut down**, not Restart. A Windows that's only hibernating can't be resized; the installer tells you if that's the case.
+- **BitLocker** (device encryption) must be off, or make free space yourself with Windows' Disk Management first; the installer uses free space when there is enough.
+- The USB must be started in **UEFI** mode, like Windows.
+
+Lumen uses Windows' EFI partition only for its boot menu, and keeps its kernels on its own 1 GB boot partition. The boot menu (5 seconds) lists Lumen and Windows. Both systems keep the hardware clock in local time, so the clock is right in each.
+
+## NVIDIA graphics
+
+The default boot entry uses the open-source nouveau driver. For GTX 16xx, RTX 20xx and newer cards, pick **Lumen OS installer (NVIDIA)** in the boot menu to use NVIDIA's own driver. Installing sets up NVIDIA's driver automatically. On laptops with both Intel/AMD and NVIDIA graphics, the Intel/AMD GPU runs the screen and NVIDIA is available for games and apps that ask for it.

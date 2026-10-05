@@ -135,7 +135,9 @@ jobs:
 
           Write the ISO to a USB stick of 8 GB or more (Rufus in DD mode, Ventoy, Impression, Fedora Media Writer or \`dd\`), turn off Secure Boot, and boot it (UEFI recommended; older legacy BIOS computers work too). Pick **Lumen OS installer** for the live desktop with the graphical installer, or **(text mode)** for the console installer.
 
-          > ⚠️ **Installing erases the entire disk you choose, including Windows and all files on it.** Lumen doesn't install alongside another system yet. To just try Lumen, use the live desktop and don't install: nothing on the computer is touched.
+          > ⚠️ **Erasing a disk deletes everything on it, including Windows.** On a disk with Windows you can choose **Alongside Windows** instead, which keeps Windows and its files (back up first, and turn off Fast Startup in Windows). To just try Lumen, use the live desktop and don't install: nothing on the computer is touched.
+
+          NVIDIA graphics (GTX 16xx / RTX 20xx and newer): pick **Lumen OS installer (NVIDIA)** in the boot menu.
 
           See the [Lumen OS manual](https://github.com/${GITHUB_REPOSITORY}/blob/${TAG}/docs/09-lumen-os.md).
           EOF

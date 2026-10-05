@@ -115,7 +115,9 @@ scheduler() {
 
 # --- Kernels ---------------------------------------------------------------------------
 kernel() {
-  local entries=/boot/loader/entries
+  local entries=/boot/loader/entries loader=/boot/loader/loader.conf
+  # Installed alongside Windows, the boot menu's settings are on Windows' EFI partition.
+  [[ -f /efi/loader/loader.conf ]] && loader=/efi/loader/loader.conf
   case "${1:-}" in
     zen)
       add "${PKGS_TUNE_ZEN[@]}"
@@ -128,7 +130,7 @@ kernel() {
         printf '  Make it the default? [y/N] '
         read -r yn
         if [[ "$yn" == [yY]* ]]; then
-          sudo sed -i 's/^default .*/default lumen-zen.conf/' /boot/loader/loader.conf
+          sudo sed -i 's/^default .*/default lumen-zen.conf/' "$loader"
           echo "  Done. The regular and LTS kernels stay in the boot menu as fallbacks."
         fi
       else
@@ -138,7 +140,7 @@ kernel() {
       ;;
     remove-zen)
       [[ "$(uname -r)" == *zen* ]] && die "You're running the zen kernel right now. Restart into another kernel first."
-      sudo sed -i 's/^default lumen-zen.conf/default lumen.conf/' /boot/loader/loader.conf 2>/dev/null || true
+      sudo sed -i 's/^default lumen-zen.conf/default lumen.conf/' "$loader" 2>/dev/null || true
       sudo rm -f "$entries/lumen-zen.conf"
       sudo pacman -Rns --noconfirm "${PKGS_TUNE_ZEN[@]}"
       say "zen kernel removed"

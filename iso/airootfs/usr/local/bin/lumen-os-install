@@ -132,6 +132,9 @@ if [[ $AUTO -eq 1 ]]; then
   keymap="${K[keymap]:-us}"
   ENCRYPT=0
   [[ -n "${K[encrypt]:-}" ]] && { ENCRYPT=1; LUKS_PASS="${K[encrypt]}"; }
+  # lumen.mode=alongside lumen.size=GB: keep Windows and put Lumen next to it.
+  MODE="${K[mode]:-erase}"
+  ALONG_GB="${K[size]:-}"
   FULLNAME="${K[fullname]:-Lumen Tester}"
   USERNAME="${K[user]:-lumen}"
   USER_PASS="${K[pass]:-lumen}"
@@ -238,6 +241,29 @@ DISK="${disk_line%% *}"
 size_gb=$(( $(lsblk -bdno SIZE "$DISK") / 1024 / 1024 / 1024 ))
 (( size_gb >= 20 )) || fail "$DISK is only ${size_gb} GB; Lumen OS needs at least 20 GB."
 
+# A disk with Windows on it: Lumen can go alongside, keeping Windows and its files.
+MODE=erase ALONG_GB=""
+if [[ "$(lumen-disk-info "$DISK" 2>/dev/null)" == *Windows* ]]; then
+  title "Windows is on this disk"
+  how=$(gum choose --header "How should Lumen be installed?" \
+    "Install alongside Windows (keep Windows and its files; choose at every start)" \
+    "Erase the whole disk, Windows included") || exit 0
+  if [[ "$how" == Install* ]]; then
+    MODE=alongside
+    note "Checking how much space Windows can spare…"
+    eval "$(lumen-disk-info --space "$DISK")"
+    [[ -z "${error:-}" ]] || fail "$error"
+    (( max_gb >= 30 )) || fail "There's only room for ${max_gb} GB next to Windows; Lumen needs 30 GB. Free up space in Windows (or shrink it with Disk Management), then try again."
+    suggest=$(( max_gb / 2 > 60 ? max_gb / 2 : (max_gb < 60 ? max_gb : 60) ))
+    while true; do
+      ALONG_GB=$(gum input --header "Space for Lumen in GB (30 to $max_gb; Windows keeps the rest)" --value "$suggest") || exit 0
+      [[ "$ALONG_GB" =~ ^[0-9]+$ ]] && (( ALONG_GB >= 30 && ALONG_GB <= max_gb )) && break
+      note "Enter a number from 30 to $max_gb."
+    done
+    note "Back up anything important first: resizing a disk is safe, but power cuts happen."
+  fi
+fi
+
 title "Encryption"
 note "Encryption protects your files if the computer is lost or stolen." "You'll type a password every time it starts."
 ENCRYPT=0
@@ -295,7 +321,7 @@ THEME=$(ls "$LUMEN_SRC/themes" | gum choose --header "Theme (change any time lat
 # --- review ---------------------------------------------------------------------------------
 title "Ready to install"
 gum style --border rounded --border-foreground "$ACCENT" --padding "1 3" --margin "0 2" \
-  "Disk:        $disk_line" \
+  "Disk:        $disk_line$([[ $MODE == alongside ]] && echo "  ·  alongside Windows, ${ALONG_GB} GB for Lumen")" \
   "Encryption:  $([[ $ENCRYPT -eq 1 ]] && echo on || echo off)" \
   "User:        $USERNAME${FULLNAME:+ ($FULLNAME)}" \
   "Computer:    $HOSTNAME_" \
@@ -304,6 +330,10 @@ gum style --border rounded --border-foreground "$ACCENT" --padding "1 3" --margi
   "Apps:        $BROWSER, $TERMINAL_APP, $EDITOR_APP$([[ $GAMING -eq 1 ]] && echo ', gaming')" \
   "Theme:       $THEME"
 echo
+if [[ $MODE == alongside ]]; then
+  gum style --foreground "#f1d38b" --bold --margin "0 2" "Windows will be shrunk to make ${ALONG_GB} GB of room. Windows and its files are kept."
+  gum confirm --default=false --affirmative "Install alongside Windows" --negative "Cancel" "Continue?" || exit 0
+else
 gum style --foreground "#f2777a" --bold --margin "0 2" "Everything on $DISK will be permanently erased."
 # A disk with another system or files on it (often Windows) needs the word
 # ERASE typed, not just a click: it can't be undone.
@@ -317,6 +347,7 @@ if [[ -n "$contents" ]]; then
   [[ "$typed" == ERASE ]] || { echo "  Not erased. Nothing was changed."; exit 0; }
 fi
 gum confirm --default=false --affirmative "Erase and install" --negative "Cancel" "Continue?" || exit 0
+fi
 
 fi
 
@@ -371,7 +402,66 @@ if [[ $UEFI -eq 0 ]]; then
   gum style --foreground "#f1d38b" --margin "0 2" "This computer started the USB in legacy (BIOS) mode, so Lumen installs a BIOS boot loader." \
     "Keep the computer in legacy/CSM mode to start it (or reinstall from a USB started in UEFI mode)."
 fi
+BOOTP="$EFI" # the partition mounted at /boot (kernels)
+MODE="${MODE:-erase}"
+
+# Next to Windows: shrink Windows' drive if there isn't enough free space,
+# then add Lumen's boot partition (kernels; Windows' EFI partition is often
+# only 100 MB) and system partition. Windows' partitions keep their place,
+# type and identity, and its EFI partition gets the Lumen boot menu.
+alongside_partition() {
+  # shellcheck disable=SC2034  # free_gb is set by lumen-disk-info's output
+  local error="" max_gb=0 free_gb=0 win="" esp="" need_mib free_mib ss cur new_bytes num info type guid name first end before after
+  eval "$(lumen-disk-info --space "$DISK")"
+  [[ -z "$error" ]] || fail "$error"
+  [[ -n "$ALONG_GB" ]] || ALONG_GB=$max_gb
+  ((ALONG_GB >= 30 && ALONG_GB <= max_gb)) || fail "Not enough room next to Windows: ${max_gb} GB available, ${ALONG_GB} GB wanted (at least 30). Nothing was changed."
+  need_mib=$((ALONG_GB * 1024 + 1024 + 64))
+  free_mib=$(parted -sm "$DISK" unit MiB print free 2>/dev/null |
+    awk -F: '$NF ~ /free;$/ { v = $4; sub(/MiB/, "", v); if (v + 0 > m) m = v + 0 } END { print int(m) }')
+  if ((free_mib < need_mib)); then
+    [[ -n "$win" ]] || fail "No Windows drive to make room on. Nothing was changed."
+    ss=$(blockdev --getss "$DISK")
+    cur=$(blockdev --getsize64 "$win")
+    new_bytes=$(((cur / 1048576 - (need_mib - free_mib) - 16) * 1048576))
+    step "Shrinking Windows' drive ($win) by $(((cur - new_bytes) / 1073741824)) GB"
+    ntfsresize -f -n -s "$new_bytes" "$win" >>"$LOG" 2>&1 || fail "Windows' drive can't be shrunk safely (details: $LOG). Nothing was changed."
+    printf 'y\n' | ntfsresize -f -s "$new_bytes" "$win" >>"$LOG" 2>&1 || fail "Shrinking Windows' drive failed (details: $LOG)."
+    num=$(cat "/sys/class/block/${win##*/}/partition")
+    info=$(sgdisk -i "$num" "$DISK")
+    type=$(sed -n 's/^Partition GUID code: \([0-9A-Fa-f-]*\).*/\1/p' <<<"$info")
+    guid=$(sed -n 's/^Partition unique GUID: \([0-9A-Fa-f-]*\).*/\1/p' <<<"$info")
+    name=$(sed -n "s/^Partition name: '\(.*\)'$/\1/p" <<<"$info")
+    first=$(sed -n 's/^First sector: \([0-9]*\).*/\1/p' <<<"$info")
+    end=$((first + new_bytes / ss - 1))
+    sgdisk -d "$num" -n "$num:$first:$end" -t "$num:$type" -u "$num:$guid" -c "$num:$name" "$DISK" >>"$LOG" 2>&1 ||
+      fail "Resizing Windows' partition failed (details: $LOG)."
+    partprobe "$DISK" && udevadm settle
+    gum style --foreground "#9fdc9b" "  ✓ Made room next to Windows"
+  fi
+  before=$(lsblk -nrpo NAME "$DISK")
+  sgdisk -n 0:0:+1G -t 0:ea00 -c 0:LumenBoot "$DISK" >>"$LOG" 2>&1 || fail "Couldn't add Lumen's boot partition (details: $LOG)."
+  partprobe "$DISK" && udevadm settle
+  BOOTP=$(comm -13 <(sort <<<"$before") <(lsblk -nrpo NAME "$DISK" | sort) | head -n1)
+  before=$(lsblk -nrpo NAME "$DISK")
+  free_mib=$(parted -sm "$DISK" unit MiB print free 2>/dev/null |
+    awk -F: '$NF ~ /free;$/ { v = $4; sub(/MiB/, "", v); if (v + 0 > m) m = v + 0 } END { print int(m) }')
+  if ((free_mib > ALONG_GB * 1024 + 2048)); then end="+${ALONG_GB}G"; else end=0; fi
+  sgdisk -n "0:0:$end" -t 0:8300 -c 0:lumen "$DISK" >>"$LOG" 2>&1 || fail "Couldn't add Lumen's partition (details: $LOG)."
+  partprobe "$DISK" && udevadm settle
+  SYS=$(comm -13 <(sort <<<"$before") <(lsblk -nrpo NAME "$DISK" | sort) | head -n1)
+  EFI="$esp"
+  [[ -b "$BOOTP" && -b "$SYS" && -b "$EFI" ]] || fail "The new partitions didn't appear (details: $LOG)."
+  gum style --foreground "#9fdc9b" "  ✓ Added Lumen's partitions next to Windows"
+}
+
+if [[ $MODE == alongside ]]; then
+  [[ $UEFI -eq 1 ]] || fail "Installing alongside Windows needs the computer started in UEFI mode."
+  step "Installing alongside Windows"
+  alongside_partition
+else
 spin "Partitioning $DISK" bash -c "wipefs -af '$DISK' && sgdisk -Z '$DISK' && sgdisk -n1:0:+1G -t1:ef00 -c1:EFI -n3:0:+1M -t3:ef02 -c3:BIOS -n2:0:0 -t2:8300 -c2:lumen '$DISK' && partprobe '$DISK' && udevadm settle"
+fi
 
 ROOTDEV="$SYS"
 if [[ $ENCRYPT -eq 1 ]]; then
@@ -382,7 +472,11 @@ if [[ $ENCRYPT -eq 1 ]]; then
   gum style --foreground "#9fdc9b" "  ✓ Encrypted the system partition"
 fi
 
-spin "Formatting" bash -c "mkfs.fat -F32 -n EFI '$EFI' && mkfs.btrfs -f -L lumen '$ROOTDEV'"
+# Alongside Windows only Lumen's own boot partition is formatted, never
+# Windows' EFI partition.
+BOOTLABEL=EFI
+[[ $MODE == alongside ]] && BOOTLABEL=LUMENBOOT
+spin "Formatting" bash -c "mkfs.fat -F32 -n '$BOOTLABEL' '$BOOTP' && mkfs.btrfs -f -L lumen '$ROOTDEV'"
 
 OPTS="noatime,compress=zstd:1,space_cache=v2"
 spin "Creating btrfs subvolumes" bash -c "
@@ -395,7 +489,11 @@ spin "Creating btrfs subvolumes" bash -c "
   mount -o '$OPTS,subvol=@log' '$ROOTDEV' '$MNT/var/log' &&
   mount -o '$OPTS,subvol=@pkg' '$ROOTDEV' '$MNT/var/cache/pacman/pkg' &&
   mount -o '$OPTS,subvol=@snapshots' '$ROOTDEV' '$MNT/.snapshots' &&
-  mount -o umask=0077 '$EFI' '$MNT/boot'"
+  mount -o umask=0077 '$BOOTP' '$MNT/boot'"
+if [[ $MODE == alongside ]]; then
+  mkdir -p "$MNT/efi"
+  mount -o umask=0077 "$EFI" "$MNT/efi" || fail "Couldn't mount Windows' EFI partition."
+fi
 
 UCODE=""
 grep -q GenuineIntel /proc/cpuinfo && UCODE=intel-ucode
@@ -429,7 +527,13 @@ ESP_UUID=$(blkid -s UUID -o value "$EFI")
 step "Configuring the system"
 arch-chroot "$MNT" /bin/bash -e >>"$LOG" 2>&1 <<CHROOT || fail "System configuration failed"
 ln -sf "/usr/share/zoneinfo/$TIMEZONE" /etc/localtime
-hwclock --systohc
+if [[ $MODE == alongside ]]; then
+  # Windows keeps the hardware clock in local time; so does Lumen next to it,
+  # or the clock would be off by hours after switching.
+  printf '0.0 0 0.0\n0\nLOCAL\n' >/etc/adjtime
+else
+  hwclock --systohc
+fi
 sed -i "s/^#\\(en_US.UTF-8 UTF-8\\)/\\1/" /etc/locale.gen
 grep -q "^${LOCALE} " /etc/locale.gen || sed -i "s/^#\\(${LOCALE} UTF-8\\)/\\1/" /etc/locale.gen
 locale-gen
@@ -447,12 +551,20 @@ chmod 440 /etc/sudoers.d/10-wheel
 passwd -l root
 
 if [[ $UEFI -eq 1 ]]; then
-bootctl install --esp-path=/boot
+if [[ $MODE == alongside ]]; then
+  # Boot menu on Windows' EFI partition, kernels on Lumen's own; systemd-boot
+  # lists Windows by itself.
+  bootctl install --esp-path=/efi --boot-path=/boot
+  ESPDIR=/efi TIMEOUT=5
+else
+  bootctl install --esp-path=/boot
+  ESPDIR=/boot TIMEOUT=3
+fi
 # Firmware that forgets or ignores boot entries starts the fallback path.
-[[ -f /boot/EFI/BOOT/BOOTX64.EFI ]] || install -D /boot/EFI/systemd/systemd-bootx64.efi /boot/EFI/BOOT/BOOTX64.EFI
-cat >/boot/loader/loader.conf <<LOADER
+[[ -f \$ESPDIR/EFI/BOOT/BOOTX64.EFI ]] || install -D \$ESPDIR/EFI/systemd/systemd-bootx64.efi \$ESPDIR/EFI/BOOT/BOOTX64.EFI
+cat >\$ESPDIR/loader/loader.conf <<LOADER
 default lumen.conf
-timeout 3
+timeout \$TIMEOUT
 console-mode max
 editor no
 LOADER
@@ -534,7 +646,7 @@ fi
 offline_on
 step "Lumen installer: ${lumen_args[*]}"
 gum style --foreground "$DIM" --margin "1 2 0" "Installing the Lumen desktop and apps (a few minutes). Progress: $LOG"
-if ! setsid -w arch-chroot "$MNT" sudo -u "$USERNAME" env HOME="/home/$USERNAME" USER="$USERNAME" LUMEN_YES=1 LUMEN_VERBOSE=1 \
+if ! setsid -w arch-chroot "$MNT" sudo -u "$USERNAME" env HOME="/home/$USERNAME" USER="$USERNAME" LUMEN_YES=1 LUMEN_VERBOSE=1 LUMEN_GPU="${K[gpu]:-}" \
   bash "/home/$USERNAME/.local/share/lumen/install.sh" "${lumen_args[@]}" </dev/null >>"$LOG" 2>&1; then
   rm -f "$MNT/etc/sudoers.d/99-lumen-install"
   offline_off
@@ -549,6 +661,12 @@ gum style --foreground "#9fdc9b" "  ✓ Installed the Lumen desktop"
 # port, and reports on its desktop session a few minutes after booting.
 if [[ "${K[serial]:-0}" == 1 ]]; then
   sed -i '/^options / s/$/ console=tty0 console=ttyS0,115200/' "$MNT"/boot/loader/entries/*.conf 2>/dev/null || true
+  # lumen.bootlts=1: start the LTS kernel by default (tests both kernels).
+  if [[ "${K[bootlts]:-0}" == 1 ]]; then
+    for f in "$MNT/boot/loader/loader.conf" "$MNT/efi/loader/loader.conf"; do
+      [[ -f "$f" ]] && sed -i 's/^default .*/default lumen-lts.conf/' "$f"
+    done
+  fi
   sed -i '/^  linux / s/$/ console=tty0 console=ttyS0,115200/' "$MNT"/boot/grub/grub.cfg 2>/dev/null || true
   # tests/vm: a report on the session (150 s after boot), then a run through
   # everyday tasks that the e2e workflow screenshots (240 s).

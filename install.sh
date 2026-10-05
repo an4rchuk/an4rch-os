@@ -137,20 +137,33 @@ setup_pacman() {
 
 # --- 4. Packages ------------------------------------------------------------------
 detect_gpu() {
+  # By PCI vendor ID (8086 Intel, 1002 AMD, 10de NVIDIA): matching vendor
+  # names misfires ("ati" is in "Corporation").
   local gpus
   gpus=$(lspci -nn 2>/dev/null | grep -Ei 'vga|3d|display' || true)
   GPU_PKGS=()
-  grep -qi intel <<<"$gpus" && GPU_PKGS+=("${PKGS_GPU_INTEL[@]}")
-  grep -qiE 'amd|ati|radeon' <<<"$gpus" && GPU_PKGS+=("${PKGS_GPU_AMD[@]}")
-  HAS_NVIDIA=0
-  if grep -qi nvidia <<<"$gpus"; then
-    HAS_NVIDIA=1
+  HAS_INTEL=0 HAS_AMD=0 HAS_NVIDIA=0 OTHER_GPU=0
+  grep -q '\[8086:' <<<"$gpus" && HAS_INTEL=1
+  grep -q '\[1002:' <<<"$gpus" && HAS_AMD=1
+  grep -q '\[10de:' <<<"$gpus" && HAS_NVIDIA=1
+  grep -vqE '\[(8086|1002|10de):' <<<"$gpus" && OTHER_GPU=1
+  # Tests (lumen.gpu=nvidia): set up NVIDIA's driver on a machine without one.
+  [[ "${LUMEN_GPU:-}" == nvidia ]] && HAS_NVIDIA=1
+  ((HAS_INTEL)) && GPU_PKGS+=("${PKGS_GPU_INTEL[@]}")
+  ((HAS_AMD)) && GPU_PKGS+=("${PKGS_GPU_AMD[@]}")
+  if ((HAS_NVIDIA)); then
     GPU_PKGS+=("${PKGS_GPU_NVIDIA[@]}" linux-headers)
     # DKMS needs headers for whichever kernels are installed.
     pacman -Qq linux-lts >/dev/null 2>&1 && GPU_PKGS+=(linux-lts-headers)
     pacman -Qq linux-zen >/dev/null 2>&1 && GPU_PKGS+=(linux-zen-headers)
   fi
+  # NVIDIA drives the screen itself only when it's the only GPU; on hybrid
+  # laptops (Intel/AMD + NVIDIA) the other GPU does, and NVIDIA-only
+  # settings would break apps there.
+  NVIDIA_ONLY=0
+  ((HAS_NVIDIA && !HAS_INTEL && !HAS_AMD && !OTHER_GPU)) && NVIDIA_ONLY=1
   [[ ${#GPU_PKGS[@]} -gt 0 ]] || GPU_PKGS=(mesa)
+  return 0
 }
 
 install_packages() {
@@ -266,15 +279,15 @@ EOF
   ok "Settings in ~/.config/lumen/settings.conf"
 
   if ((HAS_NVIDIA)); then
-    grep -q LIBVA_DRIVER_NAME "$HOME/.config/uwsm/env" 2>/dev/null || cat >>"$HOME/.config/uwsm/env" <<'EOF'
+    ((NVIDIA_ONLY)) && ! grep -q LIBVA_DRIVER_NAME "$HOME/.config/uwsm/env" 2>/dev/null && cat >>"$HOME/.config/uwsm/env" <<'EOF'
 
-# NVIDIA (added by the Lumen installer)
+# NVIDIA (added by the Lumen installer: NVIDIA is the only GPU)
 export LIBVA_DRIVER_NAME=nvidia
 export __GLX_VENDOR_LIBRARY_NAME=nvidia
 export NVD_BACKEND=direct
 EOF
     printf 'options nvidia_drm modeset=1 fbdev=1\n' | sudo tee /etc/modprobe.d/lumen-nvidia.conf >/dev/null
-    ok "NVIDIA environment and kernel mode setting"
+    if ((NVIDIA_ONLY)); then ok "NVIDIA environment and kernel mode setting"; else ok "NVIDIA kernel mode setting (hybrid graphics: the other GPU drives the screen)"; fi
   fi
 
   if [[ -d "$BACKUP_DIR" ]]; then

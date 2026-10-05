@@ -27,6 +27,11 @@ passwd -d "$user" >/dev/null
 printf '%s ALL=(ALL) NOPASSWD: ALL\n' "$user" >/etc/sudoers.d/90-lumen-live
 chmod 440 /etc/sudoers.d/90-lumen-live
 
+# The "(NVIDIA)" boot entry: NVIDIA's own driver instead of nouveau.
+case " $(</proc/cmdline) " in
+  *" lumen.nvidia=1 "*) modprobe nvidia_drm modeset=1 fbdev=1 || echo "NVIDIA driver didn't load (card older than GTX 16xx / RTX 20xx?)" ;;
+esac
+
 # Wi-Fi through NetworkManager (on top of iwd); wired stays with networkd.
 # --no-block: this runs during boot, ordered before the login prompt;
 # waiting here for other services could stall the boot.
@@ -120,7 +125,12 @@ if [[ "$(tty)" == /dev/tty1 && -z "${WAYLAND_DISPLAY:-}" && -z "${LUMEN_LIVE_TRI
   echo "  A photo of this screen helps fix it:"
   echo
   lspci -nn 2>/dev/null | grep -iE 'vga|3d|display' | sed 's/^/    /' | cut -c1-110
-  echo "    boot mode: $([[ -d /sys/firmware/efi ]] && echo UEFI || echo legacy BIOS)"
+  echo "    boot mode: $([[ -d /sys/firmware/efi ]] && echo UEFI || echo legacy BIOS) · driver: $(lspci -k 2>/dev/null | grep -A3 -iE 'vga|3d' | sed -n 's/.*Kernel driver in use: //p' | tr '\n' ' ')"
+  if lspci -nn 2>/dev/null | grep -iE 'vga|3d' | grep -q '\[10de:' && ! grep -q 'lumen.nvidia=1' /proc/cmdline; then
+    echo
+    echo "  This computer has NVIDIA graphics: restart and choose \"Lumen OS installer (NVIDIA)\""
+    echo "  in the boot menu (GTX 16xx / RTX 20xx and newer)."
+  fi
   hlog=$(ls -t "${XDG_RUNTIME_DIR:-/run/user/$UID}"/hypr/*/hyprland.log 2>/dev/null | head -n1)
   { [[ -n "$hlog" ]] && grep -iE 'err|fail|crit' "$hlog" | tail -n 6; tail -n 4 "$log"; } 2>/dev/null | cut -c1-110 | sed 's/^/    /'
   echo

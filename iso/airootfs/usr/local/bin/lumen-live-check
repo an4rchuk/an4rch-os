@@ -41,6 +41,7 @@ echo "theme: $(cat "/home/$u/.config/lumen/current/theme.name" 2>&1)"
 ls /opt/lumen-wallpapers 2>&1 | head -n 12 | tr '\n' ' '
 echo
 echo "settings:"; cat "/home/$u/.config/lumen/settings.conf" 2>&1
+echo "graphics: $(lspci -k 2>/dev/null | grep -A3 -iE "vga|3d" | sed -n "s/.*Kernel driver in use: //p" | tr "\n" " ") nvidia module: $(lsmod | grep -c "^nvidia")"
 echo "plugins: $(as_live hyprctl plugin list 2>&1 | head -n 3 | tr '\n' ' ')"
 echo "user services failed:"; as_live systemctl --user --failed --no-legend 2>&1 | head -n 10
 echo "preload: $(journalctl -u lumen-live-preload -b --no-pager -o cat 2>&1 | tail -n 2 | tr "\n" " ")"

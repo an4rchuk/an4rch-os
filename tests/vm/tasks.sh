@@ -208,6 +208,35 @@ task "firewall active" systemctl is-active ufw
 task "NetworkManager online" nmcli -t -f STATE general
 task "zram swap" swapon --show
 
+# --- NVIDIA driver (installed with lumen.gpu=nvidia; this VM has no NVIDIA card) ----------
+if pacman -Q nvidia-utils >/dev/null 2>&1; then
+  say "--- NVIDIA: $(pacman -Q nvidia-open-dkms nvidia-utils 2>&1 | tr '\n' ' ')"
+  say "running kernel: $(uname -r)"
+  dkms status 2>&1 | head -n 5
+  for k in /usr/lib/modules/*/; do
+    kv=$(basename "$k")
+    [[ -d "$k/kernel" ]] || continue
+    if modinfo -k "$kv" nvidia >/dev/null 2>&1; then result "NVIDIA driver built for $kv" PASS; else result "NVIDIA driver built for $kv" FAIL; fi
+  done
+  if [[ -f /etc/modprobe.d/lumen-nvidia.conf ]]; then result "NVIDIA kernel mode setting configured" PASS; else result "NVIDIA kernel mode setting configured" FAIL; fi
+  # This VM's screen is a virtio GPU, like the Intel/AMD GPU of a hybrid
+  # laptop: the NVIDIA-only settings must not be there.
+  if grep -q __GLX_VENDOR_LIBRARY_NAME "$home/.config/uwsm/env" 2>/dev/null; then
+    result "hybrid graphics: no NVIDIA-only settings" FAIL "$(grep -n nvidia "$home/.config/uwsm/env")"
+  else
+    result "hybrid graphics: no NVIDIA-only settings" PASS
+  fi
+fi
+case "$(uname -r)" in *lts*) result "running the LTS kernel" PASS "$(uname -r)" ;; esac
+
+# --- Installed alongside Windows ---------------------------------------------------------------
+if findmnt -n /efi >/dev/null 2>&1; then
+  say "--- dual boot: $(bootctl list --no-pager 2>/dev/null | grep -E 'title:|id:' | tr -s ' ' | tr '\n' ' ')"
+  if [[ -f /efi/EFI/Microsoft/Boot/bootmgfw.efi ]]; then result "Windows boot manager kept" PASS; else result "Windows boot manager kept" FAIL; fi
+  if bootctl list --no-pager 2>/dev/null | grep -qi 'windows'; then result "boot menu lists Windows" PASS; else result "boot menu lists Windows" FAIL "$(bootctl list --no-pager 2>&1 | head -n 20 | tr '\n' ' ')"; fi
+  if grep -q LOCAL /etc/adjtime 2>/dev/null; then result "clock in local time (like Windows)" PASS; else result "clock in local time (like Windows)" FAIL; fi
+fi
+
 # --- Settings, the sound panel and the login screen ------------------------------------------
 as_user lumen-settings windows >/dev/null 2>&1 &
 if wait_window "Settings opens" 'lumen.Settings' 40; then
