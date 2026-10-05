@@ -183,7 +183,9 @@ jobs:
             echo "E2E-RESULT bios: install PASS" >>results.txt
           else
             echo "E2E-RESULT bios: install FAIL" >>results.txt
-            sed 's/\x1b\[[0-9;?]*[a-zA-Z]//g' bios-install.log | grep -av '^\s*$' | tail -n 80
+            sed 's/\x1b\[[0-9;?]*[a-zA-Z]//g' bios-install.log | grep -av '^\s*$' |
+              grep -av -E '^\s*(\[ *OK *\]|Starting|Stopping|Mounted|Started|Reached|Finished|Stopped|Unmounting|Mounting|Listening|Closed)' |
+              tail -n 120 >bios-summary.txt
             exit 0
           fi
           timeout 6m qemu-system-x86_64 -enable-kvm -machine q35 -cpu host -smp 4 -m 8G \
@@ -197,7 +199,7 @@ jobs:
             echo "E2E-RESULT bios: installed system boots PASS" >>results.txt
           else
             echo "E2E-RESULT bios: installed system boots FAIL" >>results.txt
-            tr -d '\r' <bios-boot.log | sed 's/\x1b\[[0-9;?]*[a-zA-Z]//g' | grep -av '^\s*$' | tail -n 60
+            tr -d '\r' <bios-boot.log | sed 's/\x1b\[[0-9;?]*[a-zA-Z]//g' | grep -av '^\s*$' | tail -n 60 >bios-summary.txt
           fi
           pkill -f bios.qcow2 || true
 
@@ -218,6 +220,7 @@ jobs:
       - name: Task results
         if: always()
         run: |
+          if [ -s bios-summary.txt ]; then echo "--- legacy BIOS run (end) ---"; cat bios-summary.txt; fi
           echo "--- live USB check ---"; cat live-check.log 2>/dev/null || true
           if ! grep -q LUMEN-LIVE-CHECK-END live-check.log 2>/dev/null; then
             echo "--- live USB boot console (end) ---"
