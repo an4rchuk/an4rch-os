@@ -95,8 +95,13 @@ def disks() -> list[dict]:
         if size < 20 * 1000**3:
             continue
         model = (d.get("model") or "").strip() or ("USB drive" if d.get("tran") == "usb" else "Disk")
+        # What's on it now (e.g. "Windows · 4 partitions"), so it isn't erased by accident.
+        contents = run("lumen-disk-info", f"/dev/{d['name']}").strip()
+        detail = f"/dev/{d['name']} · {(d.get('tran') or '').upper() or 'internal'}"
+        if contents:
+            detail += f" · has {contents}"
         found.append({"path": f"/dev/{d['name']}", "label": model, "size": f"{size / 1000**3:.0f} GB",
-                      "detail": f"/dev/{d['name']} · {(d.get('tran') or '').upper() or 'internal'}"})
+                      "detail": detail, "contents": contents})
     if DEMO and not found:
         found = [{"path": "/dev/demo", "label": "Demo disk", "size": "500 GB", "detail": "nothing will be written"}]
     return found
@@ -383,6 +388,8 @@ class Installer(Adw.ApplicationWindow):
             row = Adw.ActionRow(title=f"{d['label']} · {d['size']}", subtitle=d["detail"], activatable_widget=check)
             row.add_prefix(check)
             row.add_prefix(Gtk.Image(icon_name="drive-harddisk-symbolic"))
+            if d.get("contents"):
+                row.add_suffix(Gtk.Label(label="Not empty", css_classes=["error", "caption-heading"]))
             check.connect("toggled", lambda c, d=d: c.get_active() and setattr(self, "disk_choice", d))
             group.add(row)
         if first:
@@ -604,11 +611,22 @@ class Installer(Adw.ApplicationWindow):
     # --- install ---------------------------------------------------------------------------------
     def confirm_install(self) -> None:
         d = self.disk_choice
-        dialog = Adw.AlertDialog(heading="Erase this disk?",
-                                 body=f"Everything on {d['label']} ({d['size']}, {d['path']}) will be permanently erased.")
+        body = f"Everything on {d['label']} ({d['size']}, {d['path']}) will be permanently erased."
+        if d.get("contents"):
+            body += (f"\n\nThis disk is not empty: it has {d['contents']}. Installing deletes it all, including "
+                     "any Windows and its files. Copy anything you want to keep to another drive first.\n\n"
+                     "Type ERASE to confirm.")
+        dialog = Adw.AlertDialog(heading="Erase this disk?", body=body)
         dialog.add_response("cancel", "Cancel")
         dialog.add_response("install", "Erase and install")
         dialog.set_response_appearance("install", Adw.ResponseAppearance.DESTRUCTIVE)
+        dialog.set_default_response("cancel")
+        if d.get("contents"):
+            # A disk with something on it needs the word typed, not just a click.
+            entry = Gtk.Entry(placeholder_text="ERASE")
+            dialog.set_extra_child(entry)
+            dialog.set_response_enabled("install", False)
+            entry.connect("changed", lambda e: dialog.set_response_enabled("install", e.get_text().strip() == "ERASE"))
         dialog.connect("response", lambda _d, r: r == "install" and self.start_install())
         dialog.present(self)
 

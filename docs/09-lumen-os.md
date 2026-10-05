@@ -31,7 +31,7 @@ sudo dd if=lumen-*.iso of=/dev/sdX bs=4M status=progress oflag=sync
 | --- | --- |
 | Welcome | Keyboard layout |
 | Internet | Pick a Wi-Fi network, or plug in a cable. The Wi-Fi network is remembered in the installed system |
-| Disk | **The whole disk is erased.** At least 20 GB. Optional encryption (recommended for laptops; you type the password at every start) |
+| Disk | **The whole disk is erased, including Windows and every file on it** (Lumen doesn't install alongside another system yet). Disks that aren't empty are marked, and you type ERASE to confirm. At least 20 GB. Optional encryption (recommended for laptops; you type the password at every start) |
 | Account | Your name, username, password and computer name. The root account is locked; you use `sudo` |
 | Region | Time zone and language, guessed from your internet connection |
 | Look | Pick a theme from a gallery (including **Cachy**, a CachyOS-inspired teal) and a layout: Lumen (top bar + taskbar, the default), Top bar only or Minimal. The live desktop restyles as you click, so you see it before installing |

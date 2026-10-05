@@ -41,7 +41,8 @@ cat "$root/iso/packages.x86_64" >>"$profile/packages.x86_64"
   printf '%s\n' "${PKGS_AUDIO[@]}" "${PKGS_DESKTOP[@]}" "${PKGS_TOOLS[@]}" "${PKGS_FONTS[@]}" "${PKGS_LOOK[@]}" \
     bluez bluez-utils bluetui power-profiles-daemon upower playerctl libnotify \
     wiremix pavucontrol network-manager-applet pacman-contrib \
-    nautilus gvfs loupe evince gnome-calculator "${PKG_FOR[firefox]}"
+    nautilus gvfs loupe evince gnome-calculator "${PKG_FOR[firefox]}" \
+    testdisk ntfs-3g
 ) >>"$profile/packages.x86_64"
 sort -u -o "$profile/packages.x86_64" "$profile/packages.x86_64"
 
@@ -79,7 +80,7 @@ sed -i \
 # mkarchiso copies airootfs without file modes, so everything that must stay
 # executable is listed: our installer, and every executable in Lumen's tree
 # (otherwise every lumen-* command fails with "Permission denied").
-perms='  ["/usr/local/bin/lumen-os-install"]="0:0:755"\n  ["/usr/local/bin/lumen-rescue"]="0:0:755"\n  ["/usr/local/bin/lumen-live-setup"]="0:0:755"\n  ["/usr/local/bin/lumen-installer"]="0:0:755"\n  ["/usr/local/bin/lumen-live-check"]="0:0:755"\n  ["/usr/local/bin/lumen-live-preload"]="0:0:755"'
+perms='  ["/usr/local/bin/lumen-os-install"]="0:0:755"\n  ["/usr/local/bin/lumen-rescue"]="0:0:755"\n  ["/usr/local/bin/lumen-live-setup"]="0:0:755"\n  ["/usr/local/bin/lumen-installer"]="0:0:755"\n  ["/usr/local/bin/lumen-live-check"]="0:0:755"\n  ["/usr/local/bin/lumen-live-preload"]="0:0:755"\n  ["/usr/local/bin/lumen-disk-info"]="0:0:755"'
 while IFS= read -r f; do
   perms+="\\n  [\"/opt/lumen/${f#./}\"]=\"0:0:755\""
 done < <(cd "$profile/airootfs/opt/lumen" && find . -path ./.git -prune -o -type f -perm -u+x -print | sort)

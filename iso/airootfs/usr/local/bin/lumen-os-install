@@ -226,8 +226,16 @@ loadkeys "$keymap" 2>/dev/null || true
 
 # --- disk -----------------------------------------------------------------------------
 title "Where should Lumen OS go?"
-mapfile -t disks < <(lsblk -dpno NAME,SIZE,MODEL,TYPE -e 7,11 | awk '$NF == "disk" {$NF=""; print}' | sed 's/ *$//')
+# The USB stick Lumen is running from isn't offered.
+live_src=$(findmnt -nvo SOURCE /run/archiso/bootmnt 2>/dev/null || true)
+live_disk=$( [[ -n "$live_src" ]] && lsblk -npo PKNAME "$live_src" 2>/dev/null | head -n1)
+mapfile -t disks < <(lsblk -dpno NAME,SIZE,MODEL,TYPE -e 7,11 | awk -v skip="${live_disk:-none}" '$NF == "disk" && $1 != skip {$NF=""; print}' | sed 's/ *$//')
 [[ ${#disks[@]} -gt 0 ]] || fail "No disks found."
+# Show what's on each disk, so a disk with Windows on it is easy to spot.
+for i in "${!disks[@]}"; do
+  info=$(lumen-disk-info "${disks[$i]%% *}" 2>/dev/null || true)
+  disks[i]="${disks[$i]}${info:+   (has: $info)}"
+done
 disk_line=$(printf '%s\n' "${disks[@]}" | gum choose --header "Choose a disk. EVERYTHING on it will be erased.") || exit 1
 DISK="${disk_line%% *}"
 size_gb=$(( $(lsblk -bdno SIZE "$DISK") / 1024 / 1024 / 1024 ))
@@ -300,6 +308,17 @@ gum style --border rounded --border-foreground "$ACCENT" --padding "1 3" --margi
   "Theme:       $THEME"
 echo
 gum style --foreground "#f2777a" --bold --margin "0 2" "Everything on $DISK will be permanently erased."
+# A disk with another system or files on it (often Windows) needs the word
+# ERASE typed, not just a click: it can't be undone.
+contents=$(lumen-disk-info "$DISK" 2>/dev/null || true)
+if [[ -n "$contents" ]]; then
+  gum style --foreground "#f2777a" --bold --border double --border-foreground "#f2777a" --padding "0 2" --margin "1 2" \
+    "$DISK is not empty: $contents" \
+    "Installing deletes it all, including any Windows and its files." \
+    "Copy anything you want to keep to another drive first."
+  typed=$(gum input --placeholder "Type ERASE to erase this disk, or press Esc to cancel") || exit 0
+  [[ "$typed" == ERASE ]] || { echo "  Not erased. Nothing was changed."; exit 0; }
+fi
 gum confirm --default=false --affirmative "Erase and install" --negative "Cancel" "Continue?" || exit 0
 
 fi

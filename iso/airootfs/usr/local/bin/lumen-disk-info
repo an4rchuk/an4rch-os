@@ -1,0 +1,23 @@
+#!/bin/bash
+# lumen-disk-info DISK — say what's on a disk before the installer erases it,
+# e.g. "Windows · 4 partitions", or nothing for an empty disk. Both installers
+# use it to make you confirm twice when a disk isn't empty.
+set -u
+disk="${1:?usage: lumen-disk-info DISK}"
+systems=() parts=0
+while read -r line; do
+  parts=$((parts + 1))
+  case "${line,,}" in
+    *ntfs* | *bitlocker* | *"microsoft reserved"* | *"basic data partition"* | *windows*) systems+=(Windows) ;;
+    *apfs* | *hfs*) systems+=(macOS) ;;
+    *crypto_luks* | *btrfs* | *ext4* | *ext3* | *xfs* | *f2fs*) systems+=(Linux) ;;
+  esac
+done < <(lsblk -nrpo NAME,FSTYPE,PARTLABEL,LABEL "$disk" 2>/dev/null | tail -n +2 | sed 's/\\x20/ /g')
+((parts == 0)) && exit 0
+out="$parts partition$( ((parts > 1)) && echo s)"
+if ((${#systems[@]})); then
+  mapfile -t systems < <(printf '%s\n' "${systems[@]}" | awk '!seen[$0]++')
+  joined=$(printf '%s, ' "${systems[@]}")
+  out="${joined%, } · $out"
+fi
+echo "$out"
