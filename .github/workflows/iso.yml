@@ -133,7 +133,7 @@ jobs:
 
           ## Install
 
-          Write the ISO to a USB stick of 8 GB or more (Rufus in DD mode, Ventoy, Impression, Fedora Media Writer or \`dd\`), turn off Secure Boot, and boot it in UEFI mode. Pick **Lumen OS installer** for the live desktop with the graphical installer, or **(text mode)** for the console installer.
+          Write the ISO to a USB stick of 8 GB or more (Rufus in DD mode, Ventoy, Impression, Fedora Media Writer or \`dd\`), turn off Secure Boot, and boot it (UEFI recommended; older legacy BIOS computers work too). Pick **Lumen OS installer** for the live desktop with the graphical installer, or **(text mode)** for the console installer.
 
           > ⚠️ **Installing erases the entire disk you choose, including Windows and all files on it.** Lumen doesn't install alongside another system yet. To just try Lumen, use the live desktop and don't install: nothing on the computer is touched.
 

@@ -26,7 +26,7 @@ Underneath is a polished [Hyprland](https://hypr.land) desktop. It sets up a cle
 
 ## Install
 
-**Lumen OS (recommended).** Get the ISO from the [releases](https://github.com/twil09/lumen-os/releases) or the latest run of the [*iso* workflow](https://github.com/twil09/lumen-os/actions/workflows/iso.yml) (or build it with `sudo iso/build.sh` on Arch). Write it to a USB stick (8 GB or more), turn off Secure Boot, and boot it in UEFI mode.
+**Lumen OS (recommended).** Get the ISO from the [releases](https://github.com/twil09/lumen-os/releases) or the latest run of the [*iso* workflow](https://github.com/twil09/lumen-os/actions/workflows/iso.yml) (or build it with `sudo iso/build.sh` on Arch). Write it to a USB stick (8 GB or more), turn off Secure Boot, and boot it (UEFI recommended; older legacy BIOS computers work too).
 
 You land on a live Lumen desktop with **Install Lumen OS** open, Bazzite-style. Look around first if you like, then answer a few questions: keyboard, Wi-Fi, disk and encryption, your account, time zone, a theme and layout, and your apps. The stick carries every package a default install needs, so installing takes minutes rather than a long download. It sets up encrypted btrfs with snapshots, systemd-boot with an LTS fallback kernel, the boot splash and the desktop. Prefer text? Pick *Lumen OS installer (text mode)* in the boot menu. See [Lumen OS](docs/09-lumen-os.md).
 

@@ -117,10 +117,7 @@ spin() {
 
 # --- checks -----------------------------------------------------------------------
 [[ $EUID -eq 0 ]] || { echo "Run as root."; exit 1; }
-[[ -d /sys/firmware/efi ]] || {
-  title
-  fail "This computer started in legacy BIOS mode. Lumen OS needs UEFI: turn it on in the firmware settings (often F2 or Del at startup) and boot the USB again."
-}
+# Both UEFI and legacy BIOS computers are supported (see "boot loader" below).
 [[ -d "$LUMEN_SRC" ]] || fail "Lumen files are missing from this USB ($LUMEN_SRC)."
 
 if [[ $AUTO -eq 1 ]]; then
