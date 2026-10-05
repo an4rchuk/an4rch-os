@@ -12,8 +12,9 @@ log="${XDG_RUNTIME_DIR:-/tmp}/lumen-greeter.log"
 
 if [[ ! -e "$dir/text-only" ]] && command -v cage >/dev/null && command -v regreet >/dev/null &&
   compgen -G '/dev/dri/card*' >/dev/null; then
-  # Only Lumen's session in the list (it starts Hyprland through uwsm).
-  export SESSION_DIRS=/usr/local/share/lumen/sessions
+  # Lumen's session files come first: ReGreet takes the first file of each
+  # name, so the list shows one "Lumen" session (Hyprland through uwsm).
+  export XDG_DATA_DIRS="/usr/local/share/lumen:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
   args=()
   [[ -f "$dir/regreet.toml" ]] && args+=(--config "$dir/regreet.toml")
   [[ -f "$dir/regreet.css" ]] && args+=(--style "$dir/regreet.css")

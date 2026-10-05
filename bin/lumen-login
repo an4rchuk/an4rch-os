@@ -48,7 +48,8 @@ setup() {
   for p in greetd greetd-regreet greetd-tuigreet cage; do pacman -Q "$p" >/dev/null 2>&1 || pkgs+=("$p"); done
   ((${#pkgs[@]} == 0)) || sudo pacman -S --needed --noconfirm "${pkgs[@]}"
   sudo install -D -m755 "$LUMEN_PATH/share/greeter/lumen-greeter" /usr/local/bin/lumen-greeter
-  sudo install -D -m644 "$LUMEN_PATH/share/greeter/lumen.desktop" /usr/local/share/lumen/sessions/lumen.desktop
+  sudo install -D -m644 -t /usr/local/share/lumen/wayland-sessions "$LUMEN_PATH"/share/greeter/wayland-sessions/*.desktop
+  sudo rm -rf /usr/local/share/lumen/sessions
   sudo install -d -m755 -o "$(id -un)" -g "$(id -gn)" "$DIR"
 
   # Keep auto-login ([initial_session]) if it's set.
@@ -72,7 +73,7 @@ case "${1:-sync}" in
     args=(--demo --logs "${XDG_RUNTIME_DIR:-/tmp}/regreet-preview.log")
     [[ -f "$DIR/regreet.toml" ]] && args+=(--config "$DIR/regreet.toml")
     [[ -f "$DIR/regreet.css" ]] && args+=(--style "$DIR/regreet.css")
-    launch regreet "${args[@]}"
+    XDG_DATA_DIRS="/usr/local/share/lumen:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}" launch regreet "${args[@]}"
     ;;
   text)
     case "${2:-}" in

@@ -116,13 +116,17 @@ if [[ "$(tty)" == /dev/tty1 && -z "${WAYLAND_DISPLAY:-}" && -z "${LUMEN_LIVE_TRI
   clear
   printf '\e[?25h'
   echo
-  echo "  The Lumen live desktop stopped or couldn't start on this computer"
-  echo "  (no working graphics driver for it was found)."
-  echo "  (Details: ~/.local/state/lumen/live-session.log)"
+  echo "  The Lumen live desktop stopped or couldn't start on this computer."
+  echo "  A photo of this screen helps fix it:"
   echo
-  echo "  Starting the text installer instead. To try the desktop again: uwsm start -- hyprland.desktop"
+  lspci -nn 2>/dev/null | grep -iE 'vga|3d|display' | sed 's/^/    /' | cut -c1-110
+  echo "    boot mode: $([[ -d /sys/firmware/efi ]] && echo UEFI || echo legacy BIOS)"
+  hlog=$(ls -t "${XDG_RUNTIME_DIR:-/run/user/$UID}"/hypr/*/hyprland.log 2>/dev/null | head -n1)
+  { [[ -n "$hlog" ]] && grep -iE 'err|fail|crit' "$hlog" | tail -n 6; tail -n 4 "$log"; } 2>/dev/null | cut -c1-110 | sed 's/^/    /'
   echo
-  sleep 4
+  echo "  Press Enter for the text installer (it works the same way)."
+  echo "  To try the desktop again instead: uwsm start -- hyprland.desktop"
+  read -r -t 120 _ || true
   sudo lumen-os-install
 fi
 PROFILE
