@@ -209,7 +209,15 @@ task "NetworkManager online" nmcli -t -f STATE general
 task "zram swap" swapon --show
 
 # --- NVIDIA driver (installed with lumen.gpu=nvidia; this VM has no NVIDIA card) ----------
-if pacman -Q nvidia-utils >/dev/null 2>&1; then
+# Without an NVIDIA card, NVIDIA's libraries must not have been pulled in.
+if ! pacman -Q nvidia-open-dkms >/dev/null 2>&1; then
+  if pacman -Q nvidia-utils lib32-nvidia-utils 2>/dev/null | grep -q .; then
+    result "no NVIDIA libraries without an NVIDIA card" FAIL "$(pacman -Qi nvidia-utils lib32-nvidia-utils 2>/dev/null | grep -E '^(Name|Required By)' | tr '\n' ' ')"
+  else
+    result "no NVIDIA libraries without an NVIDIA card" PASS
+  fi
+fi
+if pacman -Q nvidia-open-dkms >/dev/null 2>&1; then
   say "--- NVIDIA: $(pacman -Q nvidia-open-dkms nvidia-utils 2>&1 | tr '\n' ' ')"
   say "running kernel: $(uname -r)"
   dkms status 2>&1 | head -n 5
