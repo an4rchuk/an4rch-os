@@ -104,7 +104,7 @@ New windows split the space with the window that has focus, so you rarely move o
 
 Every window has a title bar with **close**, **maximise/restore** and **minimise** buttons (right to left). Double-click the bar to maximise, drag it to move a floating window. Minimised windows wait out of sight: bring one back with <kbd>SUPER</kbd> + <kbd>SHIFT</kbd> + <kbd>M</kbd>, or from the taskbar. <kbd>SUPER</kbd> + <kbd>,</kbd> minimises from the keyboard.
 
-Prefer a classic desktop? Turn on the **taskbar** along the bottom of the screen: Lumen menu → Toggle → *Taskbar at the bottom* (or `lumen taskbar on`). Click an app to switch to it, click the active one to minimise it, middle-click to close it.
+The **taskbar** along the bottom of the screen is on by default; turn it off or on again from Lumen menu → Toggle → *Taskbar at the bottom* (or `lumen taskbar off` / `on`). Click an app to switch to it, click the active one to minimise it, middle-click to close it.
 
 Prefer the opposite, a clean edge-to-edge tiling look? `lumen titlebars off` removes the title bars. Both choices are saved in `~/.config/lumen/settings.conf` (`LUMEN_TITLEBARS`, `LUMEN_TASKBAR`) and can also be made in the installer.
 

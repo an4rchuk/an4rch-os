@@ -31,9 +31,14 @@ enable_multilib() {
 gpu_packages() {
   local gpus
   gpus=$(lspci -nn 2>/dev/null | grep -Ei 'vga|3d|display' || true)
-  grep -qiE 'amd|ati|radeon' <<<"$gpus" && echo "lib32-vulkan-radeon"
-  grep -qi intel <<<"$gpus" && echo "lib32-vulkan-intel"
-  grep -qi nvidia <<<"$gpus" && echo "lib32-nvidia-utils"
+  # By PCI vendor ID ("ati" would match "Corporation"). Steam needs a 32-bit
+  # Vulkan driver: if none is named, pacman picks the first provider
+  # (NVIDIA's), even on AMD/Intel machines; other GPUs get the software one.
+  local any=0
+  grep -q '\[1002:' <<<"$gpus" && { echo "lib32-vulkan-radeon"; any=1; }
+  grep -q '\[8086:' <<<"$gpus" && { echo "lib32-vulkan-intel"; any=1; }
+  grep -q '\[10de:' <<<"$gpus" && { echo "lib32-nvidia-utils"; any=1; }
+  ((any)) || printf '%s\n' lib32-vulkan-swrast vulkan-swrast
   echo "lib32-mesa"
 }
 

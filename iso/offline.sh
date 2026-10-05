@@ -34,7 +34,7 @@ mkdir -p "$repo" "$dbpath"
 # From install/distro.sh: plymouth zram-generator pacman-contrib
 # arch-install-scripts snapper snap-pac.
 want=(
-  "${PKGS_BASE[@]}" intel-ucode amd-ucode
+  "${PKGS_BASE[@]}" intel-ucode amd-ucode grub
   "${PKGS_AUDIO[@]}" "${PKGS_DESKTOP[@]}" "${PKGS_SYSTEM[@]}" wpa_supplicant
   "${PKGS_TOOLS[@]}" "${PKGS_FONTS[@]}" "${PKGS_LOOK[@]}" "${PKGS_OPTIONAL[@]}"
   "${PKGS_GPU_INTEL[@]}" "${PKGS_GPU_AMD[@]}" "${PKGS_GPU_NVIDIA[@]}" linux-headers linux-lts-headers

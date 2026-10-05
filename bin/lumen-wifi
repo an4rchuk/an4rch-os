@@ -9,9 +9,22 @@ radio=$(nmcli -t radio wifi 2>/dev/null || echo disabled)
 entries=()
 ssids=()
 
+# IN-USE:SIGNAL:SECURITY:SSID, strongest first, de-duplicated by name.
+# The networks found by the last scan open the menu at once (a fresh scan
+# takes several seconds); a new scan runs in the background for next time.
+networks() {
+  nmcli -t -f IN-USE,SIGNAL,SECURITY,SSID dev wifi list --rescan "$1" 2>/dev/null |
+    sort -t: -k2 -nr | awk -F: '!seen[$4]++'
+}
+
 if [[ "$radio" == enabled ]]; then
-  notify "Scanning for networks…" "" -t 1500 -h string:x-canonical-private-synchronous:lumen-wifi -i network-wireless
-  # IN-USE:SIGNAL:SECURITY:SSID, strongest first, de-duplicated by name.
+  list=$(networks no)
+  if [[ -z "$list" ]]; then
+    notify "Scanning for networks…" "" -t 1500 -h string:x-canonical-private-synchronous:lumen-wifi -i network-wireless
+    list=$(networks yes)
+  else
+    (nmcli dev wifi rescan >/dev/null 2>&1 &)
+  fi
   while IFS=: read -r inuse signal security ssid; do
     [[ -z "$ssid" ]] && continue
     ssid="${ssid//\\:/:}"
@@ -26,8 +39,7 @@ if [[ "$radio" == enabled ]]; then
     [[ "$inuse" == "*" ]] && mark="  ·  connected"
     entries+=("$bars  $ssid$lock$mark")
     ssids+=("$ssid")
-  done < <(nmcli -t -f IN-USE,SIGNAL,SECURITY,SSID dev wifi list --rescan auto 2>/dev/null |
-    sort -t: -k2 -nr | awk -F: '!seen[$4]++')
+  done <<<"$list"
   entries+=("󰖪  Turn Wi-Fi off")
 else
   entries+=("󰖩  Turn Wi-Fi on")
@@ -40,7 +52,14 @@ if ((choice < ${#ssids[@]})); then
   ssid="${ssids[$choice]}"
   if [[ "${entries[$choice]}" == *connected ]]; then
     if confirm "Disconnect from $ssid?"; then
-      nmcli con down id "$ssid" >/dev/null && notify "Disconnected" "$ssid" -i network-wireless-offline
+      # The Wi-Fi device itself: the saved connection's name can differ from
+      # the network's (e.g. "Home 1").
+      dev=$(nmcli -t -f DEVICE,TYPE dev 2>/dev/null | awk -F: '$2 == "wifi" { print $1; exit }')
+      if nmcli dev disconnect "${dev:-wlan0}" >/dev/null 2>&1; then
+        notify "Disconnected" "$ssid" -i network-wireless-offline
+      else
+        notify "Couldn't disconnect" "$ssid" -u critical -i network-wireless
+      fi
     fi
     exit 0
   fi

@@ -1,0 +1,69 @@
+#!/bin/bash
+# lumen-disk-info DISK — say what's on a disk before the installer erases it,
+# e.g. "Windows · 4 partitions", or nothing for an empty disk. Both installers
+# use it to make you confirm twice when a disk isn't empty.
+#
+# lumen-disk-info --space DISK — can Lumen go alongside the Windows on DISK,
+# and how big can it be? Prints shell assignments (needs root):
+#   max_gb=…  free_gb=…  win=/dev/…  esp=/dev/…    or    error="…"
+set -u
+
+ESP_TYPE=c12a7328-f81f-11d2-ba4b-00a0c93ec93b
+MIB=$((1024 * 1024))
+KEEP_FOR_WINDOWS_MIB=$((12 * 1024)) # Windows needs room for updates
+BOOT_MIB=1024                         # Lumen's boot partition (kernels)
+
+space() {
+  local disk="$1" esp win free_mib cur min info shrink_mib max_mib
+  err() { printf 'error=%q\n' "$1"; exit 0; }
+  [[ -d /sys/firmware/efi ]] || err "This computer started the USB in legacy BIOS mode. To install alongside Windows, restart and start the USB in UEFI mode."
+  esp=$(lsblk -nrpo NAME,PARTTYPE "$disk" 2>/dev/null | awk -v t="$ESP_TYPE" 'tolower($2) == t {print $1; exit}')
+  [[ -n "$esp" ]] || err "This disk has no EFI partition, so Windows on it starts in legacy mode. Lumen can only go alongside a UEFI Windows."
+  lsblk -nrpo FSTYPE "$disk" 2>/dev/null | grep -qi bitlocker &&
+    err "Windows' drive is encrypted with BitLocker. Turn off BitLocker in Windows (Settings → Privacy & security → Device encryption), or make free space with Disk Management, then try again."
+  # Windows' own drive is the biggest NTFS partition.
+  win=$(lsblk -nrpbo NAME,FSTYPE,SIZE "$disk" 2>/dev/null | awk '$2 == "ntfs" {print $3, $1}' | sort -n | tail -n1 | cut -d' ' -f2)
+  # Free space already on the disk (e.g. made with Windows' Disk Management).
+  free_mib=$(parted -sm "$disk" unit MiB print free 2>/dev/null |
+    awk -F: '$NF ~ /free;$/ { s = $4; sub(/MiB/, "", s); if (s + 0 > m) m = s + 0 } END { print int(m) }')
+  shrink_mib=0
+  if [[ -n "$win" ]]; then
+    info=$(ntfsresize -f --info "$win" 2>&1)
+    if grep -qiE 'hibernat|unclean|inconsistent|chkdsk|metadata kept in Windows cache' <<<"$info"; then
+      err "Windows didn't shut down fully (Fast Startup or hibernation). In Windows, turn off Fast Startup (Control Panel → Power Options → Choose what the power buttons do), then use Shut down, and try again."
+    fi
+    min=$(grep -o 'resize at [0-9]* bytes' <<<"$info" | awk '{print $3}')
+    cur=$(blockdev --getsize64 "$win" 2>/dev/null || echo 0)
+    if [[ -n "$min" ]] && ((cur > 0)); then
+      shrink_mib=$(((cur - min) / MIB - KEEP_FOR_WINDOWS_MIB))
+      ((shrink_mib > 0)) || shrink_mib=0
+    fi
+  fi
+  max_mib=$((free_mib + shrink_mib - BOOT_MIB - 64))
+  ((max_mib > 0)) || max_mib=0
+  printf 'max_gb=%d\nfree_gb=%d\nwin=%q\nesp=%q\n' $((max_mib / 1024)) $((free_mib / 1024)) "$win" "$esp"
+}
+
+if [[ "${1:-}" == --space ]]; then
+  space "${2:?usage: lumen-disk-info --space DISK}"
+  exit 0
+fi
+
+disk="${1:?usage: lumen-disk-info DISK}"
+systems=() parts=0
+while read -r line; do
+  parts=$((parts + 1))
+  case "${line,,}" in
+    *ntfs* | *bitlocker* | *"microsoft reserved"* | *"basic data partition"* | *windows*) systems+=(Windows) ;;
+    *apfs* | *hfs*) systems+=(macOS) ;;
+    *crypto_luks* | *btrfs* | *ext4* | *ext3* | *xfs* | *f2fs*) systems+=(Linux) ;;
+  esac
+done < <(lsblk -nrpo NAME,FSTYPE,PARTLABEL,LABEL "$disk" 2>/dev/null | tail -n +2 | sed 's/\\x20/ /g')
+((parts == 0)) && exit 0
+out="$parts partition$( ((parts > 1)) && echo s)"
+if ((${#systems[@]})); then
+  mapfile -t systems < <(printf '%s\n' "${systems[@]}" | awk '!seen[$0]++')
+  joined=$(printf '%s, ' "${systems[@]}")
+  out="${joined%, } · $out"
+fi
+echo "$out"

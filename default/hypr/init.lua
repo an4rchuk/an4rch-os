@@ -48,5 +48,9 @@ if ok and type(palette) == "table" then
     lumen.theme = palette
 end
 
+-- Choices made in the Settings app (gaps, rounding, effects, mouse and
+-- touchpad). Your own files in ~/.config/hypr/ still load after this.
+pcall(require, home .. "/.config/lumen/desktop")
+
 -- Title bars (hyprbars plugin) use the palette, so they load last.
 load("titlebars")

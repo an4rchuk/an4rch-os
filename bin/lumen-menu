@@ -18,6 +18,7 @@ show() {
 main_menu() {
   case $(show "Lumen" \
     "󰀻  Apps" \
+    "󰒓  Settings" \
     "󰏓  App Store" \
     "󰄀  Capture" \
     "󰔡  Toggle" \
@@ -29,6 +30,7 @@ main_menu() {
     "󰋗  Learn" \
     "󰐥  System") in
     *Apps) "$bin/lumen-start" ;;
+    *"  Settings") "$bin/lumen-settings" ;;
     *"App Store") "$bin/lumen-store" ;;
     *Capture) capture_menu ;;
     *Toggle) toggle_menu ;;
@@ -139,7 +141,7 @@ setup_menu() {
     "󰩟  Health check") in
     *Wi-Fi) "$bin/lumen-wifi" ;;
     *Bluetooth) "$bin/lumen-bluetooth" ;;
-    *"Audio mixer") "$bin/lumen-audio" ;;
+    *"Audio mixer") "$bin/lumen-audio" mixer ;;
     *"Audio output") "$bin/lumen-audio" output ;;
     *Displays) "$bin/lumen-display" ;;
     *"Power profile") "$bin/lumen-power-profile" ;;
@@ -152,7 +154,7 @@ setup_menu() {
     *Fingerprint*) term --float --hold -- "$bin/lumen-setup" fingerprint ;;
     *Printers) term --float --hold -- "$bin/lumen-setup" printing ;;
     *"Default apps") "$bin/lumen-setup" defaults ;;
-    *"Lumen settings") edit "$LUMEN_CONFIG/settings.conf" ;;
+    *"Lumen settings") "$bin/lumen-settings" ;;
     *"key bindings") edit "$HOME/.config/hypr/bindings.lua" ;;
     *"Health check") term --float --hold --title "Lumen doctor" -- "$bin/lumen-doctor" ;;
   esac

@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# lumen-settings — the Settings app: look, desktop, windows, sound, network,
+# displays, keyboard and mouse, power, default apps and the system.
+#
+#   lumen-settings [PAGE]    open, optionally at a page (look, desktop, windows,
+#                            sound, network, displays, input, power, apps, system)
+set -euo pipefail
+LUMEN_PATH="${LUMEN_PATH:-$HOME/.local/share/lumen}"
+exec python3 "$LUMEN_PATH/apps/lumen-settings/lumen_settings.py" "$@"

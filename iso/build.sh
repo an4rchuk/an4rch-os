@@ -31,8 +31,20 @@ cp -a "$releng" "$profile"
 # Our files on top of releng's live system.
 cp -a "$root/iso/airootfs/." "$profile/airootfs/"
 
-# Extra packages for the live environment (installer UI and tools).
+# Extra packages for the live environment (installer UI and tools), plus
+# the same desktop an install gets, so everything on the live desktop's bar
+# and menus works: sound, Bluetooth, idle and night light, fonts and so on.
 cat "$root/iso/packages.x86_64" >>"$profile/packages.x86_64"
+(
+  # shellcheck source=../install/packages.sh
+  source "$root/install/packages.sh"
+  printf '%s\n' "${PKGS_AUDIO[@]}" "${PKGS_DESKTOP[@]}" "${PKGS_TOOLS[@]}" "${PKGS_FONTS[@]}" "${PKGS_LOOK[@]}" \
+    bluez bluez-utils bluetui power-profiles-daemon upower playerctl libnotify \
+    wiremix pavucontrol network-manager-applet pacman-contrib \
+    nautilus gvfs loupe evince gnome-calculator "${PKG_FOR[firefox]}" \
+    testdisk ntfs-3g parted \
+    nvidia-open nvidia-utils egl-wayland
+) >>"$profile/packages.x86_64"
 sort -u -o "$profile/packages.x86_64" "$profile/packages.x86_64"
 
 # A copy of Lumen itself (with git history, so `lumen update` works after
@@ -69,7 +81,7 @@ sed -i \
 # mkarchiso copies airootfs without file modes, so everything that must stay
 # executable is listed: our installer, and every executable in Lumen's tree
 # (otherwise every lumen-* command fails with "Permission denied").
-perms='  ["/usr/local/bin/lumen-os-install"]="0:0:755"\n  ["/usr/local/bin/lumen-rescue"]="0:0:755"\n  ["/usr/local/bin/lumen-live-setup"]="0:0:755"\n  ["/usr/local/bin/lumen-installer"]="0:0:755"'
+perms='  ["/usr/local/bin/lumen-os-install"]="0:0:755"\n  ["/usr/local/bin/lumen-rescue"]="0:0:755"\n  ["/usr/local/bin/lumen-live-setup"]="0:0:755"\n  ["/usr/local/bin/lumen-installer"]="0:0:755"\n  ["/usr/local/bin/lumen-live-check"]="0:0:755"\n  ["/usr/local/bin/lumen-live-preload"]="0:0:755"\n  ["/usr/local/bin/lumen-disk-info"]="0:0:755"'
 while IFS= read -r f; do
   perms+="\\n  [\"/opt/lumen/${f#./}\"]=\"0:0:755\""
 done < <(cd "$profile/airootfs/opt/lumen" && find . -path ./.git -prune -o -type f -perm -u+x -print | sort)
@@ -89,13 +101,22 @@ find "$profile/efiboot" "$profile/syslinux" "$profile/grub" -type f \( -name '*.
 find "$profile/efiboot" "$profile/syslinux" "$profile/grub" -type f \( -name '*.conf' -o -name '*.cfg' \) ! -name '*pxe*' \
   -exec sed -i 's/archisobasedir=/copytoram=n archisobasedir=/' {} +
 
+# Boot quietly: no kernel or service messages on screen (firmware warnings
+# such as ACPI errors on some laptops look alarming but are harmless), so
+# the boot goes straight from the menu to the desktop.
+find "$profile/efiboot" "$profile/syslinux" "$profile/grub" -type f \( -name '*.conf' -o -name '*.cfg' \) \
+  -exec sed -i 's/archisobasedir=/quiet loglevel=3 systemd.show_status=auto rd.udev.log_level=3 archisobasedir=/' {} +
+
 # The default entry boots the live desktop with the graphical installer; a
-# second entry runs the text-mode installer instead (lumen.text=1).
+# second runs the text-mode installer instead (lumen.text=1), and a third
+# uses NVIDIA's own driver instead of nouveau (for NVIDIA graphics that the
+# default can't drive; GTX 16xx / RTX 20xx and newer).
 for entry in "$profile"/efiboot/loader/entries/*.conf; do
   case "$entry" in *speech* | *memtest* | *shell* | *accessib*) continue ;; esac
   [[ -f "$entry" ]] || continue
-  text="${entry%.conf}-text.conf"
-  sed -e 's/^title .*/& (text mode)/' -e 's/^options .*/& lumen.text=1/' "$entry" >"$text"
+  sed -e 's/^title .*/& (text mode)/' -e 's/^options .*/& lumen.text=1/' "$entry" >"${entry%.conf}-text.conf"
+  sed -e 's/^title .*/& (NVIDIA)/' -e 's/^options .*/& modprobe.blacklist=nouveau nvidia_drm.modeset=1 nvidia_drm.fbdev=1 lumen.nvidia=1/' \
+    "$entry" >"${entry%.conf}-nvidia.conf"
   break
 done
 

@@ -1,0 +1,115 @@
+/* Lumen sound panel. Colours come from the theme (apps.css @define-color lumen_*). */
+
+window.lumen-audio {
+  background: transparent;
+}
+
+.backdrop {
+  background: transparent;
+}
+
+.panel {
+  margin: 8px 10px 0 0;
+  padding: 16px 16px 12px;
+  border-radius: 20px;
+  background: alpha(@lumen_bg_alt, 0.97);
+  border: 1px solid alpha(@lumen_fg, 0.08);
+  box-shadow: 0 16px 44px alpha(black, 0.45);
+  color: @lumen_fg;
+  font-family: "Inter", sans-serif;
+}
+
+.title {
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+
+.section {
+  margin-top: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: @lumen_fg_dim;
+}
+
+.percent {
+  font-feature-settings: "tnum";
+  color: @lumen_fg_dim;
+}
+
+scale trough {
+  min-height: 6px;
+  border-radius: 999px;
+  background: alpha(@lumen_fg, 0.12);
+}
+
+scale highlight {
+  border-radius: 999px;
+  background: @lumen_accent;
+}
+
+scale slider {
+  min-width: 16px;
+  min-height: 16px;
+  background: @lumen_fg;
+}
+
+list.devices {
+  background: transparent;
+}
+
+row.device {
+  padding: 7px 10px;
+  border-radius: 12px;
+}
+
+row.device:hover {
+  background: alpha(@lumen_fg, 0.07);
+}
+
+row.device.current {
+  background: alpha(@lumen_accent, 0.16);
+}
+
+.footer-button {
+  border-radius: 12px;
+  padding: 6px 10px;
+}
+
+.dim {
+  color: @lumen_fg_dim;
+}
+
+button {
+  background: alpha(@lumen_fg, 0.07);
+  color: @lumen_fg;
+  border: none;
+  box-shadow: none;
+  text-shadow: none;
+}
+
+button:hover {
+  background: alpha(@lumen_accent, 0.20);
+}
+
+button.mute {
+  background: transparent;
+  min-width: 34px;
+  min-height: 34px;
+  border-radius: 999px;
+}
+
+button.mute:hover {
+  background: alpha(@lumen_fg, 0.08);
+}
+
+scale slider {
+  border-radius: 999px;
+  border: none;
+  box-shadow: 0 1px 4px alpha(black, 0.4);
+}
+
+scale marks indicator {
+  min-height: 0;
+  background: transparent;
+}

@@ -208,6 +208,92 @@ task "firewall active" systemctl is-active ufw
 task "NetworkManager online" nmcli -t -f STATE general
 task "zram swap" swapon --show
 
+# --- NVIDIA driver (installed with lumen.gpu=nvidia; this VM has no NVIDIA card) ----------
+# Without an NVIDIA card, NVIDIA's libraries must not have been pulled in.
+if ! pacman -Q nvidia-open-dkms >/dev/null 2>&1; then
+  if pacman -Q nvidia-utils lib32-nvidia-utils 2>/dev/null | grep -q .; then
+    result "no NVIDIA libraries without an NVIDIA card" FAIL "$(pacman -Qi nvidia-utils lib32-nvidia-utils 2>/dev/null | grep -E '^(Name|Required By)' | tr '\n' ' ')"
+  else
+    result "no NVIDIA libraries without an NVIDIA card" PASS
+  fi
+fi
+if pacman -Q nvidia-open-dkms >/dev/null 2>&1; then
+  say "--- NVIDIA: $(pacman -Q nvidia-open-dkms nvidia-utils 2>&1 | tr '\n' ' ')"
+  say "running kernel: $(uname -r)"
+  dkms status 2>&1 | head -n 5
+  for k in /usr/lib/modules/*/; do
+    kv=$(basename "$k")
+    [[ -d "$k/kernel" ]] || continue
+    if modinfo -k "$kv" nvidia >/dev/null 2>&1; then result "NVIDIA driver built for $kv" PASS; else result "NVIDIA driver built for $kv" FAIL; fi
+  done
+  if [[ -f /etc/modprobe.d/lumen-nvidia.conf ]]; then result "NVIDIA kernel mode setting configured" PASS; else result "NVIDIA kernel mode setting configured" FAIL; fi
+  # This VM's screen is a virtio GPU, like the Intel/AMD GPU of a hybrid
+  # laptop: the NVIDIA-only settings must not be there.
+  if grep -q __GLX_VENDOR_LIBRARY_NAME "$home/.config/uwsm/env" 2>/dev/null; then
+    result "hybrid graphics: no NVIDIA-only settings" FAIL "$(grep -n nvidia "$home/.config/uwsm/env")"
+  else
+    result "hybrid graphics: no NVIDIA-only settings" PASS
+  fi
+fi
+case "$(uname -r)" in *lts*) result "running the LTS kernel" PASS "$(uname -r)" ;; esac
+
+# --- Installed alongside Windows ---------------------------------------------------------------
+if findmnt -n /efi >/dev/null 2>&1; then
+  say "--- dual boot: $(bootctl list --no-pager 2>/dev/null | grep -E 'title:|id:' | tr -s ' ' | tr '\n' ' ')"
+  if [[ -f /efi/EFI/Microsoft/Boot/bootmgfw.efi ]]; then result "Windows boot manager kept" PASS; else result "Windows boot manager kept" FAIL; fi
+  if bootctl list --no-pager 2>/dev/null | grep -qi 'windows'; then result "boot menu lists Windows" PASS; else result "boot menu lists Windows" FAIL "$(bootctl list --no-pager 2>&1 | head -n 20 | tr '\n' ' ')"; fi
+  if grep -q LOCAL /etc/adjtime 2>/dev/null; then result "clock in local time (like Windows)" PASS; else result "clock in local time (like Windows)" FAIL; fi
+fi
+
+# --- Settings, the sound panel and the login screen ------------------------------------------
+as_user lumen-settings windows >/dev/null 2>&1 &
+if wait_window "Settings opens" 'lumen.Settings' 40; then
+  sleep 3
+  shot 21a-settings
+fi
+# A change made in Settings reaches Hyprland (desktop.json → desktop.lua → reload).
+# Every option changed at once, as someone working through the Settings app would.
+as_user bash -c 'mkdir -p ~/.config/lumen && printf "%s\n" "{\"gaps_in\": 9, \"gaps_out\": 6, \"border_size\": 3, \"rounding\": 4, \"inactive_opacity\": 0.9, \"blur\": false, \"shadow\": false, \"animations\": false, \"sensitivity\": -0.3, \"natural_scroll\": false, \"tap_to_click\": false, \"disable_while_typing\": false, \"scroll_factor\": 0.8, \"repeat_delay\": 400, \"repeat_rate\": 30}" > ~/.config/lumen/desktop.json'
+task "Settings writes the window config" as_user python3 "$lumen/apps/lumen-settings/lumen_settings.py" --write-desktop
+as_user hyprctl reload >/dev/null 2>&1
+sleep 2
+gaps=$(as_user hyprctl getoption general:gaps_in -j 2>/dev/null | tr -d ' \n')
+[[ "$gaps" == *9* ]] || gaps=$(as_user hyprctl repl 'return hl.get_config("general.gaps_in")' 2>/dev/null | tail -n1)
+if [[ "$gaps" == *9* ]]; then result "Settings change applied" PASS "$gaps"; else result "Settings change applied" FAIL "${gaps:-no answer}"; fi
+errs=$(as_user hyprctl configerrors 2>&1 | grep -v -i -e '^\s*$' -e 'no errors')
+if [[ -z "$errs" ]]; then result "no config errors after Settings changes" PASS; else result "no config errors after Settings changes" FAIL "$(tr '\n' ' ' <<<"$errs")"; fi
+as_user rm -f "$home/.config/lumen/desktop.json" "$home/.config/lumen/desktop.lua"
+as_user hyprctl reload >/dev/null 2>&1
+pkill -f lumen_settings.py
+
+as_user lumen-audio >/dev/null 2>&1 &
+sleep 6
+if as_user hyprctl layers -j 2>/dev/null | grep -q '"lumen-audio"'; then
+  result "sound panel opens" PASS
+else
+  result "sound panel opens" FAIL "$(pgrep -af lumen_audio | head -n 2 | tr '\n' ' ')"
+fi
+shot 21b-sound-panel
+as_user lumen-audio >/dev/null 2>&1
+sleep 2
+
+if [[ -x /usr/local/bin/lumen-greeter ]] && grep -q lumen-greeter /etc/greetd/config.toml 2>/dev/null; then
+  result "login screen installed" PASS
+else
+  result "login screen installed" FAIL "$(grep -m1 command /etc/greetd/config.toml 2>&1)"
+fi
+if [[ -s /var/lib/lumen/login/wallpaper && -s /var/lib/lumen/login/regreet.css ]]; then
+  result "login screen has the theme and wallpaper" PASS
+else
+  result "login screen has the theme and wallpaper" FAIL "$(ls -la /var/lib/lumen/login 2>&1 | tr '\n' ' ')"
+fi
+as_user lumen-login preview >/dev/null 2>&1
+if wait_window "login screen preview" 'regreet' 30; then
+  sleep 3
+  shot 21c-login-screen
+fi
+pkill -x regreet
+
 # --- Lock screen ---------------------------------------------------------------------------
 pkill -x firefox
 pkill -x nautilus

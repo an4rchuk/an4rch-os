@@ -53,6 +53,7 @@ use() {
   ln -sfn "$file" "$link"
   printf '%s\n' "$file" >"$remember"
   show
+  "$LUMEN_PATH/bin/lumen-login" sync >/dev/null 2>&1 || true
 }
 
 step() {

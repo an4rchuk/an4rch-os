@@ -1,0 +1,19 @@
+#!/bin/bash
+# lumen-live-preload — live USB only: read the apps people open first
+# (browser, files, terminal, settings tools, the installer's Python) into
+# memory, quietly in the background. Started by lumen-live-setup once the
+# desktop is up; without it each of these loads from the stick the first
+# time it opens, which takes several seconds on a USB 2 port.
+set -u
+avail=$(awk '/^MemAvailable:/ { print int($2 / 1024) }' /proc/meminfo)
+# About 1 GB is read; leave plenty for the desktop on small machines.
+((avail >= 3000)) || { echo "only ${avail} MB free: not preloading"; exit 0; }
+
+pkgs=(ghostty nautilus firefox fuzzel bluetui pavucontrol wiremix btop loupe evince gnome-calculator
+  gtk4 gtk3 libadwaita python python-gobject network-manager-applet)
+mapfile -t have < <(pacman -Qq "${pkgs[@]}" 2>/dev/null)
+((${#have[@]})) || exit 0
+pacman -Qlq "${have[@]}" 2>/dev/null | while IFS= read -r f; do
+  [[ -f "$f" ]] && printf '%s\0' "$f"
+done | xargs -0 -r cat >/dev/null 2>&1
+echo "preloaded: ${have[*]}"

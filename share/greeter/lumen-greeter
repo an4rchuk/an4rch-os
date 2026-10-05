@@ -1,0 +1,29 @@
+#!/bin/bash
+# lumen-greeter — Lumen's login screen, started by greetd as the "greeter"
+# user (installed to /usr/local/bin by `lumen-login setup`).
+#
+# ReGreet, a graphical login screen, runs in the cage kiosk compositor with
+# your wallpaper and theme (copied to /var/lib/lumen/login by `lumen-login
+# sync`). If it can't start on this computer, the text login screen
+# (tuigreet) takes over, so you can always log in.
+dir=/var/lib/lumen/login
+session="uwsm start -- hyprland.desktop"
+log="${XDG_RUNTIME_DIR:-/tmp}/lumen-greeter.log"
+
+if [[ ! -e "$dir/text-only" ]] && command -v cage >/dev/null && command -v regreet >/dev/null &&
+  compgen -G '/dev/dri/card*' >/dev/null; then
+  # Lumen's session files come first: ReGreet takes the first file of each
+  # name, so the list shows one "Lumen" session (Hyprland through uwsm).
+  export XDG_DATA_DIRS="/usr/local/share/lumen:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
+  args=()
+  [[ -f "$dir/regreet.toml" ]] && args+=(--config "$dir/regreet.toml")
+  [[ -f "$dir/regreet.css" ]] && args+=(--style "$dir/regreet.css")
+  start=$SECONDS
+  cage -s -m last -- regreet "${args[@]}" >"$log" 2>&1 && exit 0
+  # It ran for a while, so it worked (and someone logged in): done.
+  ((SECONDS - start > 20)) && exit 0
+  echo "lumen-greeter: the graphical login screen failed; using the text one" >>"$log"
+fi
+
+exec tuigreet --time --time-format '%A %d %B  ·  %H:%M' --remember --asterisks \
+  --greeting 'Welcome to Lumen' --cmd "$session"

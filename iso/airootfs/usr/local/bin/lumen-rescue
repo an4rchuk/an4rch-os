@@ -50,7 +50,10 @@ new=/mnt/lumen-new
 mkdir -p "$new"
 mount -o subvol=@ "$dev" "$new"
 mount -o subvol=@pkg "$dev" "$new/var/cache/pacman/pkg"
-esp=$(lsblk -pnro NAME,PARTLABEL,FSTYPE | awk '$2 == "EFI" && $3 == "vfat" {print $1; exit}')
+# Kernels live on Lumen's own boot partition when installed alongside
+# Windows (LumenBoot), otherwise on the EFI partition.
+esp=$(lsblk -pnro NAME,PARTLABEL,FSTYPE | awk '$2 == "LumenBoot" && $3 == "vfat" {print $1; exit}')
+[[ -n "$esp" ]] || esp=$(lsblk -pnro NAME,PARTLABEL,FSTYPE | awk '$2 == "EFI" && $3 == "vfat" {print $1; exit}')
 [[ -n "$esp" ]] && mount "$esp" "$new/boot"
 for k in linux linux-lts; do
   ver=$(pacman --root "$new" --dbpath "$new/var/lib/pacman" -Q "$k" 2>/dev/null | awk '{print $2}') || true

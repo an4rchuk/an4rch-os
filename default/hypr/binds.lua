@@ -40,6 +40,7 @@ bind("SUPER + SHIFT + Return", exec(cmd("term", "--float")),           "Floating
 bind("SUPER + grave",         exec(cmd("windows")),                    "Find an open window")
 bind("SUPER + slash",         exec(cmd("keys")),                       "Show all key bindings")
 bind("SUPER + F1",            exec(cmd("manual")),                     "Open the Lumen manual")
+bind("SUPER + I",             exec(cmd("settings")),                   "Settings")
 
 ---------------------------------------------------------------------------
 -- Windows
@@ -172,7 +173,7 @@ end, "Zoom in / out around the cursor")
 ---------------------------------------------------------------------------
 bind("SUPER + ALT + W", exec(cmd("wifi")),       "Wi-Fi")
 bind("SUPER + ALT + B", exec(cmd("bluetooth")),  "Bluetooth")
-bind("SUPER + ALT + A", exec(cmd("audio")),      "Audio mixer and devices")
+bind("SUPER + ALT + A", exec(cmd("audio")),      "Sound panel: volume and devices")
 bind("SUPER + ALT + D", exec(cmd("display")),    "Displays")
 bind("SUPER + ALT + T", exec(launch("monitor")), "System monitor")
 bind("SUPER + ALT + I", exec(cmd("pkg", "install")), "Install apps")

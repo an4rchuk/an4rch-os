@@ -1,12 +1,14 @@
 [Unit]
 Description=Lumen OS live desktop
-Before=getty@tty1.service systemd-user-sessions.service
+Before=getty@tty1.service
 After=systemd-sysusers.service local-fs.target
 
 [Service]
 Type=oneshot
 RemainAfterExit=yes
 ExecStart=/usr/local/bin/lumen-live-setup
+# Never hold up the boot (and the login prompt) for long.
+TimeoutStartSec=150
 
 [Install]
 WantedBy=multi-user.target

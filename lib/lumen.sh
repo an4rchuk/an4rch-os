@@ -47,9 +47,11 @@ notify() {
 
 # Run a program detached from the caller, as its own systemd scope when the
 # session is managed by uwsm (keeps logs and resource accounting tidy).
+# systemd-run directly rather than `uwsm app`: the same scope, without
+# starting Python for every app that opens (much quicker, above all from USB).
 launch() {
-  if has uwsm && systemctl --user is-active -q graphical-session.target 2>/dev/null; then
-    uwsm app -- "$@" >/dev/null 2>&1 &
+  if systemctl --user is-active -q graphical-session.target 2>/dev/null; then
+    systemd-run --user --quiet --collect --scope --slice=app-graphical.slice -- "$@" >/dev/null 2>&1 &
   else
     setsid -f "$@" >/dev/null 2>&1
   fi

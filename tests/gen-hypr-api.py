@@ -26,7 +26,7 @@ def block_names(text, marker):
 
 
 cfg = read("config/values/ConfigValues.cpp")
-config = sorted({m.replace(":", ".") for m in re.findall(r'MS<\w+>\(\s*"([^"]+)"', cfg)})
+config = sorted({m.replace(":", ".").replace("-", "_") for m in re.findall(r'MS<\w+>\(\s*"([^"]+)"', cfg)})
 
 internal = read("config/lua/bindings/LuaBindingsInternal.hpp")
 rules = read("config/lua/bindings/LuaBindingsConfigRules.cpp")

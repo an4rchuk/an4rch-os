@@ -60,6 +60,11 @@ DEFAULT_PINS = [
 
 # Settings and actions reachable from search: (title, keywords, icon, command).
 ACTIONS = [
+    ("Settings", "settings preferences control panel customise customize options", "emblem-system-symbolic", ["lumen-settings"]),
+    ("Windows and effects", "gaps rounding corners border blur shadows animations transparency opacity", "preferences-system-windows-symbolic", ["lumen-settings", "windows"]),
+    ("Mouse and touchpad", "mouse touchpad pointer speed tap click scroll natural", "input-mouse-symbolic", ["lumen-settings", "input"]),
+    ("Default apps", "default browser terminal editor files apps", "applications-other-symbolic", ["lumen-settings", "apps"]),
+    ("About this computer", "about system info memory processor graphics storage version", "computer-symbolic", ["lumen-settings", "system"]),
     ("Wi-Fi", "wifi wireless network internet", "network-wireless-symbolic", ["lumen-wifi"]),
     ("Bluetooth", "bluetooth headphones pair", "bluetooth-symbolic", ["lumen-bluetooth"]),
     ("Sound", "audio volume speaker microphone output", "audio-volume-high-symbolic", ["lumen-audio"]),
@@ -176,7 +181,7 @@ def ago(ts: float) -> str:
 def session_managed() -> bool:
     try:
         return subprocess.run(["systemctl", "--user", "is-active", "-q", "graphical-session.target"],
-                              timeout=2).returncode == 0 and bool(GLib.find_program_in_path("uwsm"))
+                              timeout=2).returncode == 0 and bool(GLib.find_program_in_path("systemd-run"))
     except (OSError, subprocess.SubprocessError):
         return False
 
@@ -421,7 +426,7 @@ class StartMenu(Gtk.ApplicationWindow):
 
         tool("system-software-install-symbolic", "App Store", ["lumen-store"])
         tool("folder-symbolic", "Files", ["lumen-launch", "files"])
-        tool("emblem-system-symbolic", "Settings", ["lumen-menu"])
+        tool("emblem-system-symbolic", "Settings", ["lumen-settings"])
 
         power = Gtk.MenuButton(icon_name="system-shutdown-symbolic", tooltip_text="Power", css_classes=["footer-button", "flat", "power"])
         pop = Gtk.Popover(css_classes=["power-popover"])
@@ -558,7 +563,11 @@ class StartMenu(Gtk.ApplicationWindow):
         recent = dict(sorted(recent.items(), key=lambda kv: -kv[1]["last"])[:40])
         save_json(RECENT_FILE, recent)
         if self.uwsm:
-            run_detached(["uwsm", "app", "--", app.id])
+            # The app's own scope, like `uwsm app`, but without starting
+            # Python each time: gio and systemd-run are quick.
+            path = app.info.get_filename() or app.id
+            run_detached(["systemd-run", "--user", "--quiet", "--collect", "--scope",
+                          "--slice=app-graphical.slice", "--", "gio", "launch", path])
         else:
             ctx = Gdk.Display.get_default().get_app_launch_context()
             try:

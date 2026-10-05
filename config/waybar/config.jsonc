@@ -191,7 +191,7 @@
     "max-volume": 150,
     "on-click": "lumen-audio",
     "on-click-right": "lumen-osd volume mute",
-    "tooltip-format": "{desc}\nClick: mixer · Right-click: mute"
+    "tooltip-format": "{desc}\nClick: sound panel · Right-click: mute · Scroll: volume"
   },
 
   "bluetooth": {

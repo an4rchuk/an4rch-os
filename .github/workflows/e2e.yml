@@ -11,8 +11,45 @@ on:
 
 jobs:
   e2e:
+    name: e2e (${{ matrix.vm }})
     runs-on: ubuntu-24.04
     timeout-minutes: 300
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Bug hunting on two very different machines.
+          - vm: low-spec        # older laptop: 2 cores, 4 GB, 1366x768 (+ legacy BIOS install)
+            cpus: 2
+            mem: 4G
+            xres: 1366
+            yres: 768
+            bios: true
+          - vm: high-spec       # gaming desktop: 4 cores, 14 GB, 1440p, gaming stack
+            cpus: 4
+            mem: 14G
+            xres: 2560
+            yres: 1440
+            install: lumen.gaming=1
+          # NVIDIA: no VM has an NVIDIA card, so these test the driver install
+          # and the "(NVIDIA)" live entry, not the GPU itself.
+          - vm: nvidia
+            live: modprobe.blacklist=nouveau nvidia_drm.modeset=1 nvidia_drm.fbdev=1 lumen.nvidia=1
+            install: lumen.gpu=nvidia
+          - vm: nvidia-lts      # the driver on the LTS kernel too
+            install: lumen.gpu=nvidia lumen.bootlts=1
+          # Next to a disk laid out like a Windows laptop's.
+          - vm: dual-boot
+            windows: true
+            install: lumen.mode=alongside lumen.size=30
+    env:
+      VM_CPUS: ${{ matrix.cpus || 4 }}
+      VM_MEM: ${{ matrix.mem || '8G' }}
+      VM_XRES: ${{ matrix.xres || 1920 }}
+      VM_YRES: ${{ matrix.yres || 1080 }}
+      LIVE_APPEND: ${{ matrix.live || '' }}
+      INSTALL_APPEND: ${{ matrix.install || '' }}
+      WINDOWS: ${{ matrix.windows || false }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -48,23 +85,33 @@ jobs:
           label=$(blkid -o value -s LABEL "$iso")
           bsdtar -xf "$iso" arch/boot/x86_64/vmlinuz-linux arch/boot/x86_64/initramfs-linux.img
           cp /usr/share/OVMF/OVMF_VARS_4M.fd live-vars.fd
-          qemu-system-x86_64 -enable-kvm -machine q35 -cpu host -smp 4 -m 8G \
+          qemu-system-x86_64 -enable-kvm -machine q35 -cpu host -smp "$VM_CPUS" -m "$VM_MEM" \
             -drive if=pflash,format=raw,readonly=on,file=/usr/share/OVMF/OVMF_CODE_4M.fd \
             -drive if=pflash,format=raw,file=live-vars.fd \
             -drive file="$iso",media=cdrom,readonly=on \
             -kernel arch/boot/x86_64/vmlinuz-linux -initrd arch/boot/x86_64/initramfs-linux.img \
-            -append "archisobasedir=arch archisolabel=$label console=tty0 console=ttyS0,115200" \
-            -vga none -device virtio-vga,xres=1920,yres=1080 \
+            -append "archisobasedir=arch archisolabel=$label console=tty0 console=ttyS0,115200 lumen.livecheck=1 $LIVE_APPEND" \
+            -vga none -device virtio-vga,xres=$VM_XRES,yres=$VM_YRES \
             -nic user,model=virtio-net-pci -display none \
             -monitor unix:live.sock,server,nowait -serial file:live-serial.log &
+          qpid=$!
           mon() { echo "$1" | socat - UNIX-CONNECT:live.sock >/dev/null; }
           shot() { mon "screendump $PWD/$1.ppm"; sleep 2; python3 -c "from PIL import Image; Image.open('$1.ppm').save('$1.png')" && rm -f "$1.ppm" || true; }
           mkdir -p shots
           sleep 90;  shot shots/00a-live-installer
-          sleep 45;  shot shots/00b-live-installer-later
+          # lumen-live-check reports on the live desktop over serial (~100 s after boot).
+          for _ in $(seq 60); do grep -aq LUMEN-LIVE-CHECK-END live-serial.log && break; sleep 3; done
+          shot shots/00b-live-installer-later
+          # Make sure this VM is gone before the install VM starts (memory).
           mon "quit" || true
-          echo "--- live boot console (end) ---"
-          tr -d '\r' <live-serial.log | sed 's/\x1b\[[0-9;?]*[a-zA-Z]//g' | grep -av '^\s*$' | tail -n 40 || true
+          for _ in $(seq 10); do kill -0 "$qpid" 2>/dev/null || break; sleep 1; done
+          kill -9 "$qpid" 2>/dev/null || true
+          wait "$qpid" 2>/dev/null || true
+          tr -d '\r' <live-serial.log | sed 's/\x1b\[[0-9;?]*[a-zA-Z]//g' >live-clean.log
+          sed -n '/=== LUMEN-LIVE-CHECK ===/,/LUMEN-LIVE-CHECK-END/p' live-clean.log >live-check.log
+          grep -a -o 'E2E-RESULT live: .*' live-check.log >live-results.txt || true
+          [ -s live-results.txt ] || echo "E2E-RESULT live: report received FAIL (no LUMEN-LIVE-CHECK on serial)" >live-results.txt
+          cat live-check.log
 
       - name: Install Lumen OS in a VM (unattended)
         run: |
@@ -72,14 +119,45 @@ jobs:
           label=$(blkid -o value -s LABEL "$iso")
           bsdtar -xf "$iso" arch/boot/x86_64/vmlinuz-linux arch/boot/x86_64/initramfs-linux.img
           cp /usr/share/OVMF/OVMF_VARS_4M.fd vars.fd
-          qemu-img create -f qcow2 disk.qcow2 40G
-          timeout 150m qemu-system-x86_64 -enable-kvm -machine q35 -cpu host -smp 4 -m 8G \
+          if [ "$WINDOWS" = true ]; then
+            # A disk laid out like a Windows laptop's: EFI partition with the
+            # Windows boot manager, Microsoft reserved, an NTFS C: drive with
+            # files (checksummed, to prove they survive) and a recovery partition.
+            sudo apt-get install -y -q gdisk ntfs-3g dosfstools >/dev/null
+            truncate -s 90G win.raw
+            sgdisk -n1:0:+100M -t1:ef00 -c1:"EFI system partition" -n2:0:+16M -t2:0c01 -c2:"Microsoft reserved partition" \
+              -n3:0:-700M -t3:0700 -c3:"Basic data partition" -n4:0:0 -t4:2700 -c4:"Windows RE" win.raw
+            loop=$(sudo losetup -fP --show win.raw)
+            sudo mkfs.fat -F32 -n SYSTEM "${loop}p1" >/dev/null
+            sudo mkntfs -Q -L Windows "${loop}p3" >/dev/null
+            sudo mkntfs -Q -L WinRE "${loop}p4" >/dev/null
+            sudo mkdir -p /mnt/esp /mnt/c
+            sudo mount "${loop}p1" /mnt/esp
+            sudo mkdir -p /mnt/esp/EFI/Microsoft/Boot /mnt/esp/EFI/Boot
+            head -c 1500000 /dev/urandom | sudo tee /mnt/esp/EFI/Microsoft/Boot/bootmgfw.efi >/dev/null
+            sudo cp /mnt/esp/EFI/Microsoft/Boot/bootmgfw.efi /mnt/esp/EFI/Boot/bootx64.efi
+            sudo umount /mnt/esp
+            sudo mount -t ntfs-3g "${loop}p3" /mnt/c
+            sudo mkdir -p /mnt/c/Windows/System32 "/mnt/c/Users/Student/Documents" "/mnt/c/Program Files/App"
+            for i in $(seq 1 400); do head -c $((RANDOM * 8)) /dev/urandom | sudo tee "/mnt/c/Users/Student/Documents/file $i.txt" >/dev/null; done
+            sudo dd if=/dev/urandom of=/mnt/c/Windows/System32/big.bin bs=1M count=3000 status=none
+            sudo dd if=/dev/urandom of="/mnt/c/Program Files/App/app.bin" bs=1M count=500 status=none
+            (cd /mnt/c && sudo find . -type f -print0 | sudo xargs -0 sha256sum) >win-files.sha256
+            sudo umount /mnt/c
+            sudo sgdisk -i 3 "$loop" | grep -i 'unique guid' >win-part-guid.txt
+            sudo losetup -d "$loop"
+            echo "Windows-style disk: $(wc -l <win-files.sha256) files"
+            qemu-img convert -O qcow2 win.raw disk.qcow2 && rm -f win.raw
+          else
+            qemu-img create -f qcow2 disk.qcow2 40G
+          fi
+          timeout 150m qemu-system-x86_64 -enable-kvm -machine q35 -cpu host -smp "$VM_CPUS" -m "$VM_MEM" \
             -drive if=pflash,format=raw,readonly=on,file=/usr/share/OVMF/OVMF_CODE_4M.fd \
             -drive if=pflash,format=raw,file=vars.fd \
             -drive file=disk.qcow2,if=virtio,format=qcow2 \
             -drive file="$iso",media=cdrom,readonly=on \
             -kernel arch/boot/x86_64/vmlinuz-linux -initrd arch/boot/x86_64/initramfs-linux.img \
-            -append "archisobasedir=arch archisolabel=$label console=tty0 console=ttyS0,115200 lumen.auto=1 lumen.disk=/dev/vda lumen.user=lumen lumen.pass=lumen lumen.autologin=1 lumen.poweroff=1 lumen.serial=1" \
+            -append "archisobasedir=arch archisolabel=$label console=tty0 console=ttyS0,115200 lumen.auto=1 lumen.disk=/dev/vda lumen.user=lumen lumen.pass=lumen lumen.autologin=1 lumen.poweroff=1 lumen.serial=1 $INSTALL_APPEND" \
             -nic user,model=virtio-net-pci -display none -serial file:install-serial.log -no-reboot || true
           # The installer's own output, without systemd's boot/shutdown chatter.
           sed 's/\x1b\[[0-9;?]*[a-zA-Z]//g; s/\x1b\][^\x1b]*\x1b\\//g' install-serial.log |
@@ -92,15 +170,43 @@ jobs:
           fi
           grep -q LUMEN-INSTALL-OK install-serial.log
 
+      - name: Check Windows survived (dual boot)
+        if: env.WINDOWS == 'true'
+        run: |
+          sudo modprobe nbd max_part=16
+          sudo qemu-nbd --read-only -c /dev/nbd0 disk.qcow2 && sleep 2
+          sudo sgdisk -p /dev/nbd0
+          r() { echo "E2E-RESULT dual-boot: $1 $2 ${3:-}" | tee -a dualboot-results.txt; }
+          if sudo sgdisk -i 3 /dev/nbd0 | grep -i 'unique guid' | diff -q - win-part-guid.txt >/dev/null; then r "Windows partition kept its identity" PASS; else r "Windows partition kept its identity" FAIL; fi
+          sudo mkdir -p /mnt/c /mnt/esp
+          if sudo ntfsfix -n /dev/nbd0p3 && sudo mount -t ntfs-3g -o ro /dev/nbd0p3 /mnt/c; then
+            r "Windows drive mounts" PASS "$(df -h /mnt/c | tail -n1 | awk '{print $2" total, "$3" used"}')"
+            if (cd /mnt/c && sha256sum --quiet -c "$GITHUB_WORKSPACE/win-files.sha256"); then r "all Windows files intact" PASS "$(wc -l <win-files.sha256) files"; else r "all Windows files intact" FAIL; fi
+            sudo umount /mnt/c
+          else
+            r "Windows drive mounts" FAIL
+          fi
+          sudo mount -o ro /dev/nbd0p1 /mnt/esp
+          ls -R /mnt/esp | head -n 40
+          if [ -f /mnt/esp/EFI/Microsoft/Boot/bootmgfw.efi ]; then r "Windows boot manager still there" PASS; else r "Windows boot manager still there" FAIL; fi
+          if [ -f /mnt/esp/EFI/systemd/systemd-bootx64.efi ]; then r "Lumen boot menu on the EFI partition" PASS; else r "Lumen boot menu on the EFI partition" FAIL; fi
+          sudo umount /mnt/esp
+          sudo qemu-nbd -d /dev/nbd0
+
       - name: Boot the installed system and take screenshots
         if: always()
         run: |
           [ -f disk.qcow2 ] || exit 1
-          qemu-system-x86_64 -enable-kvm -machine q35 -cpu host -smp 4 -m 8G \
+          grep -q LUMEN-INSTALL-OK install-serial.log || { echo "::error::The install didn't finish; nothing to boot"; exit 1; }
+          # Fresh firmware memory, without the boot entry the installer made:
+          # like laptops that forget or ignore it, the disk must still start
+          # (from the fallback path, EFI/BOOT/BOOTX64.EFI).
+          cp /usr/share/OVMF/OVMF_VARS_4M.fd boot-vars.fd
+          qemu-system-x86_64 -enable-kvm -machine q35 -cpu host -smp "$VM_CPUS" -m "$VM_MEM" \
             -drive if=pflash,format=raw,readonly=on,file=/usr/share/OVMF/OVMF_CODE_4M.fd \
-            -drive if=pflash,format=raw,file=vars.fd \
+            -drive if=pflash,format=raw,file=boot-vars.fd \
             -drive file=disk.qcow2,if=virtio,format=qcow2 \
-            -vga none -device virtio-vga,xres=1920,yres=1080 \
+            -vga none -device virtio-vga,xres=$VM_XRES,yres=$VM_YRES \
             -nic user,model=virtio-net-pci -display none \
             -monitor unix:mon.sock,server,nowait -serial file:boot-serial.log &
           mon() { echo "$1" | socat - UNIX-CONNECT:mon.sock >/dev/null; }
@@ -116,6 +222,7 @@ jobs:
             done
           }
           mkdir -p shots
+          if [ "$WINDOWS" = true ]; then sleep 4; shot shots/00c-boot-menu; fi
           # First login: desktop with the welcome tour, Start (Windows-key tap)
           # and the App Store (Windows + A).
           sleep 45;  shot shots/01-boot
@@ -147,13 +254,56 @@ jobs:
           strip | sed -n '/=== LUMEN-E2E-REPORT ===/,/LUMEN-E2E-REPORT-END/p' | head -n 400 || true
           strip | sed -n '/=== LUMEN-E2E-TASKS/,/E2E-DONE/p' | grep -v '^E2E-\(SHOT\|KEYS\|TYPE\)' > tasks.log || true
           strip | grep -a -o 'E2E-RESULT.*' > results.txt || true
+          cat live-results.txt >> results.txt 2>/dev/null || true
+          cat dualboot-results.txt >> results.txt 2>/dev/null || true
+
+      # Older computers, and USB sticks started in legacy/CSM mode, boot with
+      # BIOS (SeaBIOS here): install, then start the installed disk.
+      - name: Install and boot with legacy BIOS
+        if: always() && matrix.bios
+        run: |
+          iso=$(ls out/lumen-*.iso | head -n1)
+          [ -f "$iso" ] || exit 0
+          label=$(blkid -o value -s LABEL "$iso")
+          qemu-img create -f qcow2 bios.qcow2 40G
+          timeout 40m qemu-system-x86_64 -enable-kvm -machine q35 -cpu host -smp "$VM_CPUS" -m "$VM_MEM" \
+            -drive file=bios.qcow2,if=virtio,format=qcow2 \
+            -drive file="$iso",media=cdrom,readonly=on \
+            -kernel arch/boot/x86_64/vmlinuz-linux -initrd arch/boot/x86_64/initramfs-linux.img \
+            -append "archisobasedir=arch archisolabel=$label console=tty0 console=ttyS0,115200 lumen.auto=1 lumen.disk=/dev/vda lumen.user=lumen lumen.pass=lumen lumen.autologin=1 lumen.poweroff=1 lumen.serial=1" \
+            -nic user,model=virtio-net-pci -display none -serial file:bios-install.log -no-reboot >bios-qemu.log 2>&1 || true
+          if grep -q LUMEN-INSTALL-OK bios-install.log; then
+            echo "E2E-RESULT bios: install PASS" >>results.txt
+          else
+            echo "E2E-RESULT bios: install FAIL" >>results.txt
+            { echo "qemu: $(tail -n 5 bios-qemu.log)"; echo "serial log: $(wc -c <bios-install.log 2>/dev/null) bytes"; } >bios-summary.txt
+            sed 's/\x1b\[[0-9;?]*[a-zA-Z]//g' bios-install.log | grep -av '^\s*$' |
+              grep -av -E '^\s*(\[ *OK *\]|Starting|Stopping|Mounted|Started|Reached|Finished|Stopped|Unmounting|Mounting|Listening|Closed)' |
+              tail -n 120 >>bios-summary.txt
+            exit 0
+          fi
+          timeout 6m qemu-system-x86_64 -enable-kvm -machine q35 -cpu host -smp "$VM_CPUS" -m "$VM_MEM" \
+            -drive file=bios.qcow2,if=virtio,format=qcow2 \
+            -nic user,model=virtio-net-pci -display none -serial file:bios-boot.log &
+          for i in $(seq 72); do
+            grep -aq 'LUMEN-E2E-REPORT\|login:' bios-boot.log 2>/dev/null && break
+            sleep 5
+          done
+          if grep -aq 'LUMEN-E2E-REPORT\|login:' bios-boot.log; then
+            echo "E2E-RESULT bios: installed system boots PASS" >>results.txt
+          else
+            echo "E2E-RESULT bios: installed system boots FAIL" >>results.txt
+            tr -d '\r' <bios-boot.log | sed 's/\x1b\[[0-9;?]*[a-zA-Z]//g' | grep -av '^\s*$' | tail -n 60 >bios-summary.txt
+          fi
+          pkill -f bios.qcow2 || true
 
       # The screenshots, downscaled, as base64 text in this log, so they can be
       # read through the job-log API where artifact downloads aren't possible.
       - name: Print screenshots as text
         if: always()
         run: |
-          for f in shots/*.png; do
+          # Live USB shots last: the job-log API only returns the log's tail.
+          for f in $(ls shots/*.png | grep -v '/00') $(ls shots/*.png | grep '/00'); do
             [ -f "$f" ] || continue
             python3 -c "from PIL import Image; im=Image.open('$f').convert('RGB'); im.thumbnail((1280,720)); im.save('/tmp/s.jpg', quality=60)"
             echo "=== SHOT $(basename "$f" .png) ==="
@@ -164,6 +314,12 @@ jobs:
       - name: Task results
         if: always()
         run: |
+          if [ -s bios-summary.txt ]; then echo "--- legacy BIOS run (end) ---"; cat bios-summary.txt; fi
+          echo "--- live USB check ---"; cat live-check.log 2>/dev/null || true
+          if ! grep -q LUMEN-LIVE-CHECK-END live-check.log 2>/dev/null; then
+            echo "--- live USB boot console (end) ---"
+            grep -av '^\s*$' live-clean.log 2>/dev/null | tail -n 80 || true
+          fi
           echo "--- tasks ---"; head -n 800 tasks.log || true
           echo
           [ -s results.txt ] || { echo "::error::No task results (the task runner never reported)"; exit 1; }
@@ -176,7 +332,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: e2e-results
+          name: e2e-results-${{ matrix.vm }}
           path: |
             shots/*.png
             install-serial.log
@@ -184,3 +340,4 @@ jobs:
             results.txt
             tasks.log
             boot-serial.log
+            live-clean.log

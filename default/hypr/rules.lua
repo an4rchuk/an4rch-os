@@ -65,6 +65,7 @@ hl.window_rule({
 
 -- Lumen's own windows.
 hl.window_rule({ name = "lumen-welcome", match = { class = "^(org\\.lumen\\.Welcome)$" }, float = true, center = true, size = { 820, 640 } })
+hl.window_rule({ name = "lumen-settings", match = { class = "^(org\\.lumen\\.Settings)$" }, float = true, center = true, size = { 980, 700 } })
 
 hl.window_rule({ name = "lumen-modal-center", match = { modal = true }, float = true, center = true })
 
@@ -119,6 +120,7 @@ hl.layer_rule({ name = "lumen-blur-bar",      match = { namespace = "^waybar$" }
 hl.layer_rule({ name = "lumen-blur-launcher", match = { namespace = "^launcher$" },      blur = true, ignore_alpha = 0.2, animation = "popin 95%" })
 hl.layer_rule({ name = "lumen-blur-notify",   match = { namespace = "^notifications$" }, blur = true, ignore_alpha = 0.2, animation = "slide right" })
 hl.layer_rule({ name = "lumen-blur-start",    match = { namespace = "^lumen-start$" },   blur = true, ignore_alpha = 0.1, animation = "fade" })
+hl.layer_rule({ name = "lumen-blur-audio",    match = { namespace = "^lumen-audio$" },   blur = true, ignore_alpha = 0.1, animation = "fade" })
 hl.layer_rule({ name = "lumen-no-anim-selection", match = { namespace = "^(selection|hyprpicker)$" }, no_anim = true })
 
 ---------------------------------------------------------------------------
