@@ -178,14 +178,15 @@ jobs:
             -drive file="$iso",media=cdrom,readonly=on \
             -kernel arch/boot/x86_64/vmlinuz-linux -initrd arch/boot/x86_64/initramfs-linux.img \
             -append "archisobasedir=arch archisolabel=$label console=tty0 console=ttyS0,115200 lumen.auto=1 lumen.disk=/dev/vda lumen.user=lumen lumen.pass=lumen lumen.autologin=1 lumen.poweroff=1 lumen.serial=1" \
-            -nic user,model=virtio-net-pci -display none -serial file:bios-install.log -no-reboot || true
+            -nic user,model=virtio-net-pci -display none -serial file:bios-install.log -no-reboot >bios-qemu.log 2>&1 || true
           if grep -q LUMEN-INSTALL-OK bios-install.log; then
             echo "E2E-RESULT bios: install PASS" >>results.txt
           else
             echo "E2E-RESULT bios: install FAIL" >>results.txt
+            { echo "qemu: $(tail -n 5 bios-qemu.log)"; echo "serial log: $(wc -c <bios-install.log 2>/dev/null) bytes"; } >bios-summary.txt
             sed 's/\x1b\[[0-9;?]*[a-zA-Z]//g' bios-install.log | grep -av '^\s*$' |
               grep -av -E '^\s*(\[ *OK *\]|Starting|Stopping|Mounted|Started|Reached|Finished|Stopped|Unmounting|Mounting|Listening|Closed)' |
-              tail -n 120 >bios-summary.txt
+              tail -n 120 >>bios-summary.txt
             exit 0
           fi
           timeout 6m qemu-system-x86_64 -enable-kvm -machine q35 -cpu host -smp 4 -m 8G \
