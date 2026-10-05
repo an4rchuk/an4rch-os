@@ -11,7 +11,7 @@ Under the hood it's still Arch Linux: the official repositories, `pacman`, the A
 
 ## Getting the ISO
 
-- **Download:** every [release](https://github.com/twil09/lumen-os/releases) has the full ISO in parts (GitHub limits release files to 2 GB; join them with `copy /b` on Windows or `cat` elsewhere, as the release notes show) and a smaller *online* ISO that downloads its packages while installing, each with a `.sha256` checksum.
+- **Download:** every [release](https://github.com/an4rchuk/lumen-os/releases) has the full ISO in parts (GitHub limits release files to 2 GB; join them with `copy /b` on Windows or `cat` elsewhere, as the release notes show) and a smaller *online* ISO that downloads its packages while installing, each with a `.sha256` checksum.
 - **Build it yourself on Arch:** `sudo pacman -S archiso`, then `sudo iso/build.sh`. The ISO lands in `out/`. It is about 5 GB because it carries the packages an install needs (`iso/offline.sh`); `sudo LUMEN_OFFLINE=0 iso/build.sh` makes a small ISO that downloads everything while installing.
 - **Build it on GitHub:** Actions → *iso* → *Run workflow*. The ISO is attached to the run.
 

@@ -23,10 +23,10 @@ ID_LIKE=arch
 BUILD_ID=rolling
 VERSION_ID=$VERSION
 ANSI_COLOR="38;2;157;140;255"
-HOME_URL="https://github.com/twil09/lumen-os"
-DOCUMENTATION_URL="https://github.com/twil09/lumen-os/tree/HEAD/docs"
-SUPPORT_URL="https://github.com/twil09/lumen-os/issues"
-BUG_REPORT_URL="https://github.com/twil09/lumen-os/issues"
+HOME_URL="https://github.com/an4rchuk/lumen-os"
+DOCUMENTATION_URL="https://github.com/an4rchuk/lumen-os/tree/HEAD/docs"
+SUPPORT_URL="https://github.com/an4rchuk/lumen-os/issues"
+BUG_REPORT_URL="https://github.com/an4rchuk/lumen-os/issues"
 LOGO=lumen-logo
 OSR
 rm -f /etc/os-release

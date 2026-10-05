@@ -52,7 +52,7 @@ sort -u -o "$profile/packages.x86_64" "$profile/packages.x86_64"
 mkdir -p "$profile/airootfs/opt/lumen"
 tar -C "$root" --exclude=./out --exclude=./work --exclude='./iso/*.iso' --exclude='__pycache__' -cf - . |
   tar -C "$profile/airootfs/opt/lumen" -xf -
-git -C "$profile/airootfs/opt/lumen" remote set-url origin "${LUMEN_REPO:-https://github.com/twil09/lumen-os.git}" 2>/dev/null || true
+git -C "$profile/airootfs/opt/lumen" remote set-url origin "${LUMEN_REPO:-https://github.com/an4rchuk/lumen-os.git}" 2>/dev/null || true
 
 # Wallpapers for the live desktop and the installer's theme picker, painted
 # now so booting stays fast (needs python-pillow on the build host).
@@ -75,7 +75,7 @@ version="$(date +%Y.%m.%d)"
 sed -i \
   -e 's/^iso_name=.*/iso_name="lumen"/' \
   -e "s/^iso_label=.*/iso_label=\"LUMEN_\$(date --date=\"@\${SOURCE_DATE_EPOCH:-\$(date +%s)}\" +%Y%m)\"/" \
-  -e 's/^iso_publisher=.*/iso_publisher="Lumen OS <https:\/\/github.com\/twil09\/linux>"/' \
+  -e 's/^iso_publisher=.*/iso_publisher="Lumen OS <https:\/\/github.com\/an4rchuk\/lumen-os>"/' \
   -e 's/^iso_application=.*/iso_application="Lumen OS installer"/' \
   "$profile/profiledef.sh"
 # mkarchiso copies airootfs without file modes, so everything that must stay
