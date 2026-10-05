@@ -62,36 +62,45 @@ def lua_value(v) -> str:
     return str(int(v))
 
 
+# Where each choice lives in Hyprland's config (dotted path).
+DESKTOP_KEYS = {
+    "gaps_in": "general.gaps_in", "gaps_out": "general.gaps_out", "border_size": "general.border_size",
+    "rounding": "decoration.rounding", "inactive_opacity": "decoration.inactive_opacity",
+    "blur": "decoration.blur.enabled", "shadow": "decoration.shadow.enabled",
+    "animations": "animations.enabled",
+    "sensitivity": "input.sensitivity", "repeat_delay": "input.repeat_delay", "repeat_rate": "input.repeat_rate",
+    "natural_scroll": "input.touchpad.natural_scroll", "tap_to_click": "input.touchpad.tap_to_click",
+    "disable_while_typing": "input.touchpad.disable_while_typing", "scroll_factor": "input.touchpad.scroll_factor",
+}
+
+
 def desktop_lua(d: dict) -> str:
-    v = {k: lua_value(x) for k, x in d.items()}
-    return f"""-- Written by Lumen Settings: change these there (or delete this file to go
--- back to Lumen's defaults). Your files in ~/.config/hypr/ load after it.
-hl.config({{
-    general = {{
-        gaps_in     = {v["gaps_in"]},
-        gaps_out    = {v["gaps_out"]},
-        border_size = {v["border_size"]},
-    }},
-    decoration = {{
-        rounding         = {v["rounding"]},
-        inactive_opacity = {v["inactive_opacity"]},
-        blur   = {{ enabled = {v["blur"]} }},
-        shadow = {{ enabled = {v["shadow"]} }},
-    }},
-    animations = {{ enabled = {v["animations"]} }},
-    input = {{
-        sensitivity  = {v["sensitivity"]},
-        repeat_delay = {v["repeat_delay"]},
-        repeat_rate  = {v["repeat_rate"]},
-        touchpad = {{
-            natural_scroll       = {v["natural_scroll"]},
-            ["tap-to-click"]     = {v["tap_to_click"]},
-            disable_while_typing = {v["disable_while_typing"]},
-            scroll_factor        = {v["scroll_factor"]},
-        }},
-    }},
-}})
-"""
+    """Only the choices that differ from Lumen's defaults are written, so the
+    file stays small and everything else follows Lumen's own config."""
+    tree: dict = {}
+    for key, path in DESKTOP_KEYS.items():
+        if key in d and d[key] != DESKTOP_DEFAULTS[key]:
+            node = tree
+            *parents, leaf = path.split(".")
+            for p in parents:
+                node = node.setdefault(p, {})
+            node[leaf] = d[key]
+
+    def emit(node: dict, depth: int) -> list[str]:
+        pad = "    " * depth
+        lines = []
+        for k, v in node.items():
+            if isinstance(v, dict):
+                lines += [f"{pad}{k} = {{", *emit(v, depth + 1), f"{pad}}},"]
+            else:
+                lines.append(f"{pad}{k} = {lua_value(v)},")
+        return lines
+
+    head = ("-- Written by Lumen Settings: change these there (or delete this file to go\n"
+            "-- back to Lumen's defaults). Your files in ~/.config/hypr/ load after it.\n")
+    if not tree:
+        return head
+    return head + "hl.config({\n" + "\n".join(emit(tree, 1)) + "\n})\n"
 
 
 def write_desktop(d: dict) -> None:

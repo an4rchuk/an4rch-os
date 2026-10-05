@@ -215,13 +215,16 @@ if wait_window "Settings opens" 'lumen.Settings' 40; then
   shot 21a-settings
 fi
 # A change made in Settings reaches Hyprland (desktop.json → desktop.lua → reload).
-as_user bash -c 'mkdir -p ~/.config/lumen && printf "{\"gaps_in\": 9}\n" > ~/.config/lumen/desktop.json'
+# Every option changed at once, as someone working through the Settings app would.
+as_user bash -c 'mkdir -p ~/.config/lumen && printf "%s\n" "{\"gaps_in\": 9, \"gaps_out\": 6, \"border_size\": 3, \"rounding\": 4, \"inactive_opacity\": 0.9, \"blur\": false, \"shadow\": false, \"animations\": false, \"sensitivity\": -0.3, \"natural_scroll\": false, \"tap_to_click\": false, \"disable_while_typing\": false, \"scroll_factor\": 0.8, \"repeat_delay\": 400, \"repeat_rate\": 30}" > ~/.config/lumen/desktop.json'
 task "Settings writes the window config" as_user python3 "$lumen/apps/lumen-settings/lumen_settings.py" --write-desktop
 as_user hyprctl reload >/dev/null 2>&1
 sleep 2
 gaps=$(as_user hyprctl getoption general:gaps_in -j 2>/dev/null | tr -d ' \n')
 [[ "$gaps" == *9* ]] || gaps=$(as_user hyprctl repl 'return hl.get_config("general.gaps_in")' 2>/dev/null | tail -n1)
 if [[ "$gaps" == *9* ]]; then result "Settings change applied" PASS "$gaps"; else result "Settings change applied" FAIL "${gaps:-no answer}"; fi
+errs=$(as_user hyprctl configerrors 2>&1 | grep -v -i -e '^\s*$' -e 'no errors')
+if [[ -z "$errs" ]]; then result "no config errors after Settings changes" PASS; else result "no config errors after Settings changes" FAIL "$(tr '\n' ' ' <<<"$errs")"; fi
 as_user rm -f "$home/.config/lumen/desktop.json" "$home/.config/lumen/desktop.lua"
 as_user hyprctl reload >/dev/null 2>&1
 pkill -f lumen_settings.py

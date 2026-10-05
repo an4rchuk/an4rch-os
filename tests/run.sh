@@ -49,6 +49,20 @@ else
   # The generated theme file on its own.
   theme_lua="$HOME/.config/lumen/current/theme/hyprland.lua"
   if "$lua" "$root/tests/check-hypr-config.lua" "$theme_lua" "$root/tests" >/dev/null; then ok "theme hyprland.lua"; else bad "theme hyprland.lua"; fi
+  # What the Settings app writes, with every choice changed from the default.
+  python3 - "$HOME/.config/lumen/desktop.json" <<'PY'
+import json, sys
+json.dump({"gaps_in": 9, "gaps_out": 0, "border_size": 3, "rounding": 0, "inactive_opacity": 0.9, "blur": False,
+           "shadow": False, "animations": False, "sensitivity": -0.3, "natural_scroll": False, "tap_to_click": False,
+           "disable_while_typing": False, "scroll_factor": 0.8, "repeat_delay": 400, "repeat_rate": 30}, open(sys.argv[1], "w"))
+PY
+  python3 "$root/apps/lumen-settings/lumen_settings.py" --write-desktop >/dev/null
+  if "$lua" "$root/tests/check-hypr-config.lua" "$HOME/.config/lumen/desktop.lua" "$root/tests" >/dev/null; then
+    ok "Settings' desktop.lua (every option changed)"
+  else
+    bad "Settings' desktop.lua: $("$lua" "$root/tests/check-hypr-config.lua" "$HOME/.config/lumen/desktop.lua" "$root/tests" | grep '✗')"
+  fi
+  rm -f "$HOME/.config/lumen/desktop.json" "$HOME/.config/lumen/desktop.lua"
 fi
 
 step "Shell scripts"

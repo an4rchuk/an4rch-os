@@ -347,7 +347,15 @@ offline_off() {
 # (it times out now and then), keep the mirror list the USB already has.
 spin "Mirrors: picking the fastest" bash -c 'timeout 90 reflector --latest 20 --protocol https --sort rate --save /etc/pacman.d/mirrorlist ||
   echo "Mirror ranking unavailable; keeping the current mirror list"'
-spin "Partitioning $DISK" bash -c "wipefs -af '$DISK' && sgdisk -Z '$DISK' && sgdisk -n1:0:+1G -t1:ef00 -c1:EFI -n2:0:0 -t2:8300 -c2:lumen '$DISK' && partprobe '$DISK' && udevadm settle"
+# UEFI computers boot with systemd-boot. Older ones, or a USB started in
+# "legacy"/CSM mode, need GRUB: a tiny BIOS boot partition (3) sits after
+# the EFI one on every disk, so either kind of boot loader fits.
+if [[ -d /sys/firmware/efi ]]; then UEFI=1; else UEFI=0; fi
+if [[ $UEFI -eq 0 ]]; then
+  gum style --foreground "#f1d38b" --margin "0 2" "This computer started the USB in legacy (BIOS) mode, so Lumen installs a BIOS boot loader." \
+    "Keep the computer in legacy/CSM mode to start it (or reinstall from a USB started in UEFI mode)."
+fi
+spin "Partitioning $DISK" bash -c "wipefs -af '$DISK' && sgdisk -Z '$DISK' && sgdisk -n1:0:+1G -t1:ef00 -c1:EFI -n3:0:+1M -t3:ef02 -c3:BIOS -n2:0:0 -t2:8300 -c2:lumen '$DISK' && partprobe '$DISK' && udevadm settle"
 
 ROOTDEV="$SYS"
 if [[ $ENCRYPT -eq 1 ]]; then
@@ -384,7 +392,9 @@ HOOKS=(base systemd plymouth autodetect microcode modconf kms keyboard sd-vconso
 EOF
 printf 'KEYMAP=%s\n' "$keymap" >"$MNT/etc/vconsole.conf"
 
-spin "Installing the base system" pacstrap -K "${pac_opts[@]}" "$MNT" "${PKGS_BASE[@]}" $UCODE
+BOOT_PKGS=()
+[[ $UEFI -eq 0 ]] && BOOT_PKGS=(grub)
+spin "Installing the base system" pacstrap -K "${pac_opts[@]}" "$MNT" "${PKGS_BASE[@]}" $UCODE "${BOOT_PKGS[@]}"
 
 genfstab -U "$MNT" >>"$MNT/etc/fstab"
 # Mount subvolumes by name only: rollbacks replace @ with a new subvolume ID.
@@ -398,6 +408,7 @@ else
   ROOT_ARGS="root=UUID=$ROOT_UUID"
 fi
 CMDLINE="$ROOT_ARGS rootflags=subvol=@ rw quiet splash loglevel=3 rd.udev.log_level=3 vt.global_cursor_default=0"
+ESP_UUID=$(blkid -s UUID -o value "$EFI")
 
 step "Configuring the system"
 arch-chroot "$MNT" /bin/bash -e >>"$LOG" 2>&1 <<CHROOT || fail "System configuration failed"
@@ -419,7 +430,10 @@ echo '%wheel ALL=(ALL:ALL) ALL' >/etc/sudoers.d/10-wheel
 chmod 440 /etc/sudoers.d/10-wheel
 passwd -l root
 
+if [[ $UEFI -eq 1 ]]; then
 bootctl install --esp-path=/boot
+# Firmware that forgets or ignores boot entries starts the fallback path.
+[[ -f /boot/EFI/BOOT/BOOTX64.EFI ]] || install -D /boot/EFI/systemd/systemd-bootx64.efi /boot/EFI/BOOT/BOOTX64.EFI
 cat >/boot/loader/loader.conf <<LOADER
 default lumen.conf
 timeout 3
@@ -438,7 +452,26 @@ linux   /vmlinuz-linux-lts
 initrd  /initramfs-linux-lts.img
 options $CMDLINE
 ENTRY
-systemctl enable systemd-boot-update.service NetworkManager
+systemctl enable systemd-boot-update.service
+else
+grub-install --target=i386-pc --boot-directory=/boot "$DISK"
+cat >/boot/grub/grub.cfg <<GRUB
+insmod part_gpt
+insmod fat
+search --no-floppy --fs-uuid --set=root $ESP_UUID
+set timeout=3
+set default=0
+menuentry "Lumen OS" {
+  linux /vmlinuz-linux $CMDLINE
+  initrd /initramfs-linux.img
+}
+menuentry "Lumen OS (LTS kernel)" {
+  linux /vmlinuz-linux-lts $CMDLINE
+  initrd /initramfs-linux-lts.img
+}
+GRUB
+fi
+systemctl enable NetworkManager
 mkinitcpio -P
 CHROOT
 gum style --foreground "#9fdc9b" "  ✓ Configured the system and boot loader"
@@ -499,7 +532,8 @@ gum style --foreground "#9fdc9b" "  ✓ Installed the Lumen desktop"
 # Test runs (lumen.serial=1): the installed system also logs to the serial
 # port, and reports on its desktop session a few minutes after booting.
 if [[ "${K[serial]:-0}" == 1 ]]; then
-  sed -i '/^options / s/$/ console=tty0 console=ttyS0,115200/' "$MNT"/boot/loader/entries/*.conf
+  sed -i '/^options / s/$/ console=tty0 console=ttyS0,115200/' "$MNT"/boot/loader/entries/*.conf 2>/dev/null || true
+  sed -i '/^  linux / s/$/ console=tty0 console=ttyS0,115200/' "$MNT"/boot/grub/grub.cfg 2>/dev/null || true
   # tests/vm: a report on the session (150 s after boot), then a run through
   # everyday tasks that the e2e workflow screenshots (240 s).
   for t in report:150 tasks:240; do

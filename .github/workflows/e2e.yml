@@ -107,9 +107,13 @@ jobs:
         run: |
           [ -f disk.qcow2 ] || exit 1
           grep -q LUMEN-INSTALL-OK install-serial.log || { echo "::error::The install didn't finish; nothing to boot"; exit 1; }
+          # Fresh firmware memory, without the boot entry the installer made:
+          # like laptops that forget or ignore it, the disk must still start
+          # (from the fallback path, EFI/BOOT/BOOTX64.EFI).
+          cp /usr/share/OVMF/OVMF_VARS_4M.fd boot-vars.fd
           qemu-system-x86_64 -enable-kvm -machine q35 -cpu host -smp 4 -m 8G \
             -drive if=pflash,format=raw,readonly=on,file=/usr/share/OVMF/OVMF_CODE_4M.fd \
-            -drive if=pflash,format=raw,file=vars.fd \
+            -drive if=pflash,format=raw,file=boot-vars.fd \
             -drive file=disk.qcow2,if=virtio,format=qcow2 \
             -vga none -device virtio-vga,xres=1920,yres=1080 \
             -nic user,model=virtio-net-pci -display none \
@@ -159,6 +163,43 @@ jobs:
           strip | sed -n '/=== LUMEN-E2E-TASKS/,/E2E-DONE/p' | grep -v '^E2E-\(SHOT\|KEYS\|TYPE\)' > tasks.log || true
           strip | grep -a -o 'E2E-RESULT.*' > results.txt || true
           cat live-results.txt >> results.txt 2>/dev/null || true
+
+      # Older computers, and USB sticks started in legacy/CSM mode, boot with
+      # BIOS (SeaBIOS here): install, then start the installed disk.
+      - name: Install and boot with legacy BIOS
+        if: always()
+        run: |
+          iso=$(ls out/lumen-*.iso | head -n1)
+          [ -f "$iso" ] || exit 0
+          label=$(blkid -o value -s LABEL "$iso")
+          qemu-img create -f qcow2 bios.qcow2 40G
+          timeout 40m qemu-system-x86_64 -enable-kvm -machine q35 -cpu host -smp 4 -m 8G \
+            -drive file=bios.qcow2,if=virtio,format=qcow2 \
+            -drive file="$iso",media=cdrom,readonly=on \
+            -kernel arch/boot/x86_64/vmlinuz-linux -initrd arch/boot/x86_64/initramfs-linux.img \
+            -append "archisobasedir=arch archisolabel=$label console=tty0 console=ttyS0,115200 lumen.auto=1 lumen.disk=/dev/vda lumen.user=lumen lumen.pass=lumen lumen.autologin=1 lumen.poweroff=1 lumen.serial=1" \
+            -nic user,model=virtio-net-pci -display none -serial file:bios-install.log -no-reboot || true
+          if grep -q LUMEN-INSTALL-OK bios-install.log; then
+            echo "E2E-RESULT bios: install PASS" >>results.txt
+          else
+            echo "E2E-RESULT bios: install FAIL" >>results.txt
+            sed 's/\x1b\[[0-9;?]*[a-zA-Z]//g' bios-install.log | grep -av '^\s*$' | tail -n 80
+            exit 0
+          fi
+          timeout 6m qemu-system-x86_64 -enable-kvm -machine q35 -cpu host -smp 4 -m 8G \
+            -drive file=bios.qcow2,if=virtio,format=qcow2 \
+            -nic user,model=virtio-net-pci -display none -serial file:bios-boot.log &
+          for i in $(seq 72); do
+            grep -aq 'LUMEN-E2E-REPORT\|login:' bios-boot.log 2>/dev/null && break
+            sleep 5
+          done
+          if grep -aq 'LUMEN-E2E-REPORT\|login:' bios-boot.log; then
+            echo "E2E-RESULT bios: installed system boots PASS" >>results.txt
+          else
+            echo "E2E-RESULT bios: installed system boots FAIL" >>results.txt
+            tr -d '\r' <bios-boot.log | sed 's/\x1b\[[0-9;?]*[a-zA-Z]//g' | grep -av '^\s*$' | tail -n 60
+          fi
+          pkill -f bios.qcow2 || true
 
       # The screenshots, downscaled, as base64 text in this log, so they can be
       # read through the job-log API where artifact downloads aren't possible.
