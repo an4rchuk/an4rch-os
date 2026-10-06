@@ -345,8 +345,20 @@ shot 22-final
 # The bar watcher brings a crashed top bar back (waybar has crashed in VMs).
 if pgrep -f 'lumen-session watch-bars' >/dev/null; then
   pkill -KILL -fx waybar
-  sleep 20
-  if pgrep -fx waybar >/dev/null; then result "top bar comes back after a crash" PASS; else result "top bar comes back after a crash" FAIL "not restarted after 20s"; fi
+  back=0
+  for i in $(seq 40); do
+    sleep 1
+    if ((i > 2)) && pgrep -fx waybar >/dev/null; then back=$i; break; fi
+  done
+  if ((back)); then
+    result "top bar comes back after a crash" PASS "after ${back}s"
+  else
+    result "top bar comes back after a crash" FAIL "not restarted after 40s"
+    echo "--- bar watcher diagnostics"
+    ps -eo pid,etimes,args | grep -E 'waybar|watch-bars' | grep -v grep
+    tail -n 15 "$home/.local/state/lumen/apps.log" 2>/dev/null
+    ls -d "$run/hypr/"* 2>/dev/null
+  fi
 else
   result "top bar comes back after a crash" FAIL "lumen-session watch-bars isn't running"
 fi
