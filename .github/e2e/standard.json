@@ -1,0 +1,34 @@
+{
+ "include": [
+  {
+   "vm": "low-spec",
+   "cpus": 2,
+   "mem": "4G",
+   "xres": 1366,
+   "yres": 768,
+   "bios": true
+  },
+  {
+   "vm": "high-spec",
+   "cpus": 4,
+   "mem": "14G",
+   "xres": 2560,
+   "yres": 1440,
+   "install": "lumen.gaming=1"
+  },
+  {
+   "vm": "nvidia",
+   "live": "modprobe.blacklist=nouveau nvidia_drm.modeset=1 nvidia_drm.fbdev=1 lumen.nvidia=1",
+   "install": "lumen.gpu=nvidia"
+  },
+  {
+   "vm": "nvidia-lts",
+   "install": "lumen.gpu=nvidia lumen.bootlts=1"
+  },
+  {
+   "vm": "dual-boot",
+   "windows": true,
+   "install": "lumen.mode=alongside lumen.size=30"
+  }
+ ]
+}

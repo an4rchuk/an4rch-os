@@ -8,40 +8,31 @@ name: e2e
 # Screenshots and serial logs are attached to the run.
 on:
   workflow_dispatch:
+    inputs:
+      set:
+        description: "VM set: standard (5) or scenarios (14)"
+        default: standard
 
 jobs:
+  plan:
+    runs-on: ubuntu-24.04
+    outputs:
+      matrix: ${{ steps.m.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: m
+        run: echo "matrix=$(jq -c . ".github/e2e/${{ inputs.set || 'standard' }}.json")" >>"$GITHUB_OUTPUT"
+
   e2e:
     name: e2e (${{ matrix.vm }})
     runs-on: ubuntu-24.04
     timeout-minutes: 300
+    needs: plan
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          # Bug hunting on two very different machines.
-          - vm: low-spec        # older laptop: 2 cores, 4 GB, 1366x768 (+ legacy BIOS install)
-            cpus: 2
-            mem: 4G
-            xres: 1366
-            yres: 768
-            bios: true
-          - vm: high-spec       # gaming desktop: 4 cores, 14 GB, 1440p, gaming stack
-            cpus: 4
-            mem: 14G
-            xres: 2560
-            yres: 1440
-            install: lumen.gaming=1
-          # NVIDIA: no VM has an NVIDIA card, so these test the driver install
-          # and the "(NVIDIA)" live entry, not the GPU itself.
-          - vm: nvidia
-            live: modprobe.blacklist=nouveau nvidia_drm.modeset=1 nvidia_drm.fbdev=1 lumen.nvidia=1
-            install: lumen.gpu=nvidia
-          - vm: nvidia-lts      # the driver on the LTS kernel too
-            install: lumen.gpu=nvidia lumen.bootlts=1
-          # Next to a disk laid out like a Windows laptop's.
-          - vm: dual-boot
-            windows: true
-            install: lumen.mode=alongside lumen.size=30
+      # The VMs: .github/e2e/<set>.json (standard: the 5 release VMs;
+      # scenarios: 14 different people's computers and choices).
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
     env:
       VM_CPUS: ${{ matrix.cpus || 4 }}
       VM_MEM: ${{ matrix.mem || '8G' }}
