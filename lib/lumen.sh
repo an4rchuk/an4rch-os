@@ -63,7 +63,9 @@ launch() {
   local state="${XDG_STATE_HOME:-$HOME/.local/state}/lumen"
   mkdir -p "$state"
   (
-    err=$(mktemp "${XDG_RUNTIME_DIR:-/tmp}/lumen-launch.XXXXXX")
+    # Never stop half-way (callers use set -e / pipefail): always report.
+    set +e +o pipefail
+    err=$(mktemp "${XDG_RUNTIME_DIR:-/tmp}/lumen-launch.XXXXXX") || err=/dev/null
     start=$SECONDS rc=0
     # Only the last few KB of an app's error output are kept, however long it runs.
     if systemctl --user is-active -q graphical-session.target 2>/dev/null; then
@@ -88,7 +90,7 @@ launch() {
       fi
     fi
     if [[ -f "$state/apps.log" ]]; then tail -n 200 "$state/apps.log" >"$state/apps.log.tmp" && mv "$state/apps.log.tmp" "$state/apps.log"; fi
-    rm -f "$err"
+    [[ "$err" == /dev/null ]] || rm -f "$err"
   ) </dev/null >/dev/null 2>&1 &
   disown 2>/dev/null || true
 }
