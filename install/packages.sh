@@ -34,6 +34,7 @@ PKGS_SYSTEM=(
   playerctl
   greetd greetd-regreet greetd-tuigreet cage
   ufw
+  exfatprogs ntfs-3g dosfstools
   git base-devel curl
 )
 

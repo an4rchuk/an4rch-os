@@ -424,8 +424,23 @@ offline_off() {
 
 # Ranking mirrors is a nicety: if Arch's mirror status can't be reached
 # (it times out now and then), keep the mirror list the USB already has.
-((NET)) && spin "Mirrors: picking the fastest" bash -c 'timeout 90 reflector --latest 20 --protocol https --sort rate --save /etc/pacman.d/mirrorlist ||
+((NET)) && spin "Mirrors: picking the fastest" bash -c 'timeout 60 reflector --latest 15 --protocol https --sort rate --download-timeout 4 --save /etc/pacman.d/mirrorlist ||
   echo "Mirror ranking unavailable; keeping the current mirror list"'
+# ensure_mirrors FILE — a mirror list with no active server (ranking timed out
+# on a slow connection, or the live system's own ranking never ran) leaves
+# the new system unable to download updates: fall back to Arch's worldwide
+# mirrors, which redirect to a nearby one.
+ensure_mirrors() {
+  grep -q '^[[:space:]]*Server' "$1" 2>/dev/null && return 0
+  note "No working mirror list; using Arch's worldwide mirrors"
+  # shellcheck disable=SC2016 # $repo and $arch are pacman's, not the shell's
+  printf '%s\n' '# Arch Linux worldwide mirrors (Lumen OS fallback; run reflector to rank local ones)' \
+    'Server = https://geo.mirror.pkgbuild.com/$repo/os/$arch' \
+    'Server = https://fastly.mirror.pkgbuild.com/$repo/os/$arch' \
+    'Server = https://mirrors.kernel.org/archlinux/$repo/os/$arch' \
+    'Server = https://mirror.rackspace.com/archlinux/$repo/os/$arch' >"$1"
+}
+ensure_mirrors /etc/pacman.d/mirrorlist
 # UEFI computers boot with systemd-boot. Older ones, or a USB started in
 # "legacy"/CSM mode, need GRUB: a tiny BIOS boot partition (3) sits after
 # the EFI one on every disk, so either kind of boot loader fits.
@@ -550,6 +565,7 @@ printf 'KEYMAP=%s\n' "$keymap" >"$MNT/etc/vconsole.conf"
 BOOT_PKGS=()
 [[ $UEFI -eq 0 ]] && BOOT_PKGS=(grub)
 spin "Installing the base system" pacstrap -K "${pac_opts[@]}" "$MNT" "${PKGS_BASE[@]}" $UCODE "${BOOT_PKGS[@]}"
+ensure_mirrors "$MNT/etc/pacman.d/mirrorlist"
 
 genfstab -U "$MNT" >>"$MNT/etc/fstab"
 # Mount subvolumes by name only: rollbacks replace @ with a new subvolume ID.

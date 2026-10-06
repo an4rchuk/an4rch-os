@@ -131,6 +131,9 @@ printf '[Service]\nManagedOOMMemoryPressure=kill\nManagedOOMMemoryPressureLimit=
   >/etc/systemd/system/user@.service.d/90-lumen-oomd.conf
 systemctl enable systemd-oomd >/dev/null 2>&1 || true
 
+# A kernel update no longer breaks USB sticks etc. until the next restart.
+bash "$LUMEN_PATH/install/keep-modules.sh"
+
 # Keep three versions of each package: rollbacks reinstall kernels from here.
 systemctl enable paccache.timer >/dev/null 2>&1 || true
 

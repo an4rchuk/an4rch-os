@@ -99,8 +99,9 @@ case "${1:-all}" in
 esac
 
 bar_signal updates
-# After a kernel upgrade the running kernel's modules are gone: time to reboot.
-if [[ ! -d "/usr/lib/modules/$(uname -r)" ]]; then
+# After a kernel upgrade the running kernel's modules are only kept until a
+# restart (install/keep-modules.sh), or gone: time to restart.
+if [[ ! -d "/usr/lib/modules/$(uname -r)" || -e "/usr/lib/modules/$(uname -r)/.lumen-kept" ]]; then
   printf '\n\e[33m󰜉  A new kernel was installed — restart when convenient.\e[0m\n'
 fi
 printf '\n\e[1;32m✓ All done.\e[0m\n'
