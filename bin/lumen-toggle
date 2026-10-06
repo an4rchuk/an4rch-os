@@ -79,8 +79,8 @@ case "$what" in
     ;;
 
   bar)
-    if pgrep -fx waybar >/dev/null; then
-      pkill -SIGUSR1 -fx waybar # waybar toggles visibility on SIGUSR1
+    if pgrep -fx '(/usr/bin/)?waybar' >/dev/null; then
+      pkill -SIGUSR1 -fx '(/usr/bin/)?waybar' # waybar toggles visibility on SIGUSR1
     else
       launch waybar
     fi

@@ -20,7 +20,7 @@ start_once() {
 
 restart() {
   case "$1" in
-    bar) pkill -fx waybar; sleep 0.2; launch waybar; "$LUMEN_PATH/bin/lumen-taskbar" restart ;;
+    bar) pkill -fx '(/usr/bin/)?waybar'; sleep 0.2; launch waybar; "$LUMEN_PATH/bin/lumen-taskbar" restart ;;
     notifications) pkill -x mako; sleep 0.2; launch mako ;;
     idle) pkill -x hypridle; sleep 0.2; launch hypridle ;;
     wallpaper) "$LUMEN_PATH/bin/lumen-wallpaper" restore ;;
@@ -49,7 +49,7 @@ start() {
 
   "$LUMEN_PATH/bin/lumen-wallpaper" restore
   "$LUMEN_PATH/bin/lumen-login" sync >/dev/null 2>&1 &
-  pgrep -fx waybar >/dev/null || launch waybar
+  pgrep -fx '(/usr/bin/)?waybar' >/dev/null || launch waybar
   "$LUMEN_PATH/bin/lumen-taskbar" start
   pgrep -f 'lumen-session watch-bars' >/dev/null || launch "$LUMEN_PATH/bin/lumen-session" watch-bars
   # Window title bars (hyprbars plugin) and minimise/restore support.
@@ -132,7 +132,7 @@ watch_bars() {
     local recent=() t
     for t in "${restarts[@]}"; do ((now - t < 600)) && recent+=("$t"); done
     restarts=("${recent[@]}")
-    if pgrep -fx waybar >/dev/null; then top_missing=0; else ((top_missing++)); fi
+    if pgrep -fx '(/usr/bin/)?waybar' >/dev/null; then top_missing=0; else ((top_missing++)); fi
     taskbar=$(sed -n 's/^LUMEN_TASKBAR=//p' "$LUMEN_CONFIG/settings.conf" 2>/dev/null | tail -n1)
     if [[ "${taskbar:-$LUMEN_TASKBAR}" != yes ]] || pgrep -f 'waybar -c .*taskbar.jsonc' >/dev/null; then
       task_missing=0

@@ -344,11 +344,11 @@ shot 22-final
 
 # The bar watcher brings a crashed top bar back (waybar has crashed in VMs).
 if pgrep -f 'lumen-session watch-bars' >/dev/null; then
-  pkill -KILL -fx waybar
+  pkill -KILL -fx '(/usr/bin/)?waybar'
   back=0
   for i in $(seq 40); do
     sleep 1
-    if ((i > 2)) && pgrep -fx waybar >/dev/null; then back=$i; break; fi
+    if ((i > 2)) && pgrep -fx '(/usr/bin/)?waybar' >/dev/null; then back=$i; break; fi
   done
   if ((back)); then
     result "top bar comes back after a crash" PASS "after ${back}s"

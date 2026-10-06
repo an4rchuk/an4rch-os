@@ -25,6 +25,11 @@ for lib in /usr/lib/libgtk4-layer-shell.so /usr/lib64/libgtk4-layer-shell.so; do
   fi
 done
 
+# Clicked from the taskbar, which runs without D-Bus (see lib/lumen.sh).
+if [[ "${DBUS_SESSION_BUS_ADDRESS:-}" == disabled: && -n "${LUMEN_DBUS:-}" ]]; then
+  export DBUS_SESSION_BUS_ADDRESS="$LUMEN_DBUS"
+fi
+
 args=("$@")
 [[ $# -eq 0 ]] && args=(--show)
 exec python3 "$LUMEN_PATH/apps/lumen-start/lumen_start.py" "${args[@]}"
