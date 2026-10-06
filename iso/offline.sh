@@ -56,8 +56,16 @@ echo "==> Offline packages: downloading ${#repo_pkgs[@]} packages with their dep
 # A fresh database (dbpath) means nothing counts as installed, so pacman
 # fetches every dependency. Audio first in the list so "jack" resolves to
 # pipewire-jack, as install.sh does.
-pacman --dbpath "$dbpath" --cachedir "$repo" --logfile /dev/null -Sw --noconfirm \
-  pipewire-jack "${repo_pkgs[@]}" >/dev/null
+# Mirrors sometimes drop connections; files already downloaded stay in the
+# cache, so another try only fetches what's missing.
+for try in 1 2 3 4; do
+  pacman --dbpath "$dbpath" --cachedir "$repo" --logfile /dev/null -Sw --noconfirm \
+    pipewire-jack "${repo_pkgs[@]}" >/dev/null && break
+  ((try < 4)) || { echo "Downloading the offline packages failed 4 times" >&2; exit 1; }
+  echo "==> Download interrupted (try $try of 4); trying again in $((try * 15))s"
+  rm -f "$repo"/*.part
+  sleep $((try * 15))
+done
 rm -f "$repo"/*.part
 repo-add -q "$repo/lumen-offline.db.tar.gz" "$repo"/*.pkg.tar.zst
 
