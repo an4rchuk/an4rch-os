@@ -157,7 +157,14 @@ keys ret
 wait_window "Start search launches Calculator" 'calculator' 30 && shot 17-calculator
 
 # --- Title bars, minimise and the taskbar -------------------------------------------------
-if as_user hyprctl plugin list 2>/dev/null | grep -q hyprbars; then
+if grep -q '^LUMEN_TITLEBARS=no' "$home/.config/lumen/settings.conf" 2>/dev/null; then
+  # Title bars turned off when installing: the plugin must not be loaded.
+  if as_user hyprctl plugin list 2>/dev/null | grep -q hyprbars; then
+    result "title bars off (as chosen)" FAIL "the plugin is loaded"
+  else
+    result "title bars off (as chosen)" PASS
+  fi
+elif as_user hyprctl plugin list 2>/dev/null | grep -q hyprbars; then
   result "title bars plugin loaded" PASS
 else
   result "title bars plugin loaded" FAIL "$(as_user hyprctl plugin list 2>&1 | head -n 3 | tr '\n' ' ')"

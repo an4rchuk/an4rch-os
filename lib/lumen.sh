@@ -81,7 +81,9 @@ launch() {
       setsid "$@" 2> >(tail -c 4000 >"$err") || rc=$?
       sleep 0.2
     fi
-    if ((rc != 0 && rc != 130 && rc != 143)); then
+    # Only inside a desktop session (not, e.g., the installer setting up
+    # the wallpaper with no display).
+    if ((rc != 0 && rc != 130 && rc != 143)) && [[ -n "${WAYLAND_DISPLAY:-}${DISPLAY:-}" ]]; then
       why=$(grep -v '^\s*$' "$err" | grep -viE 'warn|deprecat|gtk-message|dbind' | tail -n 3 | cut -c1-200)
       printf '%s  %s exited with code %s after %ss: %s\n' "$(date '+%F %T')" "$name" "$rc" "$((SECONDS - start))" \
         "$(tr '\n' ' ' <<<"$why")" >>"$state/apps.log"

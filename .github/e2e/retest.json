@@ -1,14 +1,12 @@
 {
  "include": [
   {
-   "vm": "offline",
-   "nonet": true,
-   "install": "lumen.keymap=de lumen.timezone=Europe/Berlin"
+   "vm": "chromium",
+   "install": "lumen.browser=chromium"
   },
   {
-   "vm": "dual-boot-lts",
-   "windows": true,
-   "install": "lumen.mode=alongside lumen.size=25 lumen.bootlts=1"
+   "vm": "no-taskbar",
+   "install": "lumen.taskbar=0 lumen.titlebars=0"
   }
  ]
 }
