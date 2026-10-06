@@ -78,6 +78,17 @@ start() {
   [[ -f "$LUMEN_STATE/nightlight" ]] && "$LUMEN_PATH/bin/lumen-toggle" nightlight on
   [[ -f "$LUMEN_STATE/dnd" ]] && makoctl mode -a do-not-disturb >/dev/null 2>&1
 
+  # Started without uwsm (the live USB's second try, or a plain `Hyprland`):
+  # nothing runs the XDG autostart entries, e.g. the live USB's installer.
+  if ! systemctl --user is-active -q graphical-session.target 2>/dev/null; then
+    for f in "${XDG_CONFIG_HOME:-$HOME/.config}"/autostart/*.desktop; do
+      [[ -f "$f" ]] || continue
+      grep -qiE '^Hidden=true|^X-GNOME-Autostart-enabled=false' "$f" && continue
+      grep -q 'lumen-session' "$f" && continue
+      launch gio launch "$f"
+    done
+  fi
+
   # First login: open the welcome tour (falls back to a notification).
   if [[ ! -f "$LUMEN_STATE/welcome-done" ]]; then
     if python3 -c 'import gi; gi.require_version("Adw", "1")' 2>/dev/null; then

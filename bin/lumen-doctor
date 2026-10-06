@@ -45,6 +45,8 @@ if [[ "${1:-}" == hardware ]]; then
       grep -i -E 'firmware.*(fail|missing|not found|error)|direct firmware load|failed to load|iwlwifi.*error|ath1[01]k.*fail|rtw.*fail|bluetooth.*(fail|timeout|error)|amdgpu.*error|i915.*error|nouveau.*(fail|error)' |
       tail -n 25)
     if [[ -n "$errs" ]]; then sed 's/^/  /' <<<"$errs"; else echo "  none"; fi
+    applog="${XDG_STATE_HOME:-$HOME/.local/state}/lumen/apps.log"
+    if [[ -s "$applog" ]]; then echo "Apps that couldn't start:"; tail -n 8 "$applog" | cut -c1-200 | sed 's/^/  /'; fi
   } | tee "$out"
   printf '\nSaved to %s (photograph this screen or send the file).\n' "$out"
   exit 0
@@ -136,6 +138,15 @@ elif systemctl is-active -q ufw 2>/dev/null || sudo -n ufw status 2>/dev/null | 
   pass "firewall active"
 else
   note "firewall off — sudo ufw enable && sudo systemctl enable ufw"
+fi
+
+section "Apps"
+applog="${XDG_STATE_HOME:-$HOME/.local/state}/lumen/apps.log"
+if [[ -s "$applog" ]]; then
+  note "apps that couldn't start recently (newest last):"
+  tail -n 5 "$applog" | cut -c1-160 | sed 's/^/      /'
+else
+  pass "no app start-up errors"
 fi
 
 section "Fonts"

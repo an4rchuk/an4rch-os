@@ -5,6 +5,13 @@
 # desktop is up; without it each of these loads from the stick the first
 # time it opens, which takes several seconds on a USB 2 port.
 set -u
+# Only once the desktop is up (or after 5 minutes): on a slow stick, reading
+# 1 GB while the desktop is still loading would slow its start right down.
+for _ in $(seq 150); do
+  ls /run/user/*/hypr 2>/dev/null | grep -q . && break
+  sleep 2
+done
+sleep 15
 avail=$(awk '/^MemAvailable:/ { print int($2 / 1024) }' /proc/meminfo)
 # About 1 GB is read; leave plenty for the desktop on small machines.
 ((avail >= 3000)) || { echo "only ${avail} MB free: not preloading"; exit 0; }

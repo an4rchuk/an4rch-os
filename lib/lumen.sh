@@ -49,12 +49,48 @@ notify() {
 # session is managed by uwsm (keeps logs and resource accounting tidy).
 # systemd-run directly rather than `uwsm app`: the same scope, without
 # starting Python for every app that opens (much quicker, above all from USB).
+#
+# Apps must never fail silently: a missing program says so; if the scope
+# can't be made the app runs directly; and an app that quits with an error
+# within a few seconds shows why (also in ~/.local/state/lumen/apps.log,
+# which `lumen doctor` reports). LUMEN_LAUNCH_NAME names it in messages.
 launch() {
-  if systemctl --user is-active -q graphical-session.target 2>/dev/null; then
-    systemd-run --user --quiet --collect --scope --slice=app-graphical.slice -- "$@" >/dev/null 2>&1 &
-  else
-    setsid -f "$@" >/dev/null 2>&1
+  local name="${LUMEN_LAUNCH_NAME:-${1##*/}}"
+  if ! has "$1"; then
+    notify "Can't open $name" "It isn't installed. Find it in the App Store (⊞ + A)." -u critical -i dialog-error
+    return 1
   fi
+  local state="${XDG_STATE_HOME:-$HOME/.local/state}/lumen"
+  mkdir -p "$state"
+  (
+    err=$(mktemp "${XDG_RUNTIME_DIR:-/tmp}/lumen-launch.XXXXXX")
+    start=$SECONDS rc=0
+    # Only the last few KB of an app's error output are kept, however long it runs.
+    if systemctl --user is-active -q graphical-session.target 2>/dev/null; then
+      systemd-run --user --quiet --collect --scope --slice=app-graphical.slice -- "$@" 2> >(tail -c 4000 >"$err") || rc=$?
+      sleep 0.2
+      if ((rc != 0)) && grep -qE '^Failed to (start transient|connect|create)' "$err"; then
+        printf '%s  %s: no app scope (%s); starting it directly\n' "$(date '+%F %T')" "$name" "$(head -n1 "$err")" >>"$state/apps.log"
+        rc=0
+        "$@" 2> >(tail -c 4000 >"$err") || rc=$?
+        sleep 0.2
+      fi
+    else
+      setsid "$@" 2> >(tail -c 4000 >"$err") || rc=$?
+      sleep 0.2
+    fi
+    if ((rc != 0 && rc != 130 && rc != 143)); then
+      why=$(grep -v '^\s*$' "$err" | grep -viE 'warn|deprecat|gtk-message|dbind' | tail -n 3 | cut -c1-200)
+      printf '%s  %s exited with code %s after %ss: %s\n' "$(date '+%F %T')" "$name" "$rc" "$((SECONDS - start))" \
+        "$(tr '\n' ' ' <<<"$why")" >>"$state/apps.log"
+      if ((SECONDS - start < 10)); then
+        notify "$name couldn't start" "${why:-It stopped with error code $rc.}" -u critical -i dialog-error
+      fi
+    fi
+    if [[ -f "$state/apps.log" ]]; then tail -n 200 "$state/apps.log" >"$state/apps.log.tmp" && mv "$state/apps.log.tmp" "$state/apps.log"; fi
+    rm -f "$err"
+  ) </dev/null >/dev/null 2>&1 &
+  disown 2>/dev/null || true
 }
 
 # --- menus -------------------------------------------------------------------

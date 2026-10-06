@@ -186,12 +186,13 @@ def session_managed() -> bool:
         return False
 
 
-def run_detached(argv: list[str]) -> None:
+def run_detached(argv: list[str], env: dict | None = None) -> None:
     tool = LUMEN_PATH / "bin" / argv[0]
     if tool.exists():
         argv = [str(tool), *argv[1:]]
     try:
-        subprocess.Popen(argv, start_new_session=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.Popen(argv, start_new_session=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                         env=env)
     except OSError as err:
         print(f"lumen-start: cannot run {argv}: {err}", file=sys.stderr)
 
@@ -565,9 +566,11 @@ class StartMenu(Gtk.ApplicationWindow):
         if self.uwsm:
             # The app's own scope, like `uwsm app`, but without starting
             # Python each time: gio and systemd-run are quick.
+            # Through lumen-launch, which reports an app that can't start
+            # instead of failing silently.
             path = app.info.get_filename() or app.id
-            run_detached(["systemd-run", "--user", "--quiet", "--collect", "--scope",
-                          "--slice=app-graphical.slice", "--", "gio", "launch", path])
+            run_detached(["lumen-launch", "--", "gio", "launch", path],
+                         env={**os.environ, "LUMEN_LAUNCH_NAME": app.info.get_display_name() or app.id})
         else:
             ctx = Gdk.Display.get_default().get_app_launch_context()
             try:
