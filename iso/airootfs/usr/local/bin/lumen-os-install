@@ -657,6 +657,33 @@ offline_off
 cp "$LOG" "$MNT/var/log/lumen-os-install.log" 2>/dev/null || true
 gum style --foreground "#9fdc9b" "  ✓ Installed the Lumen desktop"
 
+# The keyboard layout chosen above, for the desktop and the login screen too
+# (not only the console): console keymap names → XKB layout (+ variant).
+xkb_variant=""
+case "$keymap" in
+  uk*) xkb=gb ;;
+  dvorak*) xkb=us xkb_variant=dvorak ;;
+  colemak*) xkb=us xkb_variant=colemak ;;
+  jp106*) xkb=jp ;;
+  br-abnt*) xkb=br ;;
+  la-latin*) xkb=latam ;;
+  de_CH* | sg*) xkb=ch ;;
+  fr_CH*) xkb=ch xkb_variant=fr ;;
+  cf) xkb=ca xkb_variant=fr ;;
+  *) xkb="${keymap%%[-_]*}" xkb="${xkb%%[0-9]*}" ;;
+esac
+if [[ -f /usr/share/X11/xkb/rules/base.lst ]] && ! grep -qE "^  ${xkb}[[:space:]]" /usr/share/X11/xkb/rules/base.lst; then
+  xkb=us xkb_variant=""
+fi
+input_lua="$MNT/home/$USERNAME/.config/hypr/input.lua"
+if [[ -f "$input_lua" && "$xkb" != us ]]; then
+  sed -i -E "0,/kb_layout/s|^(\s*)(--\s*)?kb_layout\s*=.*|\1kb_layout  = \"$xkb\",|" "$input_lua"
+  [[ -n "$xkb_variant" ]] && sed -i -E "0,/kb_variant/s|^(\s*)(--\s*)?kb_variant\s*=.*|\1kb_variant = \"$xkb_variant\",|" "$input_lua"
+fi
+mkdir -p "$MNT/etc/X11/xorg.conf.d"
+printf 'Section "InputClass"\n    Identifier "system-keyboard"\n    MatchIsKeyboard "on"\n    Option "XkbLayout" "%s"\n    Option "XkbVariant" "%s"\nEndSection\n' \
+  "$xkb" "$xkb_variant" >"$MNT/etc/X11/xorg.conf.d/00-keyboard.conf"
+
 # Test runs (lumen.serial=1): the installed system also logs to the serial
 # port, and reports on its desktop session a few minutes after booting.
 if [[ "${K[serial]:-0}" == 1 ]]; then
