@@ -144,6 +144,11 @@ Before installing alongside Windows:
 
 Lumen uses Windows' EFI partition only for its boot menu, and keeps its kernels on its own 1 GB boot partition. The boot menu (5 seconds) lists Lumen and Windows. Both systems keep the hardware clock in local time, so the clock is right in each.
 
+**Windows starts straight away, without the menu?** A big Windows update can put Windows first in the computer's boot order again. Lumen is still there:
+
+- Once: press the boot-menu key while the computer starts (**Esc** on ASUS, **F9** on HP, **F12** on Dell and Lenovo, **F8** on some) and pick **Linux Boot Manager**.
+- For good: in the BIOS/UEFI settings (F2 or Del at start-up) move **Linux Boot Manager** to the top of the boot order. Or from Lumen, run `sudo efibootmgr` to see the entries and `sudo efibootmgr -o XXXX,YYYY` with Linux Boot Manager's number first.
+
 ## NVIDIA graphics
 
 The default boot entry uses the open-source nouveau driver. For GTX 16xx, RTX 20xx and newer cards, pick **Lumen OS installer (NVIDIA)** in the boot menu to use NVIDIA's own driver. Installing sets up NVIDIA's driver automatically. On laptops with both Intel/AMD and NVIDIA graphics, the Intel/AMD GPU runs the screen and NVIDIA is available for games and apps that ask for it.

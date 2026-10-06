@@ -216,6 +216,10 @@ class Welcome(Adw.ApplicationWindow):
              "⊞ + Ctrl + P switches between power saver, balanced and performance."),
             ("view-grid-symbolic", "Windows tile by themselves",
              "Drag with ⊞ held to move one; ⊞ + T lets a window float, ⊞ + W closes it."),
+            ("computer-symbolic", "Also have Windows?",
+             "The menu at start-up picks Lumen or Windows. If a Windows update makes Windows start straight away, "
+             "press Esc (ASUS), F9 (HP) or F12 (Dell, Lenovo) at power-on and pick Linux Boot Manager, or move it "
+             "to the top of the boot order in the BIOS."),
             ("system-search-symbolic", "Something not working?",
              "Open a terminal (⊞ + Enter) and run: lumen doctor. It checks the system and suggests fixes. For Wi-Fi, Bluetooth or graphics problems, lumen doctor hardware lists your chips, drivers and any errors."),
         ]
