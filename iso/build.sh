@@ -87,9 +87,15 @@ while IFS= read -r f; do
 done < <(cd "$profile/airootfs/opt/lumen" && find . -path ./.git -prune -o -type f -perm -u+x -print | sort)
 sed -i "s|^file_permissions=(|file_permissions=(\\n$perms|" "$profile/profiledef.sh"
 
-# zstd squashes faster than xz and barely differs here: most of the image is
-# already-compressed packages.
-sed -i "s/^airootfs_image_tool_options=.*/airootfs_image_tool_options=('-comp' 'zstd' '-Xcompression-level' '15' '-b' '1M')/" "$profile/profiledef.sh"
+# zstd rather than xz: as small at this level, and much faster to read from
+# a USB stick while the live system starts (most of the image is
+# already-compressed packages anyway). Level 19 costs build time only.
+sed -i "s/^airootfs_image_tool_options=.*/airootfs_image_tool_options=('-comp' 'zstd' '-Xcompression-level' '19' '-b' '1M')/" "$profile/profiledef.sh"
+
+# The live system leaves out manuals, help pages and translations other than
+# English (smaller ISO). Installs are unaffected: they install the full
+# packages from /opt/lumen-repo.
+sed -i '/^\[options\]/a NoExtract = usr/share/doc/* usr/share/gtk-doc/* usr/share/help/* usr/share/man/* usr/share/info/*\nNoExtract = usr/share/locale/* !usr/share/locale/en* !usr/share/locale/locale.alias' "$profile/pacman.conf"
 
 # Boot menu branding.
 find "$profile/efiboot" "$profile/syslinux" "$profile/grub" -type f \( -name '*.conf' -o -name '*.cfg' \) \

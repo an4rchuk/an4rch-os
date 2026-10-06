@@ -236,6 +236,8 @@ if [[ -n "$km" && "$km" != us ]]; then
   task "keyboard layout ($km) on the desktop" bash -c "! grep -q 'kb_layout  = \"us\"' '$home/.config/hypr/input.lua' && grep -q XkbLayout /etc/X11/xorg.conf.d/00-keyboard.conf"
 fi
 task "memory protection (systemd-oomd)" systemctl is-active systemd-oomd
+# The live USB leaves out manuals and translations; an install must still get them.
+task "installed system has manuals and translations" bash -c 'ls /usr/share/man/man1/ls.1* && ls -d /usr/share/locale/de/LC_MESSAGES'
 task "text editor and camera installed" bash -c 'command -v gnome-text-editor && command -v snapshot'
 
 # --- NVIDIA driver (installed with lumen.gpu=nvidia; this VM has no NVIDIA card) ----------
