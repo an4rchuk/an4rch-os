@@ -40,6 +40,9 @@ start() {
   echo "Lumen session starting: $(date)"
   set -x
 
+  # The touchpad is always on at login (the toggle only lasts a session).
+  rm -f "$LUMEN_STATE/touchpad-off"
+
   # A theme must exist before the bar and notifications read it.
   [[ -d "$LUMEN_CURRENT/theme" ]] || "$LUMEN_PATH/bin/lumen-theme" set lumen
 

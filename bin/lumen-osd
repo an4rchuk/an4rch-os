@@ -4,7 +4,7 @@
 #   lumen-osd volume up|down|up-fine|down-fine|mute
 #   lumen-osd mic mute
 #   lumen-osd brightness up|down
-#   lumen-osd keyboard up|down
+#   lumen-osd keyboard up|down|cycle
 set -euo pipefail
 source "${LUMEN_PATH:-$HOME/.local/share/lumen}/lib/lumen.sh"
 
@@ -47,10 +47,16 @@ case "${1:-} ${2:-}" in
     pct=$(brightnessctl -m | cut -d, -f4 | tr -d %)
     show "Brightness  $pct%" "$pct" display-brightness
     ;;
-  "keyboard up" | "keyboard down")
+  "keyboard up" | "keyboard down" | "keyboard cycle")
     dev=$(brightnessctl -l -m -c leds | grep -m1 kbd_backlight | cut -d, -f1) || exit 0
     [[ -n "$dev" ]] || exit 0
-    [[ "$2" == up ]] && step="1+" || step="1-"
+    case "$2" in
+      up) step="1+" ;;
+      down) step="1-" ;;
+      # One key that steps through the levels and back to off (ASUS's F4).
+      *) cur=$(brightnessctl -m -d "$dev" | cut -d, -f3); max=$(brightnessctl -m -d "$dev" | cut -d, -f5)
+        if ((cur >= max)); then step=0; else step="1+"; fi ;;
+    esac
     brightnessctl -q -d "$dev" set "$step"
     pct=$(brightnessctl -m -d "$dev" | cut -d, -f4 | tr -d %)
     show "Keyboard light  $pct%" "$pct" keyboard-brightness
