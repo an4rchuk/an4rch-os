@@ -83,8 +83,14 @@ preflight() {
       done
       sleep 3
     done
-    ((online)) || fail "No internet connection. Connect first (for Wi-Fi on a fresh install: iwctl)."
-    ok "Internet connection"
+    if ((online)); then
+      ok "Internet connection"
+    elif [[ "${LUMEN_OFFLINE:-0}" == 1 ]]; then
+      # Lumen OS installing from its USB stick: every package is on the stick.
+      ok "No internet: installing from the USB stick"
+    else
+      fail "No internet connection. Connect first (for Wi-Fi on a fresh install: iwctl)."
+    fi
     local free
     free=$(df -Pk / | awk 'NR==2 {print int($4/1024/1024)}')
     ((free >= 6)) || fail "Only ${free} GB free on /. Lumen needs about 6 GB."
