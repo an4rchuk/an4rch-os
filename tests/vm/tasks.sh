@@ -342,5 +342,14 @@ as_user lumen-theme set lumen >/dev/null 2>&1
 sleep 3
 shot 22-final
 
+# The bar watcher brings a crashed top bar back (waybar has crashed in VMs).
+if pgrep -f 'lumen-session watch-bars' >/dev/null; then
+  pkill -KILL -fx waybar
+  sleep 20
+  if pgrep -fx waybar >/dev/null; then result "top bar comes back after a crash" PASS; else result "top bar comes back after a crash" FAIL "not restarted after 20s"; fi
+else
+  result "top bar comes back after a crash" FAIL "lumen-session watch-bars isn't running"
+fi
+
 say "E2E-SUMMARY $pass passed, $fail failed"
 say "E2E-DONE"
