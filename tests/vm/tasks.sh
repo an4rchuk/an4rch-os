@@ -343,7 +343,9 @@ sleep 3
 shot 22-final
 
 # The taskbar used to crash ~5 minutes after starting (two waybars on D-Bus).
-if pgrep -f 'waybar -c .*taskbar.jsonc' >/dev/null && ! grep -q 'taskbar stopped' "$home/.local/state/lumen/apps.log" 2>/dev/null; then
+if grep -q '^LUMEN_TASKBAR=no' "$home/.config/lumen/settings.conf" 2>/dev/null; then
+  : # switched off (the no-taskbar scenario)
+elif pgrep -f 'waybar -c .*taskbar.jsonc' >/dev/null && ! grep -q 'taskbar stopped' "$home/.local/state/lumen/apps.log" 2>/dev/null; then
   result "taskbar still running at the end (no crash)" PASS
 else
   result "taskbar still running at the end (no crash)" FAIL "$(tail -n 3 "$home/.local/state/lumen/apps.log" 2>/dev/null | tr '\n' ' ')"
