@@ -377,7 +377,7 @@ cryptsetup close cryptroot 2>/dev/null || true
 OFFLINE=/opt/lumen-repo
 pac_opts=()
 offline_section() { # PATH-OF-REPO
-  printf '[lumen-offline]\nSigLevel = Optional TrustAll\nServer = file://%s\n\n[core]' "$1"
+  printf '[lumen-offline]\nSigLevel = %s\nServer = file://%s\n\n[core]' "$OFFLINE_SIG" "$1"
 }
 # No internet (no Wi-Fi yet, no cable): pacman can't refresh the online
 # package lists and would give up, so only the stick's repository is used.
@@ -386,6 +386,11 @@ if ! curl -fsS --max-time 6 -o /dev/null https://geo.mirror.pkgbuild.com/ 2>/dev
   ! curl -fsS --max-time 6 -o /dev/null https://archlinux.org/ 2>/dev/null; then
   NET=0
 fi
+# Offline, the new system's empty keyring can't fetch the packagers' keys to
+# check signatures, so the stick's own packages (verified when the ISO was
+# built: they are as trustworthy as the stick) aren't checked again.
+OFFLINE_SIG="Optional TrustAll"
+((NET)) || OFFLINE_SIG="Never"
 # offline_only FILE — switch off the online repositories in a pacman.conf
 # (undone by online_again).
 offline_only() { sed -i -E '/^\[(core|extra|multilib)\]$/,/^$/ s/^/#lumen-offline-only#/' "$1"; }
@@ -544,17 +549,7 @@ printf 'KEYMAP=%s\n' "$keymap" >"$MNT/etc/vconsole.conf"
 
 BOOT_PKGS=()
 [[ $UEFI -eq 0 ]] && BOOT_PKGS=(grub)
-# A fresh keyring (-K) fetches each packager's key from the internet while
-# checking signatures; offline the stick's own, complete keyring is copied.
-keyring=(-K)
-if ((!NET)); then
-  keyring=()
-  # The stick's keyring is filled in at boot (pacman-init); make sure it's done.
-  if systemctl cat pacman-init.service >/dev/null 2>&1; then
-    for _ in $(seq 90); do systemctl is-active -q pacman-init.service && break; sleep 1; done
-  fi
-fi
-spin "Installing the base system" pacstrap "${keyring[@]}" "${pac_opts[@]}" "$MNT" "${PKGS_BASE[@]}" $UCODE "${BOOT_PKGS[@]}"
+spin "Installing the base system" pacstrap -K "${pac_opts[@]}" "$MNT" "${PKGS_BASE[@]}" $UCODE "${BOOT_PKGS[@]}"
 
 genfstab -U "$MNT" >>"$MNT/etc/fstab"
 # Mount subvolumes by name only: rollbacks replace @ with a new subvolume ID.

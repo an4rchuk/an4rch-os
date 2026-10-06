@@ -4,10 +4,6 @@
    "vm": "offline",
    "nonet": true,
    "install": "lumen.keymap=de lumen.timezone=Europe/Berlin"
-  },
-  {
-   "vm": "chromium",
-   "install": "lumen.browser=chromium"
   }
  ]
 }
