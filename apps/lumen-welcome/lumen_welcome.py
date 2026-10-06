@@ -217,7 +217,7 @@ class Welcome(Adw.ApplicationWindow):
             ("view-grid-symbolic", "Windows tile by themselves",
              "Drag with ⊞ held to move one; ⊞ + T lets a window float, ⊞ + W closes it."),
             ("system-search-symbolic", "Something not working?",
-             "Open a terminal (⊞ + Enter) and run: lumen doctor. It checks the system and suggests fixes."),
+             "Open a terminal (⊞ + Enter) and run: lumen doctor. It checks the system and suggests fixes. For Wi-Fi, Bluetooth or graphics problems, lumen doctor hardware lists your chips, drivers and any errors."),
         ]
         if LIVE:
             tips.insert(0, ("drive-removable-media-symbolic", "You're running from the USB stick",

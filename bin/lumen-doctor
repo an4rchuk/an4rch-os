@@ -3,11 +3,50 @@
 #
 #   lumen-doctor            full report
 #   lumen-doctor windows    print class and title of open windows (for rules)
+#   lumen-doctor hardware   laptop model, graphics, Wi-Fi/Bluetooth chips and
+#                           drivers, firmware errors (saved to a file to share)
 set -uo pipefail
 source "${LUMEN_PATH:-$HOME/.local/share/lumen}/lib/lumen.sh"
 
 if [[ "${1:-}" == windows ]]; then
   hyprctl clients -j | jq -r '.[] | "\(.class)\t\(.title)"' | column -t -s $'\t'
+  exit 0
+fi
+
+if [[ "${1:-}" == hardware ]]; then
+  out="$HOME/lumen-hardware-report.txt"
+  dmi() { cat "/sys/class/dmi/id/$1" 2>/dev/null || echo "?"; }
+  # PCI devices of a class, with the driver in use ("Kernel driver in use").
+  pci() { lspci -nnk 2>/dev/null | awk -v re="$1" '
+      /^[0-9a-f]/ { show = ($0 ~ re); if (show) print "  " substr($0, 9); next }
+      show && /Kernel driver in use/ { sub(/^[ \t]+/, ""); print "    " $0 }'; }
+  {
+    echo "Lumen hardware report  $(date '+%F %R')  Lumen $(cat "$LUMEN_PATH/VERSION" 2>/dev/null || echo dev)"
+    echo "Computer: $(dmi sys_vendor) $(dmi product_name) $(dmi product_version)  (BIOS $(dmi bios_version))"
+    echo "CPU: $(grep -m1 'model name' /proc/cpuinfo 2>/dev/null | cut -d: -f2- | sed 's/^ *//')"
+    echo "Memory: $(free -h 2>/dev/null | awk '/^Mem:/ {print $2}')  Kernel: $(uname -r)"
+    if [[ -d /sys/firmware/efi ]]; then
+      sb=$(od -An -t u1 -j4 -N1 /sys/firmware/efi/efivars/SecureBoot-* 2>/dev/null | tr -d ' ')
+      echo "Boot: UEFI, Secure Boot $([[ "$sb" == 1 ]] && echo ON || echo off)"
+    else
+      echo "Boot: legacy BIOS"
+    fi
+    echo "Graphics:"; pci 'VGA|3D|Display'
+    echo "Network:"; pci 'Network|Ethernet'
+    if has lsusb; then
+      bt=$(lsusb 2>/dev/null | grep -i -E 'bluetooth|wireless|802\.11|wlan' || true)
+      [[ -n "$bt" ]] && { echo "USB wireless/Bluetooth:"; sed 's/^/  /' <<<"$bt"; }
+    fi
+    echo "Wi-Fi/Bluetooth switches:"; rfkill list 2>/dev/null | sed 's/^/  /' || echo "  (rfkill not available)"
+    echo "Devices:"; nmcli -t -f DEVICE,TYPE,STATE dev 2>/dev/null | sed 's/^/  /'
+    has bluetoothctl && echo "Bluetooth: $(timeout 3 bluetoothctl show 2>/dev/null | grep -m1 -E 'Powered' | sed 's/^\s*//' || echo 'no controller found')"
+    echo "Firmware/driver errors this boot:"
+    errs=$( (journalctl -k -b --no-pager -q 2>/dev/null || dmesg 2>/dev/null) |
+      grep -i -E 'firmware.*(fail|missing|not found|error)|direct firmware load|failed to load|iwlwifi.*error|ath1[01]k.*fail|rtw.*fail|bluetooth.*(fail|timeout|error)|amdgpu.*error|i915.*error|nouveau.*(fail|error)' |
+      tail -n 25)
+    if [[ -n "$errs" ]]; then sed 's/^/  /' <<<"$errs"; else echo "  none"; fi
+  } | tee "$out"
+  printf '\nSaved to %s (photograph this screen or send the file).\n' "$out"
   exit 0
 fi
 
