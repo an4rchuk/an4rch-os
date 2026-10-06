@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
     inputs:
       set:
-        description: "VM set: standard (5) or scenarios (14)"
+        description: "VM set: standard (5), scenarios (14) or retest (scenarios being re-checked)"
         default: standard
 
 jobs:

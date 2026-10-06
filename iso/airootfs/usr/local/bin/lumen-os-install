@@ -379,10 +379,24 @@ pac_opts=()
 offline_section() { # PATH-OF-REPO
   printf '[lumen-offline]\nSigLevel = Optional TrustAll\nServer = file://%s\n\n[core]' "$1"
 }
+# No internet (no Wi-Fi yet, no cable): pacman can't refresh the online
+# package lists and would give up, so only the stick's repository is used.
+NET=1
+if ! curl -fsS --max-time 6 -o /dev/null https://geo.mirror.pkgbuild.com/ 2>/dev/null &&
+  ! curl -fsS --max-time 6 -o /dev/null https://archlinux.org/ 2>/dev/null; then
+  NET=0
+fi
+# offline_only FILE — switch off the online repositories in a pacman.conf
+# (undone by online_again).
+offline_only() { sed -i -E '/^\[(core|extra|multilib)\]$/,/^$/ s/^/#lumen-offline-only#/' "$1"; }
+online_again() { sed -i 's/^#lumen-offline-only#//' "$1"; }
 if [[ -e "$OFFLINE/lumen-offline.db" ]]; then
   sed -e "0,/^\[core\]/s||$(offline_section "$OFFLINE" | sed -z 's/\n/\\n/g')|" \
     -e "/^\[options\]/a CacheDir = /var/cache/pacman/pkg/\nCacheDir = $OFFLINE/" /etc/pacman.conf >/tmp/lumen-pacman.conf
   pac_opts=(-c -C /tmp/lumen-pacman.conf)
+  ((NET)) || { offline_only /tmp/lumen-pacman.conf; note "No internet connection: installing everything from the USB stick."; }
+elif ((!NET)); then
+  fail "No internet connection, and this USB stick doesn't carry the packages (the online ISO). Connect to Wi-Fi or a cable first."
 fi
 # The same for pacman inside the new system while Lumen installs; undone after.
 offline_on() {
@@ -391,10 +405,12 @@ offline_on() {
   mount --bind "$OFFLINE" "$MNT/var/cache/lumen-repo" && mount -o remount,ro,bind "$MNT/var/cache/lumen-repo"
   sed -i -e "0,/^\[core\]/s||$(offline_section /var/cache/lumen-repo | sed -z 's/\n/\\n/g')|" \
     -e "/^\[options\]/a CacheDir = /var/cache/pacman/pkg/\nCacheDir = /var/cache/lumen-repo/" "$MNT/etc/pacman.conf"
+  ((NET)) || offline_only "$MNT/etc/pacman.conf"
 }
 offline_off() {
   [[ ${#pac_opts[@]} -gt 0 && -f "$MNT/etc/pacman.conf" ]] || return 0
   sed -i -e '/^\[lumen-offline\]$/,/^$/d' -e '\|^CacheDir = /var/cache/pacman/pkg/$|d' -e '\|^CacheDir = /var/cache/lumen-repo/$|d' "$MNT/etc/pacman.conf"
+  online_again "$MNT/etc/pacman.conf"
   rm -f "$MNT/var/lib/pacman/sync/lumen-offline.db"
   umount "$MNT/var/cache/lumen-repo" 2>/dev/null && rmdir "$MNT/var/cache/lumen-repo"
   # Keep the installed kernels' packages, for rolling back to the first snapshot.
@@ -403,7 +419,7 @@ offline_off() {
 
 # Ranking mirrors is a nicety: if Arch's mirror status can't be reached
 # (it times out now and then), keep the mirror list the USB already has.
-spin "Mirrors: picking the fastest" bash -c 'timeout 90 reflector --latest 20 --protocol https --sort rate --save /etc/pacman.d/mirrorlist ||
+((NET)) && spin "Mirrors: picking the fastest" bash -c 'timeout 90 reflector --latest 20 --protocol https --sort rate --save /etc/pacman.d/mirrorlist ||
   echo "Mirror ranking unavailable; keeping the current mirror list"'
 # UEFI computers boot with systemd-boot. Older ones, or a USB started in
 # "legacy"/CSM mode, need GRUB: a tiny BIOS boot partition (3) sits after
@@ -426,7 +442,16 @@ alongside_partition() {
   eval "$(lumen-disk-info --space "$DISK")"
   [[ -z "$error" ]] || fail "$error"
   [[ -n "$ALONG_GB" ]] || ALONG_GB=$max_gb
-  ((ALONG_GB >= 30 && ALONG_GB <= max_gb)) || fail "Not enough room next to Windows: ${max_gb} GB available, ${ALONG_GB} GB wanted (at least 30). Nothing was changed."
+  # Lumen needs 30 GB: a smaller request gets 30 when there is room, and
+  # one larger than the room gets all of it (above 30).
+  ((max_gb >= 30)) || fail "Not enough room next to Windows: Lumen needs 30 GB, and only ${max_gb} GB can be freed. Free up space in Windows (or delete files), then try again. Nothing was changed."
+  if ((ALONG_GB < 30)); then
+    note "Lumen needs at least 30 GB; using 30 GB instead of ${ALONG_GB} GB."
+    ALONG_GB=30
+  elif ((ALONG_GB > max_gb)); then
+    note "Only ${max_gb} GB can be freed next to Windows; using ${max_gb} GB instead of ${ALONG_GB} GB."
+    ALONG_GB=$max_gb
+  fi
   need_mib=$((ALONG_GB * 1024 + 1024 + 64))
   free_mib=$(parted -sm "$DISK" unit MiB print free 2>/dev/null |
     awk -F: '$NF ~ /free;$/ { v = $4; sub(/MiB/, "", v); if (v + 0 > m) m = v + 0 } END { print int(m) }')
