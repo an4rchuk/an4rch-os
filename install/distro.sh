@@ -23,10 +23,10 @@ ID_LIKE=arch
 BUILD_ID=rolling
 VERSION_ID=$VERSION
 ANSI_COLOR="38;2;157;140;255"
-HOME_URL="https://github.com/twil09/lumen-os"
-DOCUMENTATION_URL="https://github.com/twil09/lumen-os/tree/HEAD/docs"
-SUPPORT_URL="https://github.com/twil09/lumen-os/issues"
-BUG_REPORT_URL="https://github.com/twil09/lumen-os/issues"
+HOME_URL="https://github.com/an4rchuk/lumen-os"
+DOCUMENTATION_URL="https://github.com/an4rchuk/lumen-os/tree/HEAD/docs"
+SUPPORT_URL="https://github.com/an4rchuk/lumen-os/issues"
+BUG_REPORT_URL="https://github.com/an4rchuk/lumen-os/issues"
 LOGO=lumen-logo
 OSR
 rm -f /etc/os-release
@@ -122,6 +122,14 @@ install -d /etc/systemd/system.conf.d /etc/systemd/user.conf.d /etc/systemd/jour
 printf '[Manager]\nDefaultTimeoutStopSec=15s\n' >/etc/systemd/system.conf.d/90-lumen.conf
 printf '[Manager]\nDefaultTimeoutStopSec=15s\n' >/etc/systemd/user.conf.d/90-lumen.conf
 printf '[Journal]\nSystemMaxUse=200M\n' >/etc/systemd/journald.conf.d/90-lumen.conf
+
+# Out of memory: instead of the whole computer freezing, systemd-oomd closes
+# the app that is using up memory (Fedora's defaults).
+install -d "/etc/systemd/system/-.slice.d" /etc/systemd/system/user@.service.d
+printf '[Slice]\nManagedOOMSwap=kill\n' >"/etc/systemd/system/-.slice.d/90-lumen-oomd.conf"
+printf '[Service]\nManagedOOMMemoryPressure=kill\nManagedOOMMemoryPressureLimit=50%%\n' \
+  >/etc/systemd/system/user@.service.d/90-lumen-oomd.conf
+systemctl enable systemd-oomd >/dev/null 2>&1 || true
 
 # Keep three versions of each package: rollbacks reinstall kernels from here.
 systemctl enable paccache.timer >/dev/null 2>&1 || true

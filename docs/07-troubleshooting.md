@@ -8,6 +8,14 @@ lumen doctor
 
 It checks every component Lumen relies on, the session services, system services, fonts and the Hyprland config, and prints the exact command to fix each problem. You can also run it from **Lumen menu → Setup → Health check**.
 
+## Hardware report
+
+```sh
+lumen doctor hardware
+```
+
+Shows the computer's model, graphics, Wi-Fi and Bluetooth chips with the driver each one uses, whether Wi-Fi or Bluetooth is switched off, the boot mode (UEFI or legacy BIOS, Secure Boot on or off) and any firmware or driver errors since startup. It's saved to `~/lumen-hardware-report.txt`; when reporting a problem with Wi-Fi, Bluetooth, sound or graphics, include it (or a photo of the screen). Also in **Lumen menu → Setup → Hardware report**.
+
 ## Logs
 
 | What | Where |

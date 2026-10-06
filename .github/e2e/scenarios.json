@@ -1,0 +1,73 @@
+{
+ "include": [
+  {
+   "vm": "uk-laptop",
+   "install": "lumen.keymap=uk lumen.timezone=Europe/London lumen.locale=en_GB.UTF-8"
+  },
+  {
+   "vm": "encrypted",
+   "install": "lumen.encrypt=lumenpass1",
+   "bootpass": "lumenpass1"
+  },
+  {
+   "vm": "offline",
+   "nonet": true,
+   "install": "lumen.keymap=de lumen.timezone=Europe/Berlin"
+  },
+  {
+   "vm": "chromium",
+   "install": "lumen.browser=chromium"
+  },
+  {
+   "vm": "brave",
+   "install": "lumen.browser=brave"
+  },
+  {
+   "vm": "no-taskbar",
+   "install": "lumen.taskbar=0 lumen.titlebars=0"
+  },
+  {
+   "vm": "alacritty-nord",
+   "install": "lumen.terminal=alacritty lumen.theme=nord"
+  },
+  {
+   "vm": "light-theme",
+   "install": "lumen.theme=catppuccin-latte"
+  },
+  {
+   "vm": "4k-screen",
+   "xres": 3840,
+   "yres": 2160
+  },
+  {
+   "vm": "tiny",
+   "cpus": 2,
+   "mem": "3G",
+   "xres": 1280,
+   "yres": 720
+  },
+  {
+   "vm": "dual-boot-lts",
+   "windows": true,
+   "install": "lumen.mode=alongside lumen.size=25 lumen.bootlts=1"
+  },
+  {
+   "vm": "dual-boot-encrypted",
+   "windows": true,
+   "install": "lumen.mode=alongside lumen.size=30 lumen.encrypt=lumenpass1",
+   "bootpass": "lumenpass1"
+  },
+  {
+   "vm": "dual-boot-gamer",
+   "windows": true,
+   "install": "lumen.mode=alongside lumen.size=40 lumen.gpu=nvidia lumen.gaming=1"
+  },
+  {
+   "vm": "bios-light",
+   "cpus": 2,
+   "mem": "4G",
+   "bios": true,
+   "install": "lumen.theme=catppuccin-latte"
+  }
+ ]
+}

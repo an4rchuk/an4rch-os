@@ -138,7 +138,8 @@ setup_menu() {
     "󰏘  Default apps" \
     "󰒓  Lumen settings" \
     "󰈙  Edit key bindings" \
-    "󰩟  Health check") in
+    "󰩟  Health check" \
+    "󰍹  Hardware report") in
     *Wi-Fi) "$bin/lumen-wifi" ;;
     *Bluetooth) "$bin/lumen-bluetooth" ;;
     *"Audio mixer") "$bin/lumen-audio" mixer ;;
@@ -157,6 +158,7 @@ setup_menu() {
     *"Lumen settings") "$bin/lumen-settings" ;;
     *"key bindings") edit "$HOME/.config/hypr/bindings.lua" ;;
     *"Health check") term --float --hold --title "Lumen doctor" -- "$bin/lumen-doctor" ;;
+    *"Hardware report") term --float --hold --title "Hardware report" -- "$bin/lumen-doctor" hardware ;;
   esac
 }
 

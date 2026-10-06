@@ -22,6 +22,8 @@ The modifiers follow one pattern: <kbd>SUPER</kbd> alone for apps and windows, <
 | <kbd>SUPER</kbd> + <kbd>`</kbd> | Find an open window |
 | <kbd>SUPER</kbd> + <kbd>/</kbd> | Show all key bindings |
 | <kbd>SUPER</kbd> + <kbd>F1</kbd> | Open the Lumen manual |
+| <kbd>SUPER</kbd> + <kbd>I</kbd> | Settings |
+| <kbd>CTRL</kbd> + <kbd>SHIFT</kbd> + <kbd>Esc</kbd> | Task Manager (like Windows) |
 
 ## Windows
 
@@ -127,7 +129,7 @@ The modifiers follow one pattern: <kbd>SUPER</kbd> alone for apps and windows, <
 | --- | --- |
 | <kbd>SUPER</kbd> + <kbd>ALT</kbd> + <kbd>W</kbd> | Wi-Fi |
 | <kbd>SUPER</kbd> + <kbd>ALT</kbd> + <kbd>B</kbd> | Bluetooth |
-| <kbd>SUPER</kbd> + <kbd>ALT</kbd> + <kbd>A</kbd> | Audio mixer and devices |
+| <kbd>SUPER</kbd> + <kbd>ALT</kbd> + <kbd>A</kbd> | Sound panel: volume and devices |
 | <kbd>SUPER</kbd> + <kbd>ALT</kbd> + <kbd>D</kbd> | Displays |
 | <kbd>SUPER</kbd> + <kbd>ALT</kbd> + <kbd>T</kbd> | System monitor |
 | <kbd>SUPER</kbd> + <kbd>ALT</kbd> + <kbd>I</kbd> | Install apps |
@@ -153,6 +155,20 @@ The modifiers follow one pattern: <kbd>SUPER</kbd> alone for apps and windows, <
 | <kbd>XF86AudioPrev</kbd> | Previous track |
 | <kbd>XF86PowerOff</kbd> | Power menu |
 | <kbd>XF86Calculator</kbd> | Calculator |
+| <kbd>XF86KbdLightOnOff</kbd> | Keyboard light (step / off) |
+| <kbd>XF86TouchpadToggle</kbd> | Touchpad on/off |
+| <kbd>XF86TouchpadOn</kbd> | Touchpad on |
+| <kbd>XF86TouchpadOff</kbd> | Touchpad off |
+| <kbd>XF86Display</kbd> | Displays (projector / second screen) |
+| <kbd>XF86ScreenSaver</kbd> | Lock screen |
+| <kbd>XF86Sleep</kbd> | Sleep |
+| <kbd>XF86Explorer</kbd> | File manager |
+| <kbd>XF86MyComputer</kbd> | File manager |
+| <kbd>XF86HomePage</kbd> | Browser |
+| <kbd>XF86WWW</kbd> | Browser |
+| <kbd>XF86Search</kbd> | Start menu (search) |
+| <kbd>XF86Tools</kbd> | Settings |
+| <kbd>XF86AudioStop</kbd> | Stop playback |
 
 ## Resize mode
 

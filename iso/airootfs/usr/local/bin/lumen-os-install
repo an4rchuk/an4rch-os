@@ -301,6 +301,17 @@ HOSTNAME_=$(gum input --header "Computer name (on the network)" --value "lumen")
 # --- time and language ------------------------------------------------------------------
 title "Time zone and language"
 TZ_GUESS=$(curl -fsS --max-time 5 https://ipapi.co/timezone 2>/dev/null || true)
+# Offline: go by the keyboard layout (uk → London) rather than nothing.
+if [[ -z "$TZ_GUESS" ]]; then
+  case "$keymap" in
+    uk*) TZ_GUESS=Europe/London ;; de_CH* | sg*) TZ_GUESS=Europe/Zurich ;; de*) TZ_GUESS=Europe/Berlin ;;
+    fr_CH*) TZ_GUESS=Europe/Zurich ;; fr*) TZ_GUESS=Europe/Paris ;; es*) TZ_GUESS=Europe/Madrid ;;
+    it*) TZ_GUESS=Europe/Rome ;; pt*) TZ_GUESS=Europe/Lisbon ;; br*) TZ_GUESS=America/Sao_Paulo ;;
+    se*) TZ_GUESS=Europe/Stockholm ;; no*) TZ_GUESS=Europe/Oslo ;; dk*) TZ_GUESS=Europe/Copenhagen ;;
+    fi*) TZ_GUESS=Europe/Helsinki ;; pl*) TZ_GUESS=Europe/Warsaw ;; cz*) TZ_GUESS=Europe/Prague ;;
+    nl*) TZ_GUESS=Europe/Amsterdam ;; be*) TZ_GUESS=Europe/Brussels ;; jp*) TZ_GUESS=Asia/Tokyo ;;
+  esac
+fi
 if [[ -n "$TZ_GUESS" && -f "/usr/share/zoneinfo/$TZ_GUESS" ]] && gum confirm "Your time zone looks like $TZ_GUESS. Use it?"; then
   TIMEZONE="$TZ_GUESS"
 else
@@ -366,12 +377,31 @@ cryptsetup close cryptroot 2>/dev/null || true
 OFFLINE=/opt/lumen-repo
 pac_opts=()
 offline_section() { # PATH-OF-REPO
-  printf '[lumen-offline]\nSigLevel = Optional TrustAll\nServer = file://%s\n\n[core]' "$1"
+  printf '[lumen-offline]\nSigLevel = %s\nServer = file://%s\n\n[core]' "$OFFLINE_SIG" "$1"
 }
+# No internet (no Wi-Fi yet, no cable): pacman can't refresh the online
+# package lists and would give up, so only the stick's repository is used.
+NET=1
+if ! curl -fsS --max-time 6 -o /dev/null https://geo.mirror.pkgbuild.com/ 2>/dev/null &&
+  ! curl -fsS --max-time 6 -o /dev/null https://archlinux.org/ 2>/dev/null; then
+  NET=0
+fi
+# Offline, the new system's empty keyring can't fetch the packagers' keys to
+# check signatures, so the stick's own packages (verified when the ISO was
+# built: they are as trustworthy as the stick) aren't checked again.
+OFFLINE_SIG="Optional TrustAll"
+((NET)) || OFFLINE_SIG="Never"
+# offline_only FILE — switch off the online repositories in a pacman.conf
+# (undone by online_again).
+offline_only() { sed -i -E '/^\[(core|extra|multilib)\]$/,/^$/ s/^/#lumen-offline-only#/' "$1"; }
+online_again() { sed -i 's/^#lumen-offline-only#//' "$1"; }
 if [[ -e "$OFFLINE/lumen-offline.db" ]]; then
   sed -e "0,/^\[core\]/s||$(offline_section "$OFFLINE" | sed -z 's/\n/\\n/g')|" \
     -e "/^\[options\]/a CacheDir = /var/cache/pacman/pkg/\nCacheDir = $OFFLINE/" /etc/pacman.conf >/tmp/lumen-pacman.conf
   pac_opts=(-c -C /tmp/lumen-pacman.conf)
+  ((NET)) || { offline_only /tmp/lumen-pacman.conf; note "No internet connection: installing everything from the USB stick."; }
+elif ((!NET)); then
+  fail "No internet connection, and this USB stick doesn't carry the packages (the online ISO). Connect to Wi-Fi or a cable first."
 fi
 # The same for pacman inside the new system while Lumen installs; undone after.
 offline_on() {
@@ -380,10 +410,12 @@ offline_on() {
   mount --bind "$OFFLINE" "$MNT/var/cache/lumen-repo" && mount -o remount,ro,bind "$MNT/var/cache/lumen-repo"
   sed -i -e "0,/^\[core\]/s||$(offline_section /var/cache/lumen-repo | sed -z 's/\n/\\n/g')|" \
     -e "/^\[options\]/a CacheDir = /var/cache/pacman/pkg/\nCacheDir = /var/cache/lumen-repo/" "$MNT/etc/pacman.conf"
+  ((NET)) || offline_only "$MNT/etc/pacman.conf"
 }
 offline_off() {
   [[ ${#pac_opts[@]} -gt 0 && -f "$MNT/etc/pacman.conf" ]] || return 0
   sed -i -e '/^\[lumen-offline\]$/,/^$/d' -e '\|^CacheDir = /var/cache/pacman/pkg/$|d' -e '\|^CacheDir = /var/cache/lumen-repo/$|d' "$MNT/etc/pacman.conf"
+  online_again "$MNT/etc/pacman.conf"
   rm -f "$MNT/var/lib/pacman/sync/lumen-offline.db"
   umount "$MNT/var/cache/lumen-repo" 2>/dev/null && rmdir "$MNT/var/cache/lumen-repo"
   # Keep the installed kernels' packages, for rolling back to the first snapshot.
@@ -392,7 +424,7 @@ offline_off() {
 
 # Ranking mirrors is a nicety: if Arch's mirror status can't be reached
 # (it times out now and then), keep the mirror list the USB already has.
-spin "Mirrors: picking the fastest" bash -c 'timeout 90 reflector --latest 20 --protocol https --sort rate --save /etc/pacman.d/mirrorlist ||
+((NET)) && spin "Mirrors: picking the fastest" bash -c 'timeout 90 reflector --latest 20 --protocol https --sort rate --save /etc/pacman.d/mirrorlist ||
   echo "Mirror ranking unavailable; keeping the current mirror list"'
 # UEFI computers boot with systemd-boot. Older ones, or a USB started in
 # "legacy"/CSM mode, need GRUB: a tiny BIOS boot partition (3) sits after
@@ -415,7 +447,16 @@ alongside_partition() {
   eval "$(lumen-disk-info --space "$DISK")"
   [[ -z "$error" ]] || fail "$error"
   [[ -n "$ALONG_GB" ]] || ALONG_GB=$max_gb
-  ((ALONG_GB >= 30 && ALONG_GB <= max_gb)) || fail "Not enough room next to Windows: ${max_gb} GB available, ${ALONG_GB} GB wanted (at least 30). Nothing was changed."
+  # Lumen needs 30 GB: a smaller request gets 30 when there is room, and
+  # one larger than the room gets all of it (above 30).
+  ((max_gb >= 30)) || fail "Not enough room next to Windows: Lumen needs 30 GB, and only ${max_gb} GB can be freed. Free up space in Windows (or delete files), then try again. Nothing was changed."
+  if ((ALONG_GB < 30)); then
+    note "Lumen needs at least 30 GB; using 30 GB instead of ${ALONG_GB} GB."
+    ALONG_GB=30
+  elif ((ALONG_GB > max_gb)); then
+    note "Only ${max_gb} GB can be freed next to Windows; using ${max_gb} GB instead of ${ALONG_GB} GB."
+    ALONG_GB=$max_gb
+  fi
   need_mib=$((ALONG_GB * 1024 + 1024 + 64))
   free_mib=$(parted -sm "$DISK" unit MiB print free 2>/dev/null |
     awk -F: '$NF ~ /free;$/ { v = $4; sub(/MiB/, "", v); if (v + 0 > m) m = v + 0 } END { print int(m) }')
@@ -646,7 +687,7 @@ fi
 offline_on
 step "Lumen installer: ${lumen_args[*]}"
 gum style --foreground "$DIM" --margin "1 2 0" "Installing the Lumen desktop and apps (a few minutes). Progress: $LOG"
-if ! setsid -w arch-chroot "$MNT" sudo -u "$USERNAME" env HOME="/home/$USERNAME" USER="$USERNAME" LUMEN_YES=1 LUMEN_VERBOSE=1 LUMEN_GPU="${K[gpu]:-}" \
+if ! setsid -w arch-chroot "$MNT" sudo -u "$USERNAME" env HOME="/home/$USERNAME" USER="$USERNAME" LUMEN_YES=1 LUMEN_VERBOSE=1 LUMEN_OFFLINE=$((NET ? 0 : 1)) LUMEN_GPU="${K[gpu]:-}" \
   bash "/home/$USERNAME/.local/share/lumen/install.sh" "${lumen_args[@]}" </dev/null >>"$LOG" 2>&1; then
   rm -f "$MNT/etc/sudoers.d/99-lumen-install"
   offline_off
@@ -656,6 +697,33 @@ rm -f "$MNT/etc/sudoers.d/99-lumen-install"
 offline_off
 cp "$LOG" "$MNT/var/log/lumen-os-install.log" 2>/dev/null || true
 gum style --foreground "#9fdc9b" "  ✓ Installed the Lumen desktop"
+
+# The keyboard layout chosen above, for the desktop and the login screen too
+# (not only the console): console keymap names → XKB layout (+ variant).
+xkb_variant=""
+case "$keymap" in
+  uk*) xkb=gb ;;
+  dvorak*) xkb=us xkb_variant=dvorak ;;
+  colemak*) xkb=us xkb_variant=colemak ;;
+  jp106*) xkb=jp ;;
+  br-abnt*) xkb=br ;;
+  la-latin*) xkb=latam ;;
+  de_CH* | sg*) xkb=ch ;;
+  fr_CH*) xkb=ch xkb_variant=fr ;;
+  cf) xkb=ca xkb_variant=fr ;;
+  *) xkb="${keymap%%[-_]*}" xkb="${xkb%%[0-9]*}" ;;
+esac
+if [[ -f /usr/share/X11/xkb/rules/base.lst ]] && ! grep -qE "^  ${xkb}[[:space:]]" /usr/share/X11/xkb/rules/base.lst; then
+  xkb=us xkb_variant=""
+fi
+input_lua="$MNT/home/$USERNAME/.config/hypr/input.lua"
+if [[ -f "$input_lua" && "$xkb" != us ]]; then
+  sed -i -E "0,/kb_layout/s|^(\s*)(--\s*)?kb_layout\s*=.*|\1kb_layout  = \"$xkb\",|" "$input_lua"
+  [[ -n "$xkb_variant" ]] && sed -i -E "0,/kb_variant/s|^(\s*)(--\s*)?kb_variant\s*=.*|\1kb_variant = \"$xkb_variant\",|" "$input_lua"
+fi
+mkdir -p "$MNT/etc/X11/xorg.conf.d"
+printf 'Section "InputClass"\n    Identifier "system-keyboard"\n    MatchIsKeyboard "on"\n    Option "XkbLayout" "%s"\n    Option "XkbVariant" "%s"\nEndSection\n' \
+  "$xkb" "$xkb_variant" >"$MNT/etc/X11/xorg.conf.d/00-keyboard.conf"
 
 # Test runs (lumen.serial=1): the installed system also logs to the serial
 # port, and reports on its desktop session a few minutes after booting.

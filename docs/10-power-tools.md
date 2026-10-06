@@ -54,6 +54,10 @@ Ready-made setups, each one command. They install the packages, turn on the serv
 | `lumen extras waydroid` | Android apps in a window |
 | `lumen extras virt` | Virtual machines with virt-manager and QEMU/KVM |
 | `lumen extras tailscale` | A private network between all your devices |
+| `lumen extras phone` | Phone link (KDE Connect): notifications, files and clipboard with your phone |
+| `lumen extras localsend` | LocalSend: send files to nearby phones and computers |
+| `lumen extras backup` | Déjà Dup: scheduled backups of your files to a drive or the cloud |
+| `lumen extras office` | LibreOffice: documents, spreadsheets, presentations (Word/Excel files too) |
 
 `lumen extras list` shows them all; `lumen extras` on its own opens a menu.
 

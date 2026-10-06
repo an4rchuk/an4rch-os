@@ -158,6 +158,52 @@ def keymaps() -> list[str]:
     return [m for m in common if not maps or m in maps] + sorted(set(maps) - set(common))
 
 
+def xkb_for_keymap(keymap: str) -> tuple[str, str]:
+    """Console keymap name → XKB (layout, variant), as lumen-os-install maps it."""
+    special = {"uk": ("gb", ""), "dvorak": ("us", "dvorak"), "colemak": ("us", "colemak"), "jp106": ("jp", ""),
+               "br-abnt": ("br", ""), "la-latin": ("latam", ""), "de_CH": ("ch", ""), "sg": ("ch", ""),
+               "fr_CH": ("ch", "fr"), "cf": ("ca", "fr")}
+    for prefix, xkb in special.items():
+        if keymap.startswith(prefix):
+            return xkb
+    return re.split(r"[-_0-9]", keymap)[0] or "us", ""
+
+
+KEYMAP_ZONES = {"uk": "Europe/London", "de": "Europe/Berlin", "fr": "Europe/Paris", "es": "Europe/Madrid",
+                "it": "Europe/Rome", "pt": "Europe/Lisbon", "br": "America/Sao_Paulo", "se": "Europe/Stockholm",
+                "no": "Europe/Oslo", "dk": "Europe/Copenhagen", "fi": "Europe/Helsinki", "pl": "Europe/Warsaw",
+                "cz": "Europe/Prague", "nl": "Europe/Amsterdam", "be": "Europe/Brussels", "ie": "Europe/Dublin",
+                "jp": "Asia/Tokyo", "ru": "Europe/Moscow", "tr": "Europe/Istanbul", "gr": "Europe/Athens",
+                "hu": "Europe/Budapest", "ro": "Europe/Bucharest", "ch": "Europe/Zurich", "de_CH": "Europe/Zurich"}
+
+
+def zone_for_keymap(keymap: str, zones: list[str]) -> str:
+    for prefix in sorted(KEYMAP_ZONES, key=len, reverse=True):
+        if keymap.startswith(prefix) and KEYMAP_ZONES[prefix] in zones:
+            return KEYMAP_ZONES[prefix]
+    return "UTC"
+
+
+def use_keymap_now(keymap: str) -> None:
+    """Live USB: type with the chosen layout straight away, so passwords set
+    here type the same after installing."""
+    if DEMO:
+        return
+    layout, variant = xkb_for_keymap(keymap)
+    conf = Path.home() / ".config/hypr/input.lua"
+    try:
+        text = conf.read_text()
+    except OSError:
+        return
+    text = re.sub(r'^(\s*)(--\s*)?kb_layout\s*=.*$', f'\\1kb_layout  = "{layout}",', text, count=1, flags=re.M)
+    text = re.sub(r'^(\s*)(--\s*)?kb_variant\s*=.*$', f'\\1kb_variant = "{variant}",', text, count=1, flags=re.M)
+    try:
+        conf.write_text(text)
+        subprocess.run(["hyprctl", "reload"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=5)
+    except (OSError, subprocess.SubprocessError):
+        pass
+
+
 def read_theme(path: Path) -> dict[str, str]:
     data: dict[str, str] = {}
     for line in path.read_text().splitlines():
@@ -306,6 +352,16 @@ class Installer(Adw.ApplicationWindow):
             self.refresh_network()
 
     # --- 1. welcome --------------------------------------------------------------------------
+    def on_keymap(self, row: Adw.ComboRow, *_args) -> None:
+        keymap = self.keymaps[row.get_selected()]
+        self.answers["keymap"] = keymap
+        use_keymap_now(keymap)
+        # No time zone from the internet: follow the keyboard (uk → London).
+        if not getattr(self, "tz_detected", True) and getattr(self, "tz_row", None) is not None:
+            zone = zone_for_keymap(keymap, self.zones)
+            if zone in self.zones:
+                self.tz_row.set_selected(self.zones.index(zone))
+
     def page_welcome(self) -> Gtk.Widget:
         svg = LUMEN_PATH / "share/icons/hicolor/scalable/apps/lumen-logo.svg"
         logo = Gtk.Image.new_from_file(str(svg)) if svg.exists() else Gtk.Image(icon_name="lumen-logo")
@@ -316,10 +372,10 @@ class Installer(Adw.ApplicationWindow):
                          label="You're running Lumen from the USB stick right now: look around, open apps, try the "
                                "Start menu (tap the Windows key). When you're ready, this installer asks a few "
                                "questions and puts Lumen on your computer. It only takes a few minutes.")
-        keymap = Adw.ComboRow(title="Keyboard layout", subtitle="Used for the disk password and the console")
+        keymap = Adw.ComboRow(title="Keyboard layout", subtitle="For the desktop, the login screen and the disk password (uk for a UK keyboard)")
         self.keymaps = keymaps()
         keymap.set_model(Gtk.StringList.new(self.keymaps))
-        keymap.connect("notify::selected", lambda r, *_: self.answers.__setitem__("keymap", self.keymaps[r.get_selected()]))
+        keymap.connect("notify::selected", self.on_keymap)
         group = Adw.PreferencesGroup(margin_top=12)
         group.add(keymap)
         tips = Gtk.Button(label="New to Lumen? Open the tips", css_classes=["flat"], halign=Gtk.Align.CENTER)
@@ -498,13 +554,19 @@ class Installer(Adw.ApplicationWindow):
     def page_region(self) -> Gtk.Widget:
         self.zones = timezones()
         guess = guess_timezone()
-        self.answers["timezone"] = guess if guess in self.zones else "UTC"
+        self.tz_detected = guess in self.zones
+        self.answers["timezone"] = guess if self.tz_detected else "UTC"
+        if not self.tz_detected:
+            # Offline (no Wi-Fi yet): go by the keyboard layout instead of UTC.
+            self.answers["timezone"] = zone_for_keymap(self.answers.get("keymap", "us"), self.zones)
         tz = Adw.ComboRow(title="Time zone", enable_search=True)
+        self.tz_row = tz
         tz.set_model(Gtk.StringList.new(self.zones))
         if self.answers["timezone"] in self.zones:
             tz.set_selected(self.zones.index(self.answers["timezone"]))
         tz.connect("notify::selected", lambda r, *_: self.answers.__setitem__("timezone", self.zones[r.get_selected()]))
-        group = Adw.PreferencesGroup(description="Detected from your internet connection; change it if it's wrong.")
+        group = Adw.PreferencesGroup(description="Detected from your internet connection; change it if it's wrong."
+                                     if self.tz_detected else "Check this: there's no internet connection to detect it.")
         group.add(tz)
         return self.page("Where are you?", "", group)
 

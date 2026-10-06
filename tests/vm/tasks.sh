@@ -63,7 +63,7 @@ cli() {
 }
 
 windows() { as_user hyprctl clients -j 2>/dev/null | jq -r '.[].class' 2>/dev/null; }
-count_windows() { windows | grep -ci -- "$1"; }
+count_windows() { windows | grep -Eci -- "$1"; }
 
 # wait_window NAME CLASS-REGEX SECONDS [MIN-COUNT]
 wait_window() {
@@ -90,7 +90,7 @@ cli "lumen doctor" lumen-doctor
 
 # --- Apps from Lumen's launcher ------------------------------------------------------
 as_user lumen-launch terminal
-if wait_window "terminal opens (lumen-launch)" ghostty 30; then
+if wait_window "terminal opens (lumen-launch)" 'ghostty|alacritty|kitty' 30; then
   type_text "fastfetch"
   keys ret
   sleep 3
@@ -146,9 +146,9 @@ shot 14-lumen-menu
 keys esc
 pkill -x fuzzel
 
-before=$(count_windows ghostty)
+before=$(count_windows 'ghostty|alacritty|kitty')
 keys meta_l-ret
-wait_window "SUPER+Enter opens a terminal" ghostty 20 $((before + 1)) && shot 15-keybind-terminal
+wait_window "SUPER+Enter opens a terminal" 'ghostty|alacritty|kitty' 20 $((before + 1)) && shot 15-keybind-terminal
 
 keys meta_l
 type_text "calc"
@@ -157,7 +157,14 @@ keys ret
 wait_window "Start search launches Calculator" 'calculator' 30 && shot 17-calculator
 
 # --- Title bars, minimise and the taskbar -------------------------------------------------
-if as_user hyprctl plugin list 2>/dev/null | grep -q hyprbars; then
+if grep -q '^LUMEN_TITLEBARS=no' "$home/.config/lumen/settings.conf" 2>/dev/null; then
+  # Title bars turned off when installing: the plugin must not be loaded.
+  if as_user hyprctl plugin list 2>/dev/null | grep -q hyprbars; then
+    result "title bars off (as chosen)" FAIL "the plugin is loaded"
+  else
+    result "title bars off (as chosen)" PASS
+  fi
+elif as_user hyprctl plugin list 2>/dev/null | grep -q hyprbars; then
   result "title bars plugin loaded" PASS
 else
   result "title bars plugin loaded" FAIL "$(as_user hyprctl plugin list 2>&1 | head -n 3 | tr '\n' ' ')"
@@ -191,8 +198,24 @@ pkill -f lumen_store.py
 as_user lumen-launch files
 wait_window "file manager opens" 'nautilus' 40 && { sleep 3; shot 19-files; }
 
+as_user lumen-launch monitor
+wait_window "Task Manager opens" 'SystemMonitor' 40 && { sleep 3; shot 19b-task-manager; }
+
 as_user lumen-launch browser https://archlinux.org
-wait_window "browser opens" 'firefox' 90 && { sleep 15; shot 20-browser; }
+if wait_window "browser opens" 'firefox|chromium|brave|zen' 90; then
+  sleep 15; shot 20-browser
+else
+  # What went wrong, for the log: the chosen browser, failed apps, processes,
+  # and the browser's own output when started directly.
+  br=$(sed -n 's/^LUMEN_BROWSER=//p' "$home/.config/lumen/settings.conf" 2>/dev/null)
+  say "--- browser diagnostics (LUMEN_BROWSER=$br)"
+  tail -n 10 "$home/.local/state/lumen/apps.log" 2>&1
+  pgrep -af 'firefox|chromium|chrome|brave' | cut -c1-200
+  ls -l "$home/.config/"*-flags.conf 2>&1
+  as_user timeout 25 "${br:-firefox}" --version 2>&1 | tail -n 3
+  as_user timeout 25 "${br:-firefox}" about:blank 2>&1 | grep -v '^\s*$' | tail -n 25
+  shot 20-browser-failed
+fi
 
 # --- Command-line tools -------------------------------------------------------------------
 cli "lumen help" lumen help
@@ -207,6 +230,13 @@ task "audio (wpctl status)" as_user wpctl status
 task "firewall active" systemctl is-active ufw
 task "NetworkManager online" nmcli -t -f STATE general
 task "zram swap" swapon --show
+# The keyboard layout picked when installing reaches the desktop (not only the console).
+km=$(sed -n 's/^KEYMAP=//p' /etc/vconsole.conf 2>/dev/null)
+if [[ -n "$km" && "$km" != us ]]; then
+  task "keyboard layout ($km) on the desktop" bash -c "! grep -q 'kb_layout  = \"us\"' '$home/.config/hypr/input.lua' && grep -q XkbLayout /etc/X11/xorg.conf.d/00-keyboard.conf"
+fi
+task "memory protection (systemd-oomd)" systemctl is-active systemd-oomd
+task "text editor and camera installed" bash -c 'command -v gnome-text-editor && command -v snapshot'
 
 # --- NVIDIA driver (installed with lumen.gpu=nvidia; this VM has no NVIDIA card) ----------
 # Without an NVIDIA card, NVIDIA's libraries must not have been pulled in.
@@ -311,6 +341,15 @@ if pgrep -x hyprlock >/dev/null; then result "unlock with password" FAIL; else r
 as_user lumen-theme set lumen >/dev/null 2>&1
 sleep 3
 shot 22-final
+
+# The bar watcher brings a crashed top bar back (waybar has crashed in VMs).
+if pgrep -f 'lumen-session watch-bars' >/dev/null; then
+  pkill -KILL -fx waybar
+  sleep 20
+  if pgrep -fx waybar >/dev/null; then result "top bar comes back after a crash" PASS; else result "top bar comes back after a crash" FAIL "not restarted after 20s"; fi
+else
+  result "top bar comes back after a crash" FAIL "lumen-session watch-bars isn't running"
+fi
 
 say "E2E-SUMMARY $pass passed, $fail failed"
 say "E2E-DONE"

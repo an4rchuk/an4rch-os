@@ -11,7 +11,7 @@ Under the hood it's still Arch Linux: the official repositories, `pacman`, the A
 
 ## Getting the ISO
 
-- **Download:** every [release](https://github.com/twil09/lumen-os/releases) has the full ISO in parts (GitHub limits release files to 2 GB; join them with `copy /b` on Windows or `cat` elsewhere, as the release notes show) and a smaller *online* ISO that downloads its packages while installing, each with a `.sha256` checksum.
+- **Download:** every [release](https://github.com/an4rchuk/lumen-os/releases) has the full ISO in parts (GitHub limits release files to 2 GB; join them with `copy /b` on Windows or `cat` elsewhere, as the release notes show) and a smaller *online* ISO that downloads its packages while installing, each with a `.sha256` checksum.
 - **Build it yourself on Arch:** `sudo pacman -S archiso`, then `sudo iso/build.sh`. The ISO lands in `out/`. It is about 5 GB because it carries the packages an install needs (`iso/offline.sh`); `sudo LUMEN_OFFLINE=0 iso/build.sh` makes a small ISO that downloads everything while installing.
 - **Build it on GitHub:** Actions → *iso* → *Run workflow*. The ISO is attached to the run.
 
@@ -143,6 +143,11 @@ Before installing alongside Windows:
 - The USB must be started in **UEFI** mode, like Windows.
 
 Lumen uses Windows' EFI partition only for its boot menu, and keeps its kernels on its own 1 GB boot partition. The boot menu (5 seconds) lists Lumen and Windows. Both systems keep the hardware clock in local time, so the clock is right in each.
+
+**Windows starts straight away, without the menu?** A big Windows update can put Windows first in the computer's boot order again. Lumen is still there:
+
+- Once: press the boot-menu key while the computer starts (**Esc** on ASUS, **F9** on HP, **F12** on Dell and Lenovo, **F8** on some) and pick **Linux Boot Manager**.
+- For good: in the BIOS/UEFI settings (F2 or Del at start-up) move **Linux Boot Manager** to the top of the boot order. Or from Lumen, run `sudo efibootmgr` to see the entries and `sudo efibootmgr -o XXXX,YYYY` with Linux Boot Manager's number first.
 
 ## NVIDIA graphics
 

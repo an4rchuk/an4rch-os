@@ -1,0 +1,9 @@
+{
+ "include": [
+  {
+   "vm": "offline",
+   "nonet": true,
+   "install": "lumen.keymap=de lumen.timezone=Europe/Berlin"
+  }
+ ]
+}

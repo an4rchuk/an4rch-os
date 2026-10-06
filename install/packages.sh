@@ -66,7 +66,7 @@ PKGS_OPTIONAL=(
   sound-theme-freedesktop
   glow yazi neovim
   nautilus gvfs gvfs-mtp file-roller sushi
-  loupe mpv evince gnome-calculator gnome-disk-utility
+  loupe mpv evince gnome-calculator gnome-disk-utility gnome-system-monitor gnome-text-editor snapshot
   flatpak fwupd pacman-contrib pciutils
   gtk4-layer-shell
   bibata-cursor-theme-bin
@@ -106,6 +106,9 @@ PKGS_X_DISTROBOX=(distrobox podman)
 PKGS_X_WAYDROID=(waydroid)
 PKGS_X_VIRT=(qemu-desktop libvirt virt-manager dnsmasq edk2-ovmf swtpm)
 PKGS_X_TAILSCALE=(tailscale)
+PKGS_X_PHONE=(kdeconnect)
+PKGS_X_BACKUP=(deja-dup)
+PKGS_X_OFFICE=(libreoffice-fresh hunspell-en_gb hunspell-en_us)
 PKGS_X_HANDHELD=(hhd)
 PKGS_X_CONTROLLERS=(game-devices-udev)
 

@@ -29,6 +29,7 @@ check "top bar running" pgrep -u "$u" -x waybar
 check "taskbar running" pgrep -u "$u" -f "waybar -c .*taskbar.jsonc"
 check "wallpaper (swaybg) running" pgrep -u "$u" -x swaybg
 check "installer window open" pgrep -u "$u" -f lumen_installer.py
+check "desktop icons (Install Lumen OS) showing" pgrep -u "$u" -f lumen_desktop.py
 check "sound (PipeWire) running" as_live wpctl status
 for c in hypridle hyprsunset pavucontrol wiremix playerctl bluetoothctl notify-send powerprofilesctl; do
   check "command $c" command -v "$c"

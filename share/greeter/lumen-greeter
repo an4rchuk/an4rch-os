@@ -15,6 +15,14 @@ if [[ ! -e "$dir/text-only" ]] && command -v cage >/dev/null && command -v regre
   # Lumen's session files come first: ReGreet takes the first file of each
   # name, so the list shows one "Lumen" session (Hyprland through uwsm).
   export XDG_DATA_DIRS="/usr/local/share/lumen:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
+  # The system keyboard layout (set by the installer or lumen setup keyboard),
+  # so passwords type the same as on the desktop.
+  kbconf=/etc/X11/xorg.conf.d/00-keyboard.conf
+  if [[ -f "$kbconf" ]]; then
+    XKB_DEFAULT_LAYOUT=$(sed -n 's/.*"XkbLayout"[[:space:]]*"\([^"]*\)".*/\1/p' "$kbconf")
+    XKB_DEFAULT_VARIANT=$(sed -n 's/.*"XkbVariant"[[:space:]]*"\([^"]*\)".*/\1/p' "$kbconf")
+    export XKB_DEFAULT_LAYOUT XKB_DEFAULT_VARIANT
+  fi
   args=()
   [[ -f "$dir/regreet.toml" ]] && args+=(--config "$dir/regreet.toml")
   [[ -f "$dir/regreet.css" ]] && args+=(--style "$dir/regreet.css")

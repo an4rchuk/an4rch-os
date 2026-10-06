@@ -107,6 +107,13 @@ jobs:
           parts=$(cd release && ls "$name".iso.part* | tr '\n' ' ')
           win_join=$(cd release && ls "$name".iso.part* | sed ':a;N;$!ba;s/\n/ + /g')
           {
+          # The changelog, when there is one for this release.
+          if [ -f "docs/releases/${TAG}.md" ]; then
+            echo "## What's new in ${TAG}"
+            echo
+            sed 's/^/          /' "docs/releases/${TAG}.md"
+            echo
+          fi
           if [ -n "${HF_URL:-}" ]; then
             cat <<EOF
           ## Download
