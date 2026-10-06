@@ -342,6 +342,13 @@ as_user lumen-theme set lumen >/dev/null 2>&1
 sleep 3
 shot 22-final
 
+# The taskbar used to crash ~5 minutes after starting (two waybars on D-Bus).
+if pgrep -f 'waybar -c .*taskbar.jsonc' >/dev/null && ! grep -q 'taskbar stopped' "$home/.local/state/lumen/apps.log" 2>/dev/null; then
+  result "taskbar still running at the end (no crash)" PASS
+else
+  result "taskbar still running at the end (no crash)" FAIL "$(tail -n 3 "$home/.local/state/lumen/apps.log" 2>/dev/null | tr '\n' ' ')"
+fi
+
 # The bar watcher brings a crashed top bar back (waybar has crashed in VMs).
 if pgrep -f 'lumen-session watch-bars' >/dev/null; then
   pkill -KILL -fx '(/usr/bin/)?waybar'
