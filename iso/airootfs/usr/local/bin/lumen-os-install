@@ -544,7 +544,17 @@ printf 'KEYMAP=%s\n' "$keymap" >"$MNT/etc/vconsole.conf"
 
 BOOT_PKGS=()
 [[ $UEFI -eq 0 ]] && BOOT_PKGS=(grub)
-spin "Installing the base system" pacstrap -K "${pac_opts[@]}" "$MNT" "${PKGS_BASE[@]}" $UCODE "${BOOT_PKGS[@]}"
+# A fresh keyring (-K) fetches each packager's key from the internet while
+# checking signatures; offline the stick's own, complete keyring is copied.
+keyring=(-K)
+if ((!NET)); then
+  keyring=()
+  # The stick's keyring is filled in at boot (pacman-init); make sure it's done.
+  if systemctl cat pacman-init.service >/dev/null 2>&1; then
+    for _ in $(seq 90); do systemctl is-active -q pacman-init.service && break; sleep 1; done
+  fi
+fi
+spin "Installing the base system" pacstrap "${keyring[@]}" "${pac_opts[@]}" "$MNT" "${PKGS_BASE[@]}" $UCODE "${BOOT_PKGS[@]}"
 
 genfstab -U "$MNT" >>"$MNT/etc/fstab"
 # Mount subvolumes by name only: rollbacks replace @ with a new subvolume ID.

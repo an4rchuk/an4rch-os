@@ -202,7 +202,20 @@ as_user lumen-launch monitor
 wait_window "Task Manager opens" 'SystemMonitor' 40 && { sleep 3; shot 19b-task-manager; }
 
 as_user lumen-launch browser https://archlinux.org
-wait_window "browser opens" 'firefox|chromium|brave|zen' 90 && { sleep 15; shot 20-browser; }
+if wait_window "browser opens" 'firefox|chromium|brave|zen' 90; then
+  sleep 15; shot 20-browser
+else
+  # What went wrong, for the log: the chosen browser, failed apps, processes,
+  # and the browser's own output when started directly.
+  br=$(sed -n 's/^LUMEN_BROWSER=//p' "$home/.config/lumen/settings.conf" 2>/dev/null)
+  say "--- browser diagnostics (LUMEN_BROWSER=$br)"
+  tail -n 10 "$home/.local/state/lumen/apps.log" 2>&1
+  pgrep -af 'firefox|chromium|chrome|brave' | cut -c1-200
+  ls -l "$home/.config/"*-flags.conf 2>&1
+  as_user timeout 25 "${br:-firefox}" --version 2>&1 | tail -n 3
+  as_user timeout 25 "${br:-firefox}" about:blank 2>&1 | grep -v '^\s*$' | tail -n 25
+  shot 20-browser-failed
+fi
 
 # --- Command-line tools -------------------------------------------------------------------
 cli "lumen help" lumen help
