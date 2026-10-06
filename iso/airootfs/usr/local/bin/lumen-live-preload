@@ -7,8 +7,9 @@
 set -u
 # Only once the desktop is up (or after 5 minutes): on a slow stick, reading
 # 1 GB while the desktop is still loading would slow its start right down.
+up() { local d; for d in /run/user/*/hypr/*/; do [[ -d "$d" ]] && return 0; done; return 1; }
 for _ in $(seq 150); do
-  ls /run/user/*/hypr 2>/dev/null | grep -q . && break
+  up && break
   sleep 2
 done
 sleep 15

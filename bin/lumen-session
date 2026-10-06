@@ -58,6 +58,11 @@ start() {
   # doesn't slow down the first seconds of the session.
   (sleep 6 && { pgrep -f 'lumen-audio/lumen_audio.py' >/dev/null || launch "$LUMEN_PATH/bin/lumen-audio" --daemon; }) &
 
+  # Desktop icons (the live USB's "Install Lumen OS"), when there are any.
+  if [[ -s "${XDG_CONFIG_HOME:-$HOME/.config}/lumen/desktop-icons.json" ]]; then
+    pgrep -f 'lumen-desktop/lumen_desktop.py' >/dev/null || launch "$LUMEN_PATH/bin/lumen-desktop"
+  fi
+
   # Clipboard history for text and images.
   if has cliphist && has wl-paste; then
     pgrep -f 'wl-paste --type text --watch' >/dev/null || launch wl-paste --type text --watch cliphist store
