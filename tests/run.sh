@@ -187,6 +187,15 @@ if missing:
 PY
 then ok "config.jsonc parses and every module is configured"; else bad "waybar config"; fi
 
+step "Docs"
+if [[ -n "$lua" ]]; then
+  if "$lua" "$root/tests/gen-keys-doc.lua" "$root" | diff -q - "$root/docs/02-keybindings.md" >/dev/null; then
+    ok "docs/02-keybindings.md matches the bindings"
+  else
+    bad "docs/02-keybindings.md is out of date: $lua tests/gen-keys-doc.lua . > docs/02-keybindings.md"
+  fi
+fi
+
 step "Wallpapers"
 if python3 -c 'import PIL' 2>/dev/null; then
   if python3 "$root/bin/lumen-wallgen" --theme lumen --theme catppuccin-latte --size 640x360 --out "$tmp/walls" >/dev/null; then
