@@ -23,6 +23,10 @@ RECIPES=(
   "waydroid|Waydroid: run Android apps in a window"
   "virt|Virtual machines: virt-manager with QEMU/KVM"
   "tailscale|Tailscale: a private network between all your devices"
+  "phone|Phone link (KDE Connect): notifications, files and clipboard with your phone"
+  "localsend|LocalSend: send files to nearby phones and computers (like AirDrop)"
+  "backup|Backups (Déjà Dup): copy your files to a drive or the cloud on a schedule"
+  "office|LibreOffice: documents, spreadsheets and presentations (opens Word/Excel files)"
 )
 
 case "${1:-}" in
@@ -140,6 +144,37 @@ recipe_tailscale() {
   sudo tailscale up --operator="$USER"
   next "Your devices on the same Tailscale account can now reach this one." \
     "Status: tailscale status"
+}
+
+recipe_phone() {
+  say "Phone link (KDE Connect)"
+  add "${PKGS_X_PHONE[@]}"
+  firewall 1714:1764/tcp 1714:1764/udp
+  next "Install KDE Connect on your phone (Android: Play Store or F-Droid; iPhone: App Store)." \
+    "Open KDE Connect from Start on both, on the same Wi-Fi, and pair them."
+}
+
+recipe_localsend() {
+  say "LocalSend"
+  has flatpak || add flatpak
+  flathub org.localsend.localsend_app
+  firewall 53317/tcp 53317/udp
+  next "Install LocalSend on your phone or other computer (it's free on every platform)." \
+    "Open LocalSend on both, on the same Wi-Fi, and send files either way."
+}
+
+recipe_backup() {
+  say "Backups (Déjà Dup)"
+  add "${PKGS_X_BACKUP[@]}"
+  next "Open Backups from Start, pick what to save and where (a USB drive, a network share or Google Drive)." \
+    "Turn on automatic backups there; restoring is in the same app." \
+    "System snapshots (lumen snapshot) protect the system; this protects your own files."
+}
+
+recipe_office() {
+  say "LibreOffice"
+  add "${PKGS_X_OFFICE[@]}"
+  next "Writer, Calc and Impress are in Start; they open and save Word, Excel and PowerPoint files."
 }
 
 list() {
