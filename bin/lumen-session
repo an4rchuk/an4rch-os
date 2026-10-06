@@ -54,7 +54,9 @@ start() {
   "$LUMEN_PATH/bin/lumen-titlebars" load &
   pgrep -f 'lumen-window daemon' >/dev/null || launch "$LUMEN_PATH/bin/lumen-window" daemon
   start_once mako mako
-  start_once hypridle hypridle
+  # Screen lock and sleep, except on the live USB: its user has no password
+  # (the lock screen couldn't be unlocked) and an install mustn't sleep.
+  [[ -d /run/archiso ]] || start_once hypridle hypridle
   # The Start menu waits in the background so a Super tap opens it instantly.
   pgrep -f 'lumen-start/lumen_start.py' >/dev/null || launch "$LUMEN_PATH/bin/lumen-start" --daemon
   # So does the sound panel (the volume icon), started a moment later so it

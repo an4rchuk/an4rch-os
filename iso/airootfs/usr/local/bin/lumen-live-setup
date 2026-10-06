@@ -68,6 +68,9 @@ cd "$LUMEN_PATH/config" && find . -type f | while read -r f; do
   mkdir -p "$(dirname "$dest")"
   cp "$f" "$dest"
 done
+# The live user has no password: let the lock screen (⊞ + Ctrl + L, the
+# power menu) unlock with an empty one instead of locking people out.
+sed -i 's/^\(\s*\)ignore_empty_input\s*=.*/\1ignore_empty_input = false/' ~/.config/hypr/hyprlock.conf
 cp "$LUMEN_PATH"/share/applications/*.desktop ~/.local/share/applications/
 cp "$LUMEN_PATH"/share/icons/hicolor/scalable/apps/*.svg ~/.local/share/icons/hicolor/scalable/apps/
 cat >~/.config/lumen/settings.conf <<CONF
