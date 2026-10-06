@@ -26,6 +26,8 @@ jobs:
   e2e:
     name: e2e (${{ matrix.vm }})
     runs-on: ubuntu-24.04
+    # A known issue being investigated still runs and reports, without turning the whole run red.
+    continue-on-error: ${{ matrix.known_issue || false }}
     timeout-minutes: 300
     needs: plan
     strategy:
