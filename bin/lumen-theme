@@ -146,7 +146,7 @@ pick() {
     fi
   done < <(theme_list)
   choice=$(printf '%s\n' "${labels[@]}" | menu "Theme" --index --lines "${#names[@]}" --width 36) || exit 0
-  [[ -n "$choice" ]] && set_theme "${names[$choice]}"
+  if [[ -n "$choice" ]]; then set_theme "${names[$choice]}"; fi
 }
 
 case "${1:-pick}" in

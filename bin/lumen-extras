@@ -186,7 +186,7 @@ pick() {
   local choice
   choice=$(for r in "${RECIPES[@]}"; do printf '%-12s %s\n' "${r%%|*}" "${r#*|}"; done |
     menu "Extras" --width 80 --lines "${#RECIPES[@]}") || exit 0
-  [[ -n "$choice" ]] && exec "$0" "${choice%% *}"
+  if [[ -n "$choice" ]]; then exec "$0" "${choice%% *}"; fi
 }
 
 case "${1:-pick}" in
