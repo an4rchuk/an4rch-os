@@ -25,8 +25,8 @@ for lib in /usr/lib/libgtk4-layer-shell.so /usr/lib64/libgtk4-layer-shell.so; do
   fi
 done
 
-# Clicked from the taskbar, which runs without D-Bus (see lib/lumen.sh).
-if [[ "${DBUS_SESSION_BUS_ADDRESS:-}" == disabled: && -n "${LUMEN_DBUS:-}" ]]; then
+# Clicked from the taskbar, which runs on a private D-Bus (see lib/lumen.sh).
+if [[ -n "${LUMEN_DBUS:-}" && "${DBUS_SESSION_BUS_ADDRESS:-}" != "$LUMEN_DBUS" ]]; then
   export DBUS_SESSION_BUS_ADDRESS="$LUMEN_DBUS"
 fi
 

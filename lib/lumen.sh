@@ -13,10 +13,10 @@ LUMEN_CACHE="${XDG_CACHE_HOME:-$HOME/.cache}/lumen"
 LUMEN_WALLPAPERS="${XDG_DATA_HOME:-$HOME/.local/share}/backgrounds/lumen"
 export LUMEN_PATH LUMEN_CONFIG LUMEN_CURRENT LUMEN_STATE LUMEN_CACHE LUMEN_WALLPAPERS
 
-# The taskbar's waybar runs without D-Bus: two waybars on the session bus
-# count as one app, and the second crashes a few minutes in. Commands it
-# starts get the real session bus back here.
-if [[ "${DBUS_SESSION_BUS_ADDRESS:-}" == disabled: && -n "${LUMEN_DBUS:-}" ]]; then
+# The taskbar's waybar runs on a private D-Bus session: two waybars on the
+# session bus count as one app, and the second crashes a few minutes in.
+# Commands it starts get the real session bus back here.
+if [[ -n "${LUMEN_DBUS:-}" && "${DBUS_SESSION_BUS_ADDRESS:-}" != "$LUMEN_DBUS" ]]; then
   export DBUS_SESSION_BUS_ADDRESS="$LUMEN_DBUS"
 fi
 

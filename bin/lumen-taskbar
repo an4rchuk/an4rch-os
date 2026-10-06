@@ -12,7 +12,7 @@ set -euo pipefail
 source "${LUMEN_PATH:-$HOME/.local/share/lumen}/lib/lumen.sh"
 
 conf="${XDG_CONFIG_HOME:-$HOME/.config}/waybar"
-running() { pgrep -f 'waybar -c .*taskbar.jsonc' >/dev/null; }
+running() { pgrep -f '^(/usr/bin/)?waybar -c .*taskbar.jsonc' >/dev/null; }
 
 set_setting() {
   mkdir -p "$LUMEN_CONFIG"
@@ -25,16 +25,21 @@ set_setting() {
   fi
 }
 
-# Without D-Bus (see lib/lumen.sh): otherwise this second waybar joins the
-# top bar's instance on the bus and crashes a few minutes later. Its modules
-# don't use D-Bus; what it starts gets the bus back from LUMEN_DBUS.
+# On its own private D-Bus session (see lib/lumen.sh): on the shared bus this
+# second waybar joins the top bar's instance and crashes a few minutes later.
+# Its modules don't need the session bus; what it starts gets the real one
+# back from LUMEN_DBUS.
 show() {
   running && return 0
   local bus="${DBUS_SESSION_BUS_ADDRESS:-unix:path=${XDG_RUNTIME_DIR:-/run/user/$UID}/bus}"
-  LUMEN_LAUNCH_NAME=Taskbar launch env LUMEN_DBUS="$bus" DBUS_SESSION_BUS_ADDRESS=disabled: \
-    waybar -c "$conf/taskbar.jsonc" -s "$conf/taskbar.css"
+  if has dbus-run-session; then
+    LUMEN_LAUNCH_NAME=Taskbar launch env LUMEN_DBUS="$bus" dbus-run-session -- \
+      waybar -c "$conf/taskbar.jsonc" -s "$conf/taskbar.css"
+  else
+    LUMEN_LAUNCH_NAME=Taskbar launch waybar -c "$conf/taskbar.jsonc" -s "$conf/taskbar.css"
+  fi
 }
-hide() { pkill -f 'waybar -c .*taskbar.jsonc' || true; }
+hide() { pkill -f '^(/usr/bin/)?waybar -c .*taskbar.jsonc' || true; }
 
 case "${1:-toggle}" in
   on) set_setting yes; show ;;

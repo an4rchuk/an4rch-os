@@ -182,7 +182,7 @@ sleep 2
 if as_user lumen-window list | grep -qi calculator; then result "minimised window is hidden" PASS; else result "minimised window is hidden" FAIL "$(as_user lumen-window list | tr '\n' ' ')"; fi
 task "taskbar on" as_user lumen-taskbar on
 sleep 4
-if pgrep -f 'waybar -c .*taskbar.jsonc' >/dev/null; then result "taskbar running" PASS; else result "taskbar running" FAIL; fi
+if pgrep -f '^(/usr/bin/)?waybar -c .*taskbar.jsonc' >/dev/null; then result "taskbar running" PASS; else result "taskbar running" FAIL; fi
 shot 17c-taskbar
 task "restore the calculator" as_user lumen-window restore
 sleep 2
@@ -345,7 +345,7 @@ shot 22-final
 # The taskbar used to crash ~5 minutes after starting (two waybars on D-Bus).
 if grep -q '^LUMEN_TASKBAR=no' "$home/.config/lumen/settings.conf" 2>/dev/null; then
   : # switched off (the no-taskbar scenario)
-elif pgrep -f 'waybar -c .*taskbar.jsonc' >/dev/null && ! grep -q 'taskbar stopped' "$home/.local/state/lumen/apps.log" 2>/dev/null; then
+elif pgrep -f '^(/usr/bin/)?waybar -c .*taskbar.jsonc' >/dev/null && ! grep -q 'taskbar stopped' "$home/.local/state/lumen/apps.log" 2>/dev/null; then
   result "taskbar still running at the end (no crash)" PASS
 else
   result "taskbar still running at the end (no crash)" FAIL "$(tail -n 3 "$home/.local/state/lumen/apps.log" 2>/dev/null | tr '\n' ' ')"
