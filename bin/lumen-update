@@ -15,21 +15,40 @@ step() { printf '\n\e[1;35m󰚰  %s\e[0m\n\n' "$*"; }
 
 update_lumen() {
   step "Lumen"
-  if [[ -d "$LUMEN_PATH/.git" ]]; then
-    local before after
-    before=$(git -C "$LUMEN_PATH" rev-parse HEAD)
-    git -C "$LUMEN_PATH" pull --ff-only --quiet || echo "Could not fast-forward Lumen; local changes in $LUMEN_PATH?"
-    after=$(git -C "$LUMEN_PATH" rev-parse HEAD)
-    if [[ "$before" != "$after" ]]; then
-      git -C "$LUMEN_PATH" log --oneline --no-decorate "$before..$after" | sed 's/^/  /'
-      bash "$LUMEN_PATH/install/migrate.sh"
-      "$LUMEN_PATH/bin/lumen-theme" render >/dev/null || true
-    else
-      echo "  Already up to date ($(cat "$LUMEN_PATH/VERSION" 2>/dev/null || echo dev))."
-    fi
-  else
+  if [[ ! -d "$LUMEN_PATH/.git" ]]; then
     echo "  $LUMEN_PATH is not a git checkout; skipping."
+    return 0
   fi
+  local g=(git -C "$LUMEN_PATH") repo="${LUMEN_REPO:-https://github.com/an4rchuk/lumen-os.git}"
+  local before latest target
+  # Older installs point at an address that no longer exists (GitHub then
+  # asks for a login); never prompt, just fail with a message.
+  export GIT_TERMINAL_PROMPT=0
+  if [[ "$("${g[@]}" remote get-url origin 2>/dev/null)" != "$repo" ]]; then
+    "${g[@]}" remote set-url origin "$repo" 2>/dev/null || "${g[@]}" remote add origin "$repo"
+  fi
+  "${g[@]}" config core.fileMode false
+  if ! "${g[@]}" fetch --quiet --force --tags origin; then
+    echo "  Couldn't reach GitHub (no internet?); Lumen stays as it is."
+    return 0
+  fi
+  # Updates follow the releases (v1.0.8, v1.0.9, …), the same code as the ISOs.
+  latest=$("${g[@]}" tag -l 'v[0-9]*' --sort=-v:refname | head -n1)
+  before=$("${g[@]}" rev-parse HEAD)
+  target=$("${g[@]}" rev-parse "${latest:-HEAD}^{commit}" 2>/dev/null || echo "$before")
+  if [[ -z "$latest" || "$target" == "$before" ]] || "${g[@]}" merge-base --is-ancestor "$target" "$before" 2>/dev/null; then
+    echo "  Already up to date ($("${g[@]}" describe --tags --always 2>/dev/null))."
+    return 0
+  fi
+  # Edits to Lumen's own files are kept in a stash (git stash list), not lost.
+  "${g[@]}" stash push --quiet -m "lumen update $(date '+%F %T')" 2>/dev/null || true
+  if ! "${g[@]}" checkout --quiet --detach "$latest" 2>/dev/null; then
+    "${g[@]}" checkout --quiet --force --detach "$latest"
+  fi
+  echo "  Updated to $latest:"
+  "${g[@]}" log --oneline --no-decorate "$before..$target" 2>/dev/null | head -n 30 | sed 's/^/  /'
+  bash "$LUMEN_PATH/install/migrate.sh"
+  "$LUMEN_PATH/bin/lumen-theme" render >/dev/null || true
 }
 
 update_system() {
