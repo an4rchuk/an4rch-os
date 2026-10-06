@@ -133,9 +133,9 @@ if [[ "$(tty)" == /dev/tty1 && -z "${WAYLAND_DISPLAY:-}" && -z "${LUMEN_LIVE_TRI
     if [[ "$how" == uwsm ]]; then
       uwsm start -- hyprland.desktop >>"$log" 2>&1
     elif command -v start-hyprland >/dev/null; then
-      start-hyprland >>"$log" 2>&1
+      LUMEN_NO_UWSM=1 start-hyprland >>"$log" 2>&1
     else
-      Hyprland >>"$log" 2>&1
+      LUMEN_NO_UWSM=1 Hyprland >>"$log" 2>&1
     fi
     kill "$watchdog" 2>/dev/null
     echo "--- desktop ($how) ended after $((SECONDS - started)) s" >>"$log"

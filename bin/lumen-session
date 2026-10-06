@@ -88,9 +88,11 @@ start() {
   [[ -f "$LUMEN_STATE/nightlight" ]] && "$LUMEN_PATH/bin/lumen-toggle" nightlight on
   [[ -f "$LUMEN_STATE/dnd" ]] && makoctl mode -a do-not-disturb >/dev/null 2>&1
 
-  # Started without uwsm (the live USB's second try, or a plain `Hyprland`):
+  # Started without uwsm (the live USB's second try sets LUMEN_NO_UWSM):
   # nothing runs the XDG autostart entries, e.g. the live USB's installer.
-  if ! systemctl --user is-active -q graphical-session.target 2>/dev/null; then
+  # (Not judged from graphical-session.target: under uwsm it may not be
+  # active yet at this point, and the apps would start twice.)
+  if [[ "${LUMEN_NO_UWSM:-}" == 1 ]]; then
     for f in "${XDG_CONFIG_HOME:-$HOME/.config}"/autostart/*.desktop; do
       [[ -f "$f" ]] || continue
       grep -qiE '^Hidden=true|^X-GNOME-Autostart-enabled=false' "$f" && continue
