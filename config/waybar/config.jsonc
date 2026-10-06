@@ -204,7 +204,8 @@
     "tooltip-format-connected": "{controller_alias}\n\n{device_enumerate}",
     "tooltip-format-enumerate-connected": "{device_alias}",
     "tooltip-format-enumerate-connected-battery": "{device_alias}  {device_battery_percentage}%",
-    "on-click": "lumen-bluetooth"
+    "on-click": "lumen-panel bluetooth",
+    "on-click-right": "lumen-bluetooth"
   },
 
   "network": {
@@ -218,7 +219,8 @@
     "tooltip-format-ethernet": "{ifname}\n{ipaddr}\n {bandwidthDownBytes}   {bandwidthUpBytes}",
     "tooltip-format-disconnected": "Offline — click to connect",
     "interval": 5,
-    "on-click": "lumen-wifi"
+    "on-click": "lumen-panel network",
+    "on-click-right": "lumen-wifi"
   },
 
   "power-profiles-daemon": {
@@ -233,6 +235,7 @@
   },
 
   "battery": {
+    "on-click": "lumen-panel power",
     "interval": 30,
     "states": { "warning": 25, "critical": 10 },
     "format": "{icon}  {capacity}%",
@@ -246,6 +249,6 @@
   "custom/power": {
     "format": "󰐥",
     "tooltip-format": "Power  (SUPER + Esc)",
-    "on-click": "lumen-power"
+    "on-click": "lumen-panel power"
   }
 }

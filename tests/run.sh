@@ -138,10 +138,11 @@ then ok "every menu item points at a real command"; else bad "menu items point a
 # Headless smoke test: each GTK app starts and renders without a traceback.
 if command -v xvfb-run >/dev/null && python3 -c 'import gi; gi.require_version("Gtk", "4.0"); gi.require_version("Adw", "1")' 2>/dev/null; then
   for app in "lumen-start/lumen_start.py --show" "lumen-store/lumen_store.py" "lumen-welcome/lumen_welcome.py" "lumen-installer/lumen_installer.py" \
-    "lumen-settings/lumen_settings.py" "lumen-audio/lumen_audio.py --show" "lumen-desktop/lumen_desktop.py"; do
+    "lumen-settings/lumen_settings.py" "lumen-audio/lumen_audio.py --show" "lumen-desktop/lumen_desktop.py" \
+    "lumen-panels/lumen_panels.py network --show" "lumen-panels/lumen_panels.py bluetooth --show" "lumen-panels/lumen_panels.py power --show"; do
     log="$tmp/gui.log"
     # shellcheck disable=SC2086
-    LUMEN_INSTALLER_DEMO=1 LUMEN_SETTINGS_ALL_PAGES=1 GDK_BACKEND=x11 GSK_RENDERER=cairo GTK_A11Y=none timeout 25 xvfb-run -a dbus-run-session -- \
+    LUMEN_INSTALLER_DEMO=1 LUMEN_SETTINGS_ALL_PAGES=1 LUMEN_PANELS_DEMO=1 GDK_BACKEND=x11 GSK_RENDERER=cairo GTK_A11Y=none timeout 25 xvfb-run -a dbus-run-session -- \
       bash -c "python3 $root/apps/$app & pid=\$!; sleep 6; kill -0 \$pid && echo LUMEN-ALIVE; kill \$pid" >"$log" 2>&1 || true
     if grep -qE 'Traceback|Error:' "$log" || ! grep -q LUMEN-ALIVE "$log"; then
       bad "${app%%/*}: $(grep -v 'fd limit' "$log" | grep -m1 -E 'Error|error|No such' || echo "exited early")"

@@ -64,6 +64,8 @@ start() {
   # So does the sound panel (the volume icon), started a moment later so it
   # doesn't slow down the first seconds of the session.
   (sleep 6 && { pgrep -f 'lumen-audio/lumen_audio.py' >/dev/null || launch "$LUMEN_PATH/bin/lumen-audio" --daemon; }) &
+  # And the Wi-Fi, Bluetooth and power panels.
+  (sleep 8 && { pgrep -f 'lumen-panels/lumen_panels.py' >/dev/null || launch "$LUMEN_PATH/bin/lumen-panel" --daemon; }) &
 
   # Desktop icons (the live USB's "Install Lumen OS"), when there are any.
   if [[ -s "${XDG_CONFIG_HOME:-$HOME/.config}/lumen/desktop-icons.json" ]]; then

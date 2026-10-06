@@ -1,7 +1,17 @@
 #!/usr/bin/env bash
 # lumen-power — lock, suspend, log out, restart or shut down (SUPER + Esc).
+#
+#   lumen-power        the power panel (or the menu outside the desktop)
+#   lumen-power menu   the menu
 set -euo pipefail
 source "${LUMEN_PATH:-$HOME/.local/share/lumen}/lib/lumen.sh"
+
+# On the desktop: the power panel under the top bar (battery, power mode,
+# brightness and these actions). `lumen-power menu` is the text menu.
+if [[ "${1:-}" != menu && -n "${WAYLAND_DISPLAY:-}" && -x "$LUMEN_PATH/bin/lumen-panel" ]] &&
+  python3 -c 'import gi; gi.require_version("Gtk", "4.0")' 2>/dev/null; then
+  exec "$LUMEN_PATH/bin/lumen-panel" power
+fi
 
 options=(
   "󰌾  Lock"

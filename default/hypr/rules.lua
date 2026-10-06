@@ -121,6 +121,7 @@ hl.layer_rule({ name = "lumen-blur-launcher", match = { namespace = "^launcher$"
 hl.layer_rule({ name = "lumen-blur-notify",   match = { namespace = "^notifications$" }, blur = true, ignore_alpha = 0.2, animation = "slide right" })
 hl.layer_rule({ name = "lumen-blur-start",    match = { namespace = "^lumen-start$" },   blur = true, ignore_alpha = 0.1, animation = "fade" })
 hl.layer_rule({ name = "lumen-blur-audio",    match = { namespace = "^lumen-audio$" },   blur = true, ignore_alpha = 0.1, animation = "fade" })
+hl.layer_rule({ name = "lumen-blur-panel",    match = { namespace = "^lumen-panel$" },   blur = true, ignore_alpha = 0.1, animation = "fade" })
 hl.layer_rule({ name = "lumen-no-anim-selection", match = { namespace = "^(selection|hyprpicker)$" }, no_anim = true })
 
 ---------------------------------------------------------------------------

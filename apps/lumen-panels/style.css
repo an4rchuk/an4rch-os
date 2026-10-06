@@ -1,0 +1,90 @@
+/* Lumen quick panels: on top of the sound panel's style (apps/lumen-audio/style.css). */
+
+.quick-panels .panel {
+  padding: 16px;
+}
+
+.small {
+  font-size: 11px;
+}
+
+.name {
+  font-weight: 600;
+}
+
+.speed {
+  color: @lumen_accent;
+  font-feature-settings: "tnum";
+}
+
+.chip {
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: alpha(@lumen_fg, 0.06);
+}
+
+switch {
+  min-height: 20px;
+}
+
+switch:checked {
+  background: @lumen_accent;
+}
+
+button.pill {
+  border-radius: 999px;
+  padding: 4px 12px;
+  min-height: 0;
+}
+
+button.pill.active,
+button.pill.suggested {
+  background: @lumen_accent;
+  color: @lumen_bg;
+}
+
+entry,
+searchentry,
+passwordentry {
+  border-radius: 999px;
+  background: alpha(@lumen_fg, 0.07);
+  color: @lumen_fg;
+  border: none;
+  box-shadow: none;
+  min-height: 30px;
+  padding: 0 10px;
+}
+
+.netrow {
+  padding: 8px 10px;
+  border-radius: 12px;
+}
+
+.netrow.current {
+  background: alpha(@lumen_accent, 0.16);
+}
+
+button.mode,
+button.action {
+  border-radius: 14px;
+  padding: 8px 4px;
+}
+
+button.mode.current {
+  background: alpha(@lumen_accent, 0.30);
+}
+
+button.action.danger:hover,
+button.action.armed {
+  background: alpha(#f2777a, 0.35);
+}
+
+scrolledwindow,
+scrolledwindow > viewport {
+  background: transparent;
+}
+
+/* GTK's list rows default to the system theme's text colour (dark on a dark panel). */
+list.devices row {
+  color: @lumen_fg;
+}

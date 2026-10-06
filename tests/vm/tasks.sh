@@ -309,6 +309,20 @@ shot 21b-sound-panel
 as_user lumen-audio >/dev/null 2>&1
 sleep 2
 
+# The Wi-Fi, Bluetooth and power panels under the top bar.
+for panel in network bluetooth power; do
+  as_user lumen-panel "$panel" >/dev/null 2>&1 &
+  sleep 6
+  if as_user hyprctl layers -j 2>/dev/null | grep -q '"lumen-panel"'; then
+    result "$panel panel opens" PASS
+  else
+    result "$panel panel opens" FAIL "$(pgrep -af lumen_panels | head -n 2 | tr '\n' ' ')"
+  fi
+  shot "21c-$panel-panel"
+  as_user lumen-panel "$panel" >/dev/null 2>&1
+  sleep 2
+done
+
 if [[ -x /usr/local/bin/lumen-greeter ]] && grep -q lumen-greeter /etc/greetd/config.toml 2>/dev/null; then
   result "login screen installed" PASS
 else
