@@ -301,6 +301,17 @@ HOSTNAME_=$(gum input --header "Computer name (on the network)" --value "lumen")
 # --- time and language ------------------------------------------------------------------
 title "Time zone and language"
 TZ_GUESS=$(curl -fsS --max-time 5 https://ipapi.co/timezone 2>/dev/null || true)
+# Offline: go by the keyboard layout (uk → London) rather than nothing.
+if [[ -z "$TZ_GUESS" ]]; then
+  case "$keymap" in
+    uk*) TZ_GUESS=Europe/London ;; de_CH* | sg*) TZ_GUESS=Europe/Zurich ;; de*) TZ_GUESS=Europe/Berlin ;;
+    fr_CH*) TZ_GUESS=Europe/Zurich ;; fr*) TZ_GUESS=Europe/Paris ;; es*) TZ_GUESS=Europe/Madrid ;;
+    it*) TZ_GUESS=Europe/Rome ;; pt*) TZ_GUESS=Europe/Lisbon ;; br*) TZ_GUESS=America/Sao_Paulo ;;
+    se*) TZ_GUESS=Europe/Stockholm ;; no*) TZ_GUESS=Europe/Oslo ;; dk*) TZ_GUESS=Europe/Copenhagen ;;
+    fi*) TZ_GUESS=Europe/Helsinki ;; pl*) TZ_GUESS=Europe/Warsaw ;; cz*) TZ_GUESS=Europe/Prague ;;
+    nl*) TZ_GUESS=Europe/Amsterdam ;; be*) TZ_GUESS=Europe/Brussels ;; jp*) TZ_GUESS=Asia/Tokyo ;;
+  esac
+fi
 if [[ -n "$TZ_GUESS" && -f "/usr/share/zoneinfo/$TZ_GUESS" ]] && gum confirm "Your time zone looks like $TZ_GUESS. Use it?"; then
   TIMEZONE="$TZ_GUESS"
 else

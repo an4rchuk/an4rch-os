@@ -169,6 +169,21 @@ def xkb_for_keymap(keymap: str) -> tuple[str, str]:
     return re.split(r"[-_0-9]", keymap)[0] or "us", ""
 
 
+KEYMAP_ZONES = {"uk": "Europe/London", "de": "Europe/Berlin", "fr": "Europe/Paris", "es": "Europe/Madrid",
+                "it": "Europe/Rome", "pt": "Europe/Lisbon", "br": "America/Sao_Paulo", "se": "Europe/Stockholm",
+                "no": "Europe/Oslo", "dk": "Europe/Copenhagen", "fi": "Europe/Helsinki", "pl": "Europe/Warsaw",
+                "cz": "Europe/Prague", "nl": "Europe/Amsterdam", "be": "Europe/Brussels", "ie": "Europe/Dublin",
+                "jp": "Asia/Tokyo", "ru": "Europe/Moscow", "tr": "Europe/Istanbul", "gr": "Europe/Athens",
+                "hu": "Europe/Budapest", "ro": "Europe/Bucharest", "ch": "Europe/Zurich", "de_CH": "Europe/Zurich"}
+
+
+def zone_for_keymap(keymap: str, zones: list[str]) -> str:
+    for prefix in sorted(KEYMAP_ZONES, key=len, reverse=True):
+        if keymap.startswith(prefix) and KEYMAP_ZONES[prefix] in zones:
+            return KEYMAP_ZONES[prefix]
+    return "UTC"
+
+
 def use_keymap_now(keymap: str) -> None:
     """Live USB: type with the chosen layout straight away, so passwords set
     here type the same after installing."""
@@ -341,6 +356,11 @@ class Installer(Adw.ApplicationWindow):
         keymap = self.keymaps[row.get_selected()]
         self.answers["keymap"] = keymap
         use_keymap_now(keymap)
+        # No time zone from the internet: follow the keyboard (uk → London).
+        if not getattr(self, "tz_detected", True) and getattr(self, "tz_row", None) is not None:
+            zone = zone_for_keymap(keymap, self.zones)
+            if zone in self.zones:
+                self.tz_row.set_selected(self.zones.index(zone))
 
     def page_welcome(self) -> Gtk.Widget:
         svg = LUMEN_PATH / "share/icons/hicolor/scalable/apps/lumen-logo.svg"
@@ -534,13 +554,19 @@ class Installer(Adw.ApplicationWindow):
     def page_region(self) -> Gtk.Widget:
         self.zones = timezones()
         guess = guess_timezone()
-        self.answers["timezone"] = guess if guess in self.zones else "UTC"
+        self.tz_detected = guess in self.zones
+        self.answers["timezone"] = guess if self.tz_detected else "UTC"
+        if not self.tz_detected:
+            # Offline (no Wi-Fi yet): go by the keyboard layout instead of UTC.
+            self.answers["timezone"] = zone_for_keymap(self.answers.get("keymap", "us"), self.zones)
         tz = Adw.ComboRow(title="Time zone", enable_search=True)
+        self.tz_row = tz
         tz.set_model(Gtk.StringList.new(self.zones))
         if self.answers["timezone"] in self.zones:
             tz.set_selected(self.zones.index(self.answers["timezone"]))
         tz.connect("notify::selected", lambda r, *_: self.answers.__setitem__("timezone", self.zones[r.get_selected()]))
-        group = Adw.PreferencesGroup(description="Detected from your internet connection; change it if it's wrong.")
+        group = Adw.PreferencesGroup(description="Detected from your internet connection; change it if it's wrong."
+                                     if self.tz_detected else "Check this: there's no internet connection to detect it.")
         group.add(tz)
         return self.page("Where are you?", "", group)
 
