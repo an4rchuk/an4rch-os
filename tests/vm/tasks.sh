@@ -63,7 +63,7 @@ cli() {
 }
 
 windows() { as_user hyprctl clients -j 2>/dev/null | jq -r '.[].class' 2>/dev/null; }
-count_windows() { windows | grep -ci -- "$1"; }
+count_windows() { windows | grep -Eci -- "$1"; }
 
 # wait_window NAME CLASS-REGEX SECONDS [MIN-COUNT]
 wait_window() {
@@ -90,7 +90,7 @@ cli "lumen doctor" lumen-doctor
 
 # --- Apps from Lumen's launcher ------------------------------------------------------
 as_user lumen-launch terminal
-if wait_window "terminal opens (lumen-launch)" ghostty 30; then
+if wait_window "terminal opens (lumen-launch)" 'ghostty|alacritty|kitty' 30; then
   type_text "fastfetch"
   keys ret
   sleep 3
@@ -146,9 +146,9 @@ shot 14-lumen-menu
 keys esc
 pkill -x fuzzel
 
-before=$(count_windows ghostty)
+before=$(count_windows 'ghostty|alacritty|kitty')
 keys meta_l-ret
-wait_window "SUPER+Enter opens a terminal" ghostty 20 $((before + 1)) && shot 15-keybind-terminal
+wait_window "SUPER+Enter opens a terminal" 'ghostty|alacritty|kitty' 20 $((before + 1)) && shot 15-keybind-terminal
 
 keys meta_l
 type_text "calc"
@@ -195,7 +195,7 @@ as_user lumen-launch monitor
 wait_window "Task Manager opens" 'SystemMonitor' 40 && { sleep 3; shot 19b-task-manager; }
 
 as_user lumen-launch browser https://archlinux.org
-wait_window "browser opens" 'firefox' 90 && { sleep 15; shot 20-browser; }
+wait_window "browser opens" 'firefox|chromium|brave|zen' 90 && { sleep 15; shot 20-browser; }
 
 # --- Command-line tools -------------------------------------------------------------------
 cli "lumen help" lumen help
@@ -210,6 +210,11 @@ task "audio (wpctl status)" as_user wpctl status
 task "firewall active" systemctl is-active ufw
 task "NetworkManager online" nmcli -t -f STATE general
 task "zram swap" swapon --show
+# The keyboard layout picked when installing reaches the desktop (not only the console).
+km=$(sed -n 's/^KEYMAP=//p' /etc/vconsole.conf 2>/dev/null)
+if [[ -n "$km" && "$km" != us ]]; then
+  task "keyboard layout ($km) on the desktop" bash -c "! grep -q 'kb_layout  = \"us\"' '$home/.config/hypr/input.lua' && grep -q XkbLayout /etc/X11/xorg.conf.d/00-keyboard.conf"
+fi
 task "memory protection (systemd-oomd)" systemctl is-active systemd-oomd
 task "text editor and camera installed" bash -c 'command -v gnome-text-editor && command -v snapshot'
 

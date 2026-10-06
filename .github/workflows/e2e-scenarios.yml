@@ -1,4 +1,4 @@
-name: e2e
+name: e2e-scenarios
 
 # End-to-end test of Lumen OS in a real virtual machine:
 #   1. build the ISO
@@ -11,37 +11,55 @@ on:
 
 jobs:
   e2e:
-    name: e2e (${{ matrix.vm }})
+    name: scenario (${{ matrix.vm }})
     runs-on: ubuntu-24.04
     timeout-minutes: 300
     strategy:
       fail-fast: false
       matrix:
         include:
-          # Bug hunting on two very different machines.
-          - vm: low-spec        # older laptop: 2 cores, 4 GB, 1366x768 (+ legacy BIOS install)
+          # Each VM is a different person's computer and choices.
+          - vm: uk-laptop        # UK keyboard, London time, British English
+            install: lumen.keymap=uk lumen.timezone=Europe/London lumen.locale=en_GB.UTF-8
+          - vm: encrypted        # whole-disk encryption, password at boot
+            install: lumen.encrypt=lumenpass1
+            bootpass: lumenpass1
+          - vm: offline          # no internet while installing, German keyboard
+            nonet: true
+            install: lumen.keymap=de lumen.timezone=Europe/Berlin
+          - vm: chromium         # a different browser
+            install: lumen.browser=chromium
+          - vm: brave            # a browser from the AUR
+            install: lumen.browser=brave
+          - vm: no-taskbar       # tiling purist: no taskbar, no title bars
+            install: lumen.taskbar=0 lumen.titlebars=0
+          - vm: alacritty-nord   # other terminal, theme
+            install: lumen.terminal=alacritty lumen.theme=nord
+          - vm: light-theme      # light theme, Latte
+            install: lumen.theme=catppuccin-latte
+          - vm: 4k-screen
+            xres: 3840
+            yres: 2160
+          - vm: tiny             # 2 cores, 3 GB, 1280x720 netbook
+            cpus: 2
+            mem: 3G
+            xres: 1280
+            yres: 720
+          - vm: dual-boot-lts    # alongside Windows, small, LTS kernel by default
+            windows: true
+            install: lumen.mode=alongside lumen.size=25 lumen.bootlts=1
+          - vm: dual-boot-encrypted
+            windows: true
+            install: lumen.mode=alongside lumen.size=30 lumen.encrypt=lumenpass1
+            bootpass: lumenpass1
+          - vm: dual-boot-gamer  # alongside Windows, NVIDIA driver, gaming stack
+            windows: true
+            install: lumen.mode=alongside lumen.size=40 lumen.gpu=nvidia lumen.gaming=1
+          - vm: bios-light       # old laptop: legacy BIOS install too, light theme
             cpus: 2
             mem: 4G
-            xres: 1366
-            yres: 768
             bios: true
-          - vm: high-spec       # gaming desktop: 4 cores, 14 GB, 1440p, gaming stack
-            cpus: 4
-            mem: 14G
-            xres: 2560
-            yres: 1440
-            install: lumen.gaming=1
-          # NVIDIA: no VM has an NVIDIA card, so these test the driver install
-          # and the "(NVIDIA)" live entry, not the GPU itself.
-          - vm: nvidia
-            live: modprobe.blacklist=nouveau nvidia_drm.modeset=1 nvidia_drm.fbdev=1 lumen.nvidia=1
-            install: lumen.gpu=nvidia
-          - vm: nvidia-lts      # the driver on the LTS kernel too
-            install: lumen.gpu=nvidia lumen.bootlts=1
-          # Next to a disk laid out like a Windows laptop's.
-          - vm: dual-boot
-            windows: true
-            install: lumen.mode=alongside lumen.size=30
+            install: lumen.theme=catppuccin-latte
     env:
       VM_CPUS: ${{ matrix.cpus || 4 }}
       VM_MEM: ${{ matrix.mem || '8G' }}
