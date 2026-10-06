@@ -41,6 +41,7 @@ bind("SUPER + grave",         exec(cmd("windows")),                    "Find an 
 bind("SUPER + slash",         exec(cmd("keys")),                       "Show all key bindings")
 bind("SUPER + F1",            exec(cmd("manual")),                     "Open the Lumen manual")
 bind("SUPER + I",             exec(cmd("settings")),                   "Settings")
+bind("CTRL + SHIFT + Escape",  exec(launch("monitor")),                 "Task Manager (like Windows)")
 
 ---------------------------------------------------------------------------
 -- Windows

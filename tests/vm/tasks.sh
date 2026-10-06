@@ -191,6 +191,9 @@ pkill -f lumen_store.py
 as_user lumen-launch files
 wait_window "file manager opens" 'nautilus' 40 && { sleep 3; shot 19-files; }
 
+as_user lumen-launch monitor
+wait_window "Task Manager opens" 'SystemMonitor' 40 && { sleep 3; shot 19b-task-manager; }
+
 as_user lumen-launch browser https://archlinux.org
 wait_window "browser opens" 'firefox' 90 && { sleep 15; shot 20-browser; }
 
@@ -207,6 +210,8 @@ task "audio (wpctl status)" as_user wpctl status
 task "firewall active" systemctl is-active ufw
 task "NetworkManager online" nmcli -t -f STATE general
 task "zram swap" swapon --show
+task "memory protection (systemd-oomd)" systemctl is-active systemd-oomd
+task "text editor and camera installed" bash -c 'command -v gnome-text-editor && command -v snapshot'
 
 # --- NVIDIA driver (installed with lumen.gpu=nvidia; this VM has no NVIDIA card) ----------
 # Without an NVIDIA card, NVIDIA's libraries must not have been pulled in.

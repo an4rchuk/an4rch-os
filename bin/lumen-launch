@@ -32,7 +32,10 @@ case "$what" in
     fi
     ;;
   files) launch "$LUMEN_FILES" "$@" ;;
-  monitor) term --title "System monitor" -- btop ;;
+  monitor)
+    # The Task Manager window; btop in a terminal when it isn't installed.
+    if has gnome-system-monitor; then launch gnome-system-monitor --show-processes-tab
+    else term --title "System monitor" -- btop; fi ;;
   "") die "usage: lumen-launch terminal|browser|editor|files|monitor  or  lumen-launch -- COMMAND" ;;
   *) launch "$what" "$@" ;;
 esac

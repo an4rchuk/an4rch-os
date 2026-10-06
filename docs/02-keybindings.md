@@ -17,6 +17,7 @@ The modifiers follow one pattern: <kbd>SUPER</kbd> alone for apps and windows, <
 | <kbd>SUPER</kbd> + <kbd>B</kbd> | Browser |
 | <kbd>SUPER</kbd> + <kbd>SHIFT</kbd> + <kbd>B</kbd> | Browser (private window) |
 | <kbd>SUPER</kbd> + <kbd>E</kbd> | File manager |
+| <kbd>CTRL</kbd> + <kbd>SHIFT</kbd> + <kbd>ESC</kbd> | Task Manager (apps, CPU, memory; end a stuck app) |
 | <kbd>SUPER</kbd> + <kbd>C</kbd> | Code editor |
 | <kbd>SUPER</kbd> + <kbd>SHIFT</kbd> + <kbd>Enter</kbd> | Floating terminal |
 | <kbd>SUPER</kbd> + <kbd>`</kbd> | Find an open window |

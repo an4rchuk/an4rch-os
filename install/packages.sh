@@ -66,7 +66,7 @@ PKGS_OPTIONAL=(
   sound-theme-freedesktop
   glow yazi neovim
   nautilus gvfs gvfs-mtp file-roller sushi
-  loupe mpv evince gnome-calculator gnome-disk-utility
+  loupe mpv evince gnome-calculator gnome-disk-utility gnome-system-monitor gnome-text-editor snapshot
   flatpak fwupd pacman-contrib pciutils
   gtk4-layer-shell
   bibata-cursor-theme-bin

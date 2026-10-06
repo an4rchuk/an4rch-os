@@ -123,6 +123,14 @@ printf '[Manager]\nDefaultTimeoutStopSec=15s\n' >/etc/systemd/system.conf.d/90-l
 printf '[Manager]\nDefaultTimeoutStopSec=15s\n' >/etc/systemd/user.conf.d/90-lumen.conf
 printf '[Journal]\nSystemMaxUse=200M\n' >/etc/systemd/journald.conf.d/90-lumen.conf
 
+# Out of memory: instead of the whole computer freezing, systemd-oomd closes
+# the app that is using up memory (Fedora's defaults).
+install -d "/etc/systemd/system/-.slice.d" /etc/systemd/system/user@.service.d
+printf '[Slice]\nManagedOOMSwap=kill\n' >"/etc/systemd/system/-.slice.d/90-lumen-oomd.conf"
+printf '[Service]\nManagedOOMMemoryPressure=kill\nManagedOOMMemoryPressureLimit=50%%\n' \
+  >/etc/systemd/system/user@.service.d/90-lumen-oomd.conf
+systemctl enable systemd-oomd >/dev/null 2>&1 || true
+
 # Keep three versions of each package: rollbacks reinstall kernels from here.
 systemctl enable paccache.timer >/dev/null 2>&1 || true
 
