@@ -361,7 +361,13 @@ setup_system() {
   fi
 
   if [[ $GAMING -eq 1 ]] || { [[ -z "${LUMEN_YES:-}" ]] && ask_yes "Set up gaming too? (Steam, Proton tools, GameMode, MangoHud)" n; }; then
-    run "Installing the gaming stack" env LUMEN_YES=1 "$LUMEN_PATH/bin/lumen-gaming" install
+    # Steam and the 32-bit libraries come from the internet: offline, or if a
+    # download fails, the desktop still installs and gaming is set up later.
+    if [[ "${LUMEN_OFFLINE:-0}" == 1 ]]; then
+      warn "No internet: gaming (Steam, Proton tools…) is set up later with: lumen gaming install"
+    elif ! (run "Installing the gaming stack" env LUMEN_YES=1 "$LUMEN_PATH/bin/lumen-gaming" install); then
+      warn "Gaming couldn't be set up right now; run 'lumen gaming install' later (the desktop is fine)"
+    fi
   fi
 
   if [[ $GREETER -eq 1 ]]; then
