@@ -733,7 +733,7 @@ if [[ -f /usr/share/X11/xkb/rules/base.lst ]] && ! grep -qE "^  ${xkb}[[:space:]
   xkb=us xkb_variant=""
 fi
 input_lua="$MNT/home/$USERNAME/.config/hypr/input.lua"
-if [[ -f "$input_lua" && "$xkb" != us ]]; then
+if [[ -f "$input_lua" ]] && [[ "$xkb" != us || -n "$xkb_variant" ]]; then
   sed -i -E "0,/kb_layout/s|^(\s*)(--\s*)?kb_layout\s*=.*|\1kb_layout  = \"$xkb\",|" "$input_lua"
   [[ -n "$xkb_variant" ]] && sed -i -E "0,/kb_variant/s|^(\s*)(--\s*)?kb_variant\s*=.*|\1kb_variant = \"$xkb_variant\",|" "$input_lua"
 fi
