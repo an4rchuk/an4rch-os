@@ -1,9 +1,6 @@
 {
- "include": [
-  {
-   "vm": "offline",
-   "nonet": true,
-   "install": "lumen.keymap=de lumen.timezone=Europe/Berlin"
-  }
- ]
+  "include": [
+    {"vm": "b-offline-gamer", "nonet": true, "install": "lumen.gaming=1"},
+    {"vm": "b-offline-encrypted", "nonet": true, "install": "lumen.encrypt=lumenpass1 lumen.keymap=fr lumen.timezone=Europe/Paris", "bootpass": "lumenpass1"}
+  ]
 }
