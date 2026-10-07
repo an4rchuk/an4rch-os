@@ -1,5 +1,5 @@
 [Unit]
-Description=Lumen OS live desktop
+Description=an4rch OS live desktop
 Before=getty@tty1.service
 After=systemd-sysusers.service local-fs.target
 

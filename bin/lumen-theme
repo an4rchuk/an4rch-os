@@ -10,6 +10,9 @@
 #   lumen-theme new NAME        copy the active theme to ~/.config/lumen/themes/NAME
 #   lumen-theme install URL     install a theme from a git repository and switch to it
 #   lumen-theme remove NAME     remove an installed theme
+#   lumen-theme packs           list the theme packs you can add
+#   lumen-theme get PACK|NAME   add a theme pack (or one theme from one), with wallpapers
+#   lumen-theme drop PACK       remove a theme pack's themes
 set -euo pipefail
 source "${LUMEN_PATH:-$HOME/.local/share/lumen}/lib/lumen.sh"
 
@@ -38,6 +41,7 @@ render() {
   # Derived values. Any of them can be set explicitly in theme.conf instead.
   : "${c[mode]:=dark}"
   : "${c[accent2]:=${c[blue]}}"
+  : "${c[accent_fg]:=${c[bg]}}"
   : "${c[term_black]:=${c[bg_hl]}}"
   : "${c[term_bright_black]:=${c[fg_dim]}}"
   : "${c[term_white]:=${c[fg]}}"
@@ -120,6 +124,8 @@ apply() {
 
 set_theme() {
   local name="$1"
+  # The signature theme was called "lumen" before 1.1.0.
+  [[ "$name" == lumen && ! -f "$LUMEN_CONFIG/themes/lumen/theme.conf" ]] && name=$DEFAULT_THEME
   theme_dir "$name" >/dev/null || die "No theme called '$name'. Try: lumen-theme list"
   mkdir -p "$LUMEN_CURRENT"
   rm -rf "$LUMEN_CURRENT/theme.new"
@@ -132,6 +138,90 @@ set_theme() {
   rm -rf "$LUMEN_CURRENT/theme.old"
   apply "$name"
   notify "Theme: $(theme_get "$name" name || echo "$name")" "Everything has been restyled." -i preferences-desktop-theme -h string:x-canonical-private-synchronous:lumen-theme
+}
+
+PACKS="$LUMEN_PATH/themes-extra"
+
+pack_get() {
+  local f="$PACKS/$1/pack.conf"
+  sed -n -E "s/^[[:space:]]*$2[[:space:]]*=[[:space:]]*(.*[^[:space:]])[[:space:]]*\$/\1/p" "$f" 2>/dev/null | head -n1
+}
+
+# The size to paint wallpapers at: the largest screen, or 2560x1440.
+screen_size() {
+  local s=""
+  if has hyprctl && has jq; then
+    s=$(hyprctl monitors -j 2>/dev/null | jq -r 'max_by(.width * .height) | "\(.width)x\(.height)"' 2>/dev/null || true)
+  fi
+  [[ "$s" =~ ^[0-9]{3,5}x[0-9]{3,5}$ ]] && echo "$s" || echo 2560x1440
+}
+
+list_packs() {
+  local d name n added
+  for d in "$PACKS"/*/pack.conf; do
+    [[ -f "$d" ]] || continue
+    d=$(dirname "$d")
+    name=$(basename "$d")
+    n=0 added=0
+    for t in "$d"/*/theme.conf; do
+      [[ -f "$t" ]] || continue
+      n=$((n + 1))
+      [[ -f "$LUMEN_CONFIG/themes/$(basename "$(dirname "$t")")/.pack" ]] && added=$((added + 1))
+    done
+    printf '\e[1m%s\e[0m (%s): %s\n' "$name" "$(pack_get "$name" name)" "$(pack_get "$name" description)"
+    if ((added == n)); then
+      printf '  added: all %s themes. Remove with: anarch theme drop %s\n' "$n" "$name"
+    else
+      printf '  %s themes. Add with: anarch theme get %s\n' "$n" "$name"
+    fi
+  done
+}
+
+# get PACK|THEME — copy the themes in, paint their wallpapers.
+get_themes() {
+  local want="$1" dirs=() d slug size i=0
+  if [[ -f "$PACKS/$want/pack.conf" ]]; then
+    for d in "$PACKS/$want"/*/; do [[ -f "$d/theme.conf" ]] && dirs+=("${d%/}"); done
+  else
+    for d in "$PACKS"/*/"$want"; do [[ -f "$d/theme.conf" ]] && dirs+=("$d"); done
+  fi
+  ((${#dirs[@]})) || die "No theme pack or pack theme called '$want'. See: anarch theme packs"
+  size=$(screen_size)
+  mkdir -p "$LUMEN_CONFIG/themes"
+  for d in "${dirs[@]}"; do
+    i=$((i + 1))
+    slug=$(basename "$d")
+    printf '  [%s/%s] %s\n' "$i" "${#dirs[@]}" "$(sed -n -E 's/^name[[:space:]]*=[[:space:]]*//p' "$d/theme.conf" | head -n1)"
+    rm -rf "${LUMEN_CONFIG:?}/themes/$slug"
+    cp -r "$d" "$LUMEN_CONFIG/themes/$slug"
+    basename "$(dirname "$d")" >"$LUMEN_CONFIG/themes/$slug/.pack"
+    if has python3; then
+      python3 "$LUMEN_PATH/bin/lumen-wallgen" --theme "$slug" --size "$size" --out "$LUMEN_WALLPAPERS" >/dev/null 2>&1 ||
+        echo "    (couldn't paint its wallpapers; the theme still works)"
+    fi
+  done
+  if ((${#dirs[@]} == 1)); then
+    set_theme "$(basename "${dirs[0]}")"
+  else
+    local first
+    first=$(pack_get "$want" first)
+    echo "Added ${#dirs[@]} themes. Pick one with SUPER + CTRL + T (or: anarch theme), or try: anarch theme set ${first:-$(basename "${dirs[0]}")}"
+    notify "Themes added" "${#dirs[@]} new themes: pick one with ⊞ + CTRL + T." -i preferences-desktop-theme
+  fi
+}
+
+drop_pack() {
+  local want="$1" d slug n=0 cur
+  cur=$(theme_current)
+  for d in "$LUMEN_CONFIG"/themes/*/.pack; do
+    [[ -f "$d" && "$(cat "$d")" == "$want" ]] || continue
+    slug=$(basename "$(dirname "$d")")
+    [[ "$slug" == "$cur" ]] && set_theme "$DEFAULT_THEME"
+    rm -rf "${LUMEN_CONFIG:?}/themes/$slug" "${LUMEN_WALLPAPERS:?}/$slug"
+    n=$((n + 1))
+  done
+  ((n)) || die "No themes from a pack called '$want' are installed"
+  echo "Removed $n themes."
 }
 
 pick() {
@@ -188,7 +278,7 @@ case "${1:-pick}" in
     tmp=$(mktemp -d)
     trap 'rm -rf "$tmp"' EXIT
     git clone -q --depth 1 "$url" "$tmp/theme" || die "Couldn't download $url"
-    [[ -f "$tmp/theme/theme.conf" ]] || die "$url has no theme.conf, so it isn't a Lumen theme (see: lumen manual themes)"
+    [[ -f "$tmp/theme/theme.conf" ]] || die "$url has no theme.conf, so it isn't a an4rch theme (see: anarch manual themes)"
     rm -rf "$dest"
     mv "$tmp/theme" "$dest"
     # Themes without their own wallpapers get painted ones.
@@ -198,13 +288,16 @@ case "${1:-pick}" in
     echo "Installed '$name'. Update it later by running the same command again."
     set_theme "$name"
     ;;
+  packs) list_packs ;;
+  get) get_themes "${2:?usage: lumen-theme get PACK|NAME   (see: lumen-theme packs)}" ;;
+  drop) drop_pack "${2:?usage: lumen-theme drop PACK}" ;;
   remove)
     name="${2:?usage: lumen-theme remove NAME}"
     [[ -d "$LUMEN_CONFIG/themes/$name" ]] || die "'$name' isn't an installed theme (bundled themes can't be removed)"
-    [[ "$(theme_current)" == "$name" ]] && set_theme lumen
+    [[ "$(theme_current)" == "$name" ]] && set_theme "$DEFAULT_THEME"
     rm -rf "${LUMEN_CONFIG:?}/themes/$name" "${LUMEN_WALLPAPERS:?}/$name"
     echo "Removed '$name'."
     ;;
-  -h | --help | help) sed -n '2,13s/^# \{0,1\}//p' "$0" ;;
+  -h | --help | help) sed -n '2,16s/^# \{0,1\}//p' "$0" ;;
   *) die "Unknown command '$1'. See: lumen-theme --help" ;;
 esac

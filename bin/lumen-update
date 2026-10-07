@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# lumen-update — update Lumen, system packages, Flatpaks and firmware (SUPER + ALT + U).
+# lumen-update — update an4rch, system packages, Flatpaks and firmware (SUPER + ALT + U).
 #
 #   lumen-update           everything
-#   lumen-update lumen     only Lumen itself
+#   lumen-update lumen     only an4rch itself
 set -euo pipefail
 source "${LUMEN_PATH:-$HOME/.local/share/lumen}/lib/lumen.sh"
 
@@ -14,22 +14,30 @@ fi
 step() { printf '\n\e[1;35m󰚰  %s\e[0m\n\n' "$*"; }
 
 update_lumen() {
-  step "Lumen"
+  step "an4rch"
   if [[ ! -d "$LUMEN_PATH/.git" ]]; then
     echo "  $LUMEN_PATH is not a git checkout; skipping."
     return 0
   fi
-  local g=(git -C "$LUMEN_PATH") repo="${LUMEN_REPO:-https://github.com/an4rchuk/lumen-os.git}"
+  local g=(git -C "$LUMEN_PATH") repo fetched=0
   local before latest target
   # Older installs point at an address that no longer exists (GitHub then
   # asks for a login); never prompt, just fail with a message.
   export GIT_TERMINAL_PROMPT=0
-  if [[ "$("${g[@]}" remote get-url origin 2>/dev/null)" != "$repo" ]]; then
-    "${g[@]}" remote set-url origin "$repo" 2>/dev/null || "${g[@]}" remote add origin "$repo"
-  fi
   "${g[@]}" config core.fileMode false
-  if ! "${g[@]}" fetch --quiet --force --tags origin; then
-    echo "  Couldn't reach GitHub (no internet?); Lumen stays as it is."
+  # The project's home, then its name before the an4rch rename (GitHub
+  # forwards that one once the repository is renamed).
+  for repo in ${LUMEN_REPO:-https://github.com/an4rchuk/an4rch-os.git https://github.com/an4rchuk/lumen-os.git}; do
+    if [[ "$("${g[@]}" remote get-url origin 2>/dev/null)" != "$repo" ]]; then
+      "${g[@]}" remote set-url origin "$repo" 2>/dev/null || "${g[@]}" remote add origin "$repo"
+    fi
+    if "${g[@]}" fetch --quiet --force --tags origin 2>/dev/null; then
+      fetched=1
+      break
+    fi
+  done
+  if ((!fetched)); then
+    echo "  Couldn't reach GitHub (no internet?); an4rch stays as it is."
     return 0
   fi
   # Updates follow the releases (v1.0.8, v1.0.9, …), the same code as the ISOs.
@@ -40,8 +48,8 @@ update_lumen() {
     echo "  Already up to date ($("${g[@]}" describe --tags --always 2>/dev/null))."
     return 0
   fi
-  # Edits to Lumen's own files are kept in a stash (git stash list), not lost.
-  "${g[@]}" stash push --quiet -m "lumen update $(date '+%F %T')" 2>/dev/null || true
+  # Edits to an4rch's own files are kept in a stash (git stash list), not lost.
+  "${g[@]}" stash push --quiet -m "anarch update $(date '+%F %T')" 2>/dev/null || true
   if ! "${g[@]}" checkout --quiet --detach "$latest" 2>/dev/null; then
     "${g[@]}" checkout --quiet --force --detach "$latest"
   fi
@@ -64,7 +72,7 @@ update_system() {
   # A new Hyprland needs the title bar plugin rebuilt for it.
   if [[ "${LUMEN_TITLEBARS:-yes}" == yes && -f /usr/lib/lumen/hyprbars.so ]]; then
     step "Window title bars"
-    LUMEN_YES=1 "$LUMEN_PATH/bin/lumen-titlebars" setup </dev/null || echo "  Title bars could not be rebuilt; run: lumen titlebars setup --force"
+    LUMEN_YES=1 "$LUMEN_PATH/bin/lumen-titlebars" setup </dev/null || echo "  Title bars could not be rebuilt; run: anarch titlebars setup --force"
   fi
 
   if has flatpak && [[ -n "$(flatpak list --app --columns=application 2>/dev/null)" ]]; then

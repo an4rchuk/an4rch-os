@@ -35,7 +35,7 @@ while IFS= read -r -d '' f; do
   fi
 done < <(find "$LUMEN_PATH/config" -type f -print0)
 
-# Launchers and icons for Lumen's own apps are managed by Lumen: always refresh.
+# Launchers and icons for an4rch's own apps are managed by an4rch: always refresh.
 data="${XDG_DATA_HOME:-$HOME/.local/share}"
 mkdir -p "$data/applications" "$data/icons/hicolor/scalable/apps"
 cp "$LUMEN_PATH"/share/applications/*.desktop "$data/applications/"

@@ -1,6 +1,6 @@
 # Built-in tools
 
-All of these are in the Lumen menu (<kbd>SUPER</kbd> + <kbd>ALT</kbd> + <kbd>SPACE</kbd>), and each one is also a plain command (`lumen <tool>`) you can script or bind to other keys.
+All of these are in the an4rch menu (<kbd>SUPER</kbd> + <kbd>ALT</kbd> + <kbd>SPACE</kbd>), and each one is also a plain command (`lumen <tool>`) you can script or bind to other keys.
 
 ## Screenshots
 
@@ -18,7 +18,7 @@ Every screenshot is copied to the clipboard and saved to `~/Pictures/Screenshots
 - <kbd>SUPER</kbd> + <kbd>SHIFT</kbd> + <kbd>R</kbd> records a region.
 - <kbd>SUPER</kbd> + <kbd>CTRL</kbd> + <kbd>SHIFT</kbd> + <kbd>R</kbd> records the whole screen.
 - Press the same keys again, or click the red **REC** pill in the bar, to stop.
-- `lumen record screen --audio` includes desktop sound.
+- `anarch record screen --audio` includes desktop sound.
 
 Videos are saved as MP4 to `~/Videos/Recordings`.
 
@@ -26,7 +26,7 @@ Videos are saved as MP4 to `~/Videos/Recordings`.
 
 <kbd>SUPER</kbd> + <kbd>V</kbd> shows everything you've copied, text and images. Pick an entry to copy it again, then paste as usual.
 
-- `lumen clipboard delete` forgets one entry.
+- `anarch clipboard delete` forgets one entry.
 - <kbd>SUPER</kbd> + <kbd>SHIFT</kbd> + <kbd>V</kbd> clears the whole history.
 
 Text copied from password managers that mark it as sensitive isn't stored.
@@ -45,9 +45,9 @@ at tomorrow 9:00 Standup notes
 When it's due, a notification stays on screen until you dismiss it, with a soft chime. Reminders get through Do Not Disturb. Pending reminders show next to the clock; click the count to add one, right-click to see or cancel them. From a terminal:
 
 ```sh
-lumen remind 10m "Tea is ready"
-lumen remind at 14:00 "Dentist"
-lumen remind list
+anarch remind 10m "Tea is ready"
+anarch remind at 14:00 "Dentist"
+anarch remind list
 ```
 
 Reminders are systemd user timers, so they keep running when you close the terminal. They don't survive a reboot.
@@ -82,11 +82,11 @@ sqrt(2) * pi
 
 ## Web apps
 
-Turn any website into an app with its own launcher entry and window: **Lumen menu → Install → Web app**, or:
+Turn any website into an app with its own launcher entry and window: **an4rch menu → Install → Web app**, or:
 
 ```sh
-lumen webapp add "Music" https://music.youtube.com
-lumen webapp remove
+anarch webapp add "Music" https://music.youtube.com
+anarch webapp remove
 ```
 
 With a Chromium-family browser installed, web apps open without tabs or an address bar. Otherwise they open in a new browser window.

@@ -72,7 +72,7 @@ def restore(address=None):
 def restore_menu():
     hidden = hidden_windows()
     if not hidden:
-        subprocess.run(["notify-send", "-a", "Lumen", "No minimised windows", "", "-t", "2000"])
+        subprocess.run(["notify-send", "-a", "an4rch", "No minimised windows", "", "-t", "2000"])
         return
     lines = [f'{c.get("class", "?")} — {c.get("title", "")}' for c in hidden]
     pick = subprocess.run(["fuzzel", "--dmenu", "--index", "--prompt", "Restore  ", "--lines", str(len(lines))],

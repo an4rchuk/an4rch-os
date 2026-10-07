@@ -13,7 +13,7 @@ The modifiers follow one pattern: <kbd>SUPER</kbd> alone for apps and windows, <
 | <kbd>SUPER</kbd> tap (right) | Start menu (right Windows key) |
 | <kbd>SUPER</kbd> + <kbd>Space</kbd> | Quick app launcher |
 | <kbd>SUPER</kbd> + <kbd>A</kbd> | App Store |
-| <kbd>SUPER</kbd> + <kbd>ALT</kbd> + <kbd>Space</kbd> | Lumen menu |
+| <kbd>SUPER</kbd> + <kbd>ALT</kbd> + <kbd>Space</kbd> | an4rch menu |
 | <kbd>SUPER</kbd> + <kbd>B</kbd> | Browser |
 | <kbd>SUPER</kbd> + <kbd>SHIFT</kbd> + <kbd>B</kbd> | Browser (private window) |
 | <kbd>SUPER</kbd> + <kbd>E</kbd> | File manager |
@@ -21,7 +21,7 @@ The modifiers follow one pattern: <kbd>SUPER</kbd> alone for apps and windows, <
 | <kbd>SUPER</kbd> + <kbd>SHIFT</kbd> + <kbd>Enter</kbd> | Floating terminal |
 | <kbd>SUPER</kbd> + <kbd>`</kbd> | Find an open window |
 | <kbd>SUPER</kbd> + <kbd>/</kbd> | Show all key bindings |
-| <kbd>SUPER</kbd> + <kbd>F1</kbd> | Open the Lumen manual |
+| <kbd>SUPER</kbd> + <kbd>F1</kbd> | Open the an4rch manual |
 | <kbd>SUPER</kbd> + <kbd>I</kbd> | Settings |
 | <kbd>CTRL</kbd> + <kbd>SHIFT</kbd> + <kbd>Esc</kbd> | Task Manager (like Windows) |
 

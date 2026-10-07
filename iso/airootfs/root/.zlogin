@@ -5,7 +5,7 @@ fi
 
 ~/.automated_script.sh
 
-# Lumen OS: start the installer on the first console.
+# an4rch OS: start the installer on the first console.
 if [[ "$(tty)" == /dev/tty1 && -z "${LUMEN_INSTALLER_STARTED:-}" ]]; then
     export LUMEN_INSTALLER_STARTED=1
     lumen-os-install

@@ -1,4 +1,4 @@
-# Lumen terminal (Ghostty). Colours come from the active theme.
+# an4rch terminal (Ghostty). Colours come from the active theme.
 # Reference: https://ghostty.org/docs/config  ·  `ghostty +show-config --default --docs`
 
 config-file = ?../lumen/current/theme/ghostty.conf

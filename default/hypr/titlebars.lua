@@ -1,7 +1,7 @@
 -- Title bars with close, maximise and minimise buttons on every window.
 --
 -- Drawn by Hyprland's official hyprbars plugin, built and loaded by
--- `lumen titlebars` (on by default; `lumen titlebars off` removes them).
+-- `anarch titlebars` (on by default; `anarch titlebars off` removes them).
 -- Until the plugin is loaded this file does nothing.
 --
 -- Buttons, right to left: close, maximise/restore, minimise. Double-click

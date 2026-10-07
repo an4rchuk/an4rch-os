@@ -1,4 +1,4 @@
-// Lumen top bar (Waybar).
+// an4rch top bar (Waybar).
 // Restyle with SUPER + CTRL + T. Show/hide with SUPER + CTRL + B.
 // Reference: `man 5 waybar`, https://github.com/Alexays/Waybar/wiki
 {
@@ -29,7 +29,7 @@
 
   "custom/lumen": {
     "format": "󰣇",
-    "tooltip-format": "Start  (tap the Windows key)\nRight-click: Lumen menu",
+    "tooltip-format": "Start  (tap the Windows key)\nRight-click: an4rch menu",
     "on-click": "lumen-start",
     "on-click-right": "lumen-menu"
   },

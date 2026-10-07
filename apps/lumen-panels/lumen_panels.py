@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Lumen quick panels — drop down from the top bar's icons, like the sound
+"""an4rch quick panels — drop down from the top bar's icons, like the sound
 panel: Networks (Wi-Fi, airplane mode, hotspot, the connected network with
 its download and upload speed, networks to join), Bluetooth (on/off,
 devices to connect or pair) and Power (battery, power mode, brightness,
@@ -78,7 +78,7 @@ def lumen(*argv: str) -> None:
 
 
 def notify(title: str, body: str = "", icon: str = "dialog-information") -> None:
-    spawn("notify-send", "-a", "Lumen", "-i", icon, title, body)
+    spawn("notify-send", "-a", "an4rch", "-i", icon, title, body)
 
 
 def background(work: Callable[[], object], done: Callable[[object], None] | None = None) -> None:
@@ -450,7 +450,7 @@ class NetworkPage(Gtk.Box):
             background(lambda: ok("nmcli", "connection", "down", "id", "Hotspot"),
                        lambda _r: (self.hotspot_info.set_visible(False), self.refresh()))
             return
-        name = f"Lumen-{socket.gethostname()}"[:32]
+        name = f"an4rch-{socket.gethostname()}"[:32]
         pw = secrets.token_urlsafe(9)[:10]
         self.status.set_text("Starting the hotspot…")
 
@@ -884,7 +884,7 @@ class Panels(Gtk.ApplicationWindow):
             self.open_panel(page)
 
     def leave(self, *argv: str) -> None:
-        """Close the panel and open a Lumen tool (settings, full menus)."""
+        """Close the panel and open a an4rch tool (settings, full menus)."""
         self.close_panel()
         lumen(*argv)
 

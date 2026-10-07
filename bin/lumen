@@ -1,34 +1,3 @@
 #!/usr/bin/env bash
-# lumen — front door to every Lumen command.
-#
-#   lumen                 open the Lumen menu
-#   lumen <command> ...   run lumen-<command>, e.g. `lumen theme set nord`
-#   lumen help            list commands
-set -euo pipefail
-source "${LUMEN_PATH:-$HOME/.local/share/lumen}/lib/lumen.sh"
-
-if [[ $# -eq 0 ]]; then
-  exec "$LUMEN_PATH/bin/lumen-menu"
-fi
-
-case "$1" in
-  help | -h | --help)
-    printf '\e[1mLumen\e[0m — %s\n\n' "$(cat "$LUMEN_PATH/VERSION" 2>/dev/null || echo dev)"
-    printf 'Usage: lumen <command> [args]\n\n'
-    for f in "$LUMEN_PATH"/bin/lumen-*; do
-      name="${f##*/lumen-}"
-      summary=$(sed -n '2s/^# lumen-[a-z-]* — //p' "$f")
-      printf '  \e[36m%-15s\e[0m %s\n' "$name" "$summary"
-    done
-    printf '\nFull manual: lumen manual   ·   Key bindings: SUPER + /\n'
-    ;;
-  version | --version)
-    cat "$LUMEN_PATH/VERSION" 2>/dev/null || echo dev
-    ;;
-  *)
-    sub="$LUMEN_PATH/bin/lumen-$1"
-    [[ -x "$sub" ]] || die "Unknown command '$1'. Try: lumen help"
-    shift
-    exec "$sub" "$@"
-    ;;
-esac
+# lumen — the old name of the `anarch` command (before an4rch OS 1.1.0); same thing.
+exec "${LUMEN_PATH:-$HOME/.local/share/lumen}/bin/anarch" "$@"

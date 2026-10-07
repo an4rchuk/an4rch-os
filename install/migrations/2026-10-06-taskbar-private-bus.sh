@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Lumen 2.3: the taskbar runs on its own D-Bus session (dbus-run-session), so
+# an4rch 2.3: the taskbar runs on its own D-Bus session (dbus-run-session), so
 # it no longer joins the top bar's waybar and crashes a few minutes after
 # login. Installs the tool if needed and restarts the taskbar.
 set -euo pipefail

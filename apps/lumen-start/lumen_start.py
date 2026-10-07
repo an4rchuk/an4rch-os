@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Lumen Start — the app menu that opens when you tap the Windows (Super) key.
+"""an4rch Start — the app menu that opens when you tap the Windows (Super) key.
 
 Runs as a small background service so it appears instantly: `lumen-start`
 toggles it over D-Bus. Pinned apps, recently used apps, all apps A–Z, and a
@@ -82,7 +82,7 @@ ACTIONS = [
     ("Performance tuning", "performance tune cpu scheduler sched-ext kernel zen mirrors speed", "power-profile-performance-symbolic", ["lumen-tune"]),
     ("Development environment", "development dev programming node python go rust ruby java docker postgres mysql redis database mise", "applications-engineering-symbolic", ["lumen-dev"]),
     ("Key bindings", "keys shortcuts keyboard help", "preferences-desktop-keyboard-shortcuts-symbolic", ["lumen-keys"]),
-    ("Lumen manual", "help manual docs guide", "help-browser-symbolic", ["lumen-manual"]),
+    ("an4rch manual", "help manual docs guide", "help-browser-symbolic", ["lumen-manual"]),
     ("Taskbar", "taskbar bottom bar dock windows panel", "view-app-grid-symbolic", ["lumen-taskbar", "toggle"]),
     ("Window title bars", "title bars window buttons close minimise minimize maximise maximize decorations", "window-new-symbolic", ["lumen-titlebars", "toggle"]),
     ("Night light", "night light warm blue", "weather-clear-night-symbolic", ["lumen-toggle", "nightlight"]),
@@ -300,7 +300,7 @@ class Row(Gtk.ListBoxRow):
 
 class StartMenu(Gtk.ApplicationWindow):
     def __init__(self, app: Gtk.Application):
-        super().__init__(application=app, title="Lumen Start")
+        super().__init__(application=app, title="an4rch Start")
         self.set_decorated(False)
         self.add_css_class("lumen-start")
         self.apps: list[App] = []
@@ -627,7 +627,7 @@ class StartMenu(Gtk.ApplicationWindow):
 
     def copy(self, text: str) -> None:
         Gdk.Display.get_default().get_clipboard().set(text)
-        run_detached(["notify-send", "-a", "Lumen", "-t", "2000", text, "Copied to the clipboard"])
+        run_detached(["notify-send", "-a", "an4rch", "-t", "2000", text, "Copied to the clipboard"])
         GLib.timeout_add(150, lambda: (self.close_menu(), False)[1])
 
     def on_enter(self, *_):

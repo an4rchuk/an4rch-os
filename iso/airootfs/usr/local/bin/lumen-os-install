@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# lumen-os-install — install Lumen OS from the live USB.
+# lumen-os-install — install an4rch OS from the live USB.
 #
 # Asks a few questions, then: wipes the chosen disk, creates an EFI partition
 # and an (optionally encrypted) btrfs system with subvolumes for snapshots,
 # installs Arch Linux with the main and LTS kernels, sets up systemd-boot,
-# Plymouth and zram, and finally runs the Lumen installer inside the new
+# Plymouth and zram, and finally runs the an4rch installer inside the new
 # system. Everything is logged to /var/log/lumen-os-install.log.
 #
 # Needs: UEFI firmware, an internet connection, 20 GB of disk.
@@ -118,7 +118,7 @@ spin() {
 # --- checks -----------------------------------------------------------------------
 [[ $EUID -eq 0 ]] || { echo "Run as root."; exit 1; }
 # Both UEFI and legacy BIOS computers are supported (see "boot loader" below).
-[[ -d "$LUMEN_SRC" ]] || fail "Lumen files are missing from this USB ($LUMEN_SRC)."
+[[ -d "$LUMEN_SRC" ]] || fail "an4rch files are missing from this USB ($LUMEN_SRC)."
 
 if [[ $AUTO -eq 1 ]]; then
   title "Automatic install (lumen.auto=1)"
@@ -132,22 +132,22 @@ if [[ $AUTO -eq 1 ]]; then
   keymap="${K[keymap]:-us}"
   ENCRYPT=0
   [[ -n "${K[encrypt]:-}" ]] && { ENCRYPT=1; LUKS_PASS="${K[encrypt]}"; }
-  # lumen.mode=alongside lumen.size=GB: keep Windows and put Lumen next to it.
+  # lumen.mode=alongside lumen.size=GB: keep Windows and put an4rch next to it.
   MODE="${K[mode]:-erase}"
   ALONG_GB="${K[size]:-}"
-  FULLNAME="${K[fullname]:-Lumen Tester}"
+  FULLNAME="${K[fullname]:-an4rch Tester}"
   USERNAME="${K[user]:-lumen}"
   USER_PASS="${K[pass]:-lumen}"
-  HOSTNAME_="${K[hostname]:-lumen}"
+  HOSTNAME_="${K[hostname]:-an4rch}"
   TIMEZONE="${K[timezone]:-UTC}"
   LOCALE="${K[locale]:-en_US.UTF-8}"
   BROWSER="${K[browser]:-firefox}"
   TERMINAL_APP="${K[terminal]:-ghostty}"
   EDITOR_APP="${K[editor]:-code}"
   GAMING="${K[gaming]:-0}"
-  THEME="${K[theme]:-lumen}"
+  THEME="${K[theme]:-an4rch}"
 else
-title "Welcome! This installs Lumen OS on this computer. It only takes a few minutes."
+title "Welcome! This installs an4rch OS on this computer. It only takes a few minutes."
 gum confirm --affirmative "Let's go" --negative "Not now" "Ready to begin?" || exit 0
 
 # --- network --------------------------------------------------------------------------
@@ -225,8 +225,8 @@ keymap=$( { echo us; localectl list-keymaps | grep -vx us; } | gum filter --heig
 loadkeys "$keymap" 2>/dev/null || true
 
 # --- disk -----------------------------------------------------------------------------
-title "Where should Lumen OS go?"
-# The USB stick Lumen is running from isn't offered.
+title "Where should an4rch OS go?"
+# The USB stick an4rch is running from isn't offered.
 live_src=$(findmnt -nvo SOURCE /run/archiso/bootmnt 2>/dev/null || true)
 live_disk=$( [[ -n "$live_src" ]] && lsblk -npo PKNAME "$live_src" 2>/dev/null | head -n1)
 mapfile -t disks < <(lsblk -dpno NAME,SIZE,MODEL,TYPE -e 7,11 | awk -v skip="${live_disk:-none}" '$NF == "disk" && $1 != skip {$NF=""; print}' | sed 's/ *$//')
@@ -239,13 +239,13 @@ done
 disk_line=$(printf '%s\n' "${disks[@]}" | gum choose --header "Choose a disk. EVERYTHING on it will be erased.") || exit 1
 DISK="${disk_line%% *}"
 size_gb=$(( $(lsblk -bdno SIZE "$DISK") / 1024 / 1024 / 1024 ))
-(( size_gb >= 20 )) || fail "$DISK is only ${size_gb} GB; Lumen OS needs at least 20 GB."
+(( size_gb >= 20 )) || fail "$DISK is only ${size_gb} GB; an4rch OS needs at least 20 GB."
 
-# A disk with Windows on it: Lumen can go alongside, keeping Windows and its files.
+# A disk with Windows on it: an4rch can go alongside, keeping Windows and its files.
 MODE=erase ALONG_GB=""
 if [[ "$(lumen-disk-info "$DISK" 2>/dev/null)" == *Windows* ]]; then
   title "Windows is on this disk"
-  how=$(gum choose --header "How should Lumen be installed?" \
+  how=$(gum choose --header "How should an4rch be installed?" \
     "Install alongside Windows (keep Windows and its files; choose at every start)" \
     "Erase the whole disk, Windows included") || exit 0
   if [[ "$how" == Install* ]]; then
@@ -253,10 +253,10 @@ if [[ "$(lumen-disk-info "$DISK" 2>/dev/null)" == *Windows* ]]; then
     note "Checking how much space Windows can spare…"
     eval "$(lumen-disk-info --space "$DISK")"
     [[ -z "${error:-}" ]] || fail "$error"
-    (( max_gb >= 30 )) || fail "There's only room for ${max_gb} GB next to Windows; Lumen needs 30 GB. Free up space in Windows (or shrink it with Disk Management), then try again."
+    (( max_gb >= 30 )) || fail "There's only room for ${max_gb} GB next to Windows; an4rch needs 30 GB. Free up space in Windows (or shrink it with Disk Management), then try again."
     suggest=$(( max_gb / 2 > 60 ? max_gb / 2 : (max_gb < 60 ? max_gb : 60) ))
     while true; do
-      ALONG_GB=$(gum input --header "Space for Lumen in GB (30 to $max_gb; Windows keeps the rest)" --value "$suggest") || exit 0
+      ALONG_GB=$(gum input --header "Space for an4rch in GB (30 to $max_gb; Windows keeps the rest)" --value "$suggest") || exit 0
       [[ "$ALONG_GB" =~ ^[0-9]+$ ]] && (( ALONG_GB >= 30 && ALONG_GB <= max_gb )) && break
       note "Enter a number from 30 to $max_gb."
     done
@@ -295,8 +295,8 @@ while true; do
   [[ "$USER_PASS" == "$again" ]] && break
   note "They didn't match. Try again."
 done
-HOSTNAME_=$(gum input --header "Computer name (on the network)" --value "lumen") || HOSTNAME_=lumen
-[[ "$HOSTNAME_" =~ ^[a-zA-Z0-9][a-zA-Z0-9-]{0,62}$ ]] || HOSTNAME_=lumen
+HOSTNAME_=$(gum input --header "Computer name (on the network)" --value "an4rch") || HOSTNAME_=an4rch
+[[ "$HOSTNAME_" =~ ^[a-zA-Z0-9][a-zA-Z0-9-]{0,62}$ ]] || HOSTNAME_=an4rch
 
 # --- time and language ------------------------------------------------------------------
 title "Time zone and language"
@@ -327,12 +327,12 @@ TERMINAL_APP=$(gum choose --header "Terminal" ghostty alacritty kitty) || TERMIN
 EDITOR_APP=$(gum choose --header "Code editor" code zed nvim) || EDITOR_APP=code
 GAMING=0
 gum confirm --default=false "Set up gaming? (Steam, Proton, GameMode, MangoHud — about 1.5 GB)" && GAMING=1
-THEME=$(ls "$LUMEN_SRC/themes" | gum choose --header "Theme (change any time later)" --selected lumen) || THEME=lumen
+THEME=$(ls "$LUMEN_SRC/themes" | gum choose --header "Theme (change any time later)" --selected an4rch) || THEME=an4rch
 
 # --- review ---------------------------------------------------------------------------------
 title "Ready to install"
 gum style --border rounded --border-foreground "$ACCENT" --padding "1 3" --margin "0 2" \
-  "Disk:        $disk_line$([[ $MODE == alongside ]] && echo "  ·  alongside Windows, ${ALONG_GB} GB for Lumen")" \
+  "Disk:        $disk_line$([[ $MODE == alongside ]] && echo "  ·  alongside Windows, ${ALONG_GB} GB for an4rch")" \
   "Encryption:  $([[ $ENCRYPT -eq 1 ]] && echo on || echo off)" \
   "User:        $USERNAME${FULLNAME:+ ($FULLNAME)}" \
   "Computer:    $HOSTNAME_" \
@@ -363,7 +363,7 @@ fi
 fi
 
 # --- install -----------------------------------------------------------------------------------
-title "Installing Lumen OS"
+title "Installing an4rch OS"
 : >"$LOG"
 part() { if [[ "$DISK" =~ [0-9]$ ]]; then echo "${DISK}p$1"; else echo "${DISK}$1"; fi; }
 EFI=$(part 1)
@@ -403,7 +403,7 @@ if [[ -e "$OFFLINE/lumen-offline.db" ]]; then
 elif ((!NET)); then
   fail "No internet connection, and this USB stick doesn't carry the packages (the online ISO). Connect to Wi-Fi or a cable first."
 fi
-# The same for pacman inside the new system while Lumen installs; undone after.
+# The same for pacman inside the new system while an4rch installs; undone after.
 offline_on() {
   [[ ${#pac_opts[@]} -gt 0 ]] || return 0
   mkdir -p "$MNT/var/cache/lumen-repo"
@@ -434,7 +434,7 @@ ensure_mirrors() {
   grep -q '^[[:space:]]*Server' "$1" 2>/dev/null && return 0
   note "No working mirror list; using Arch's worldwide mirrors"
   # shellcheck disable=SC2016 # $repo and $arch are pacman's, not the shell's
-  printf '%s\n' '# Arch Linux worldwide mirrors (Lumen OS fallback; run reflector to rank local ones)' \
+  printf '%s\n' '# Arch Linux worldwide mirrors (an4rch OS fallback; run reflector to rank local ones)' \
     'Server = https://geo.mirror.pkgbuild.com/$repo/os/$arch' \
     'Server = https://fastly.mirror.pkgbuild.com/$repo/os/$arch' \
     'Server = https://mirrors.kernel.org/archlinux/$repo/os/$arch' \
@@ -446,27 +446,27 @@ ensure_mirrors /etc/pacman.d/mirrorlist
 # the EFI one on every disk, so either kind of boot loader fits.
 if [[ -d /sys/firmware/efi ]]; then UEFI=1; else UEFI=0; fi
 if [[ $UEFI -eq 0 ]]; then
-  gum style --foreground "#f1d38b" --margin "0 2" "This computer started the USB in legacy (BIOS) mode, so Lumen installs a BIOS boot loader." \
+  gum style --foreground "#f1d38b" --margin "0 2" "This computer started the USB in legacy (BIOS) mode, so an4rch installs a BIOS boot loader." \
     "Keep the computer in legacy/CSM mode to start it (or reinstall from a USB started in UEFI mode)."
 fi
 BOOTP="$EFI" # the partition mounted at /boot (kernels)
 MODE="${MODE:-erase}"
 
 # Next to Windows: shrink Windows' drive if there isn't enough free space,
-# then add Lumen's boot partition (kernels; Windows' EFI partition is often
+# then add an4rch's boot partition (kernels; Windows' EFI partition is often
 # only 100 MB) and system partition. Windows' partitions keep their place,
-# type and identity, and its EFI partition gets the Lumen boot menu.
+# type and identity, and its EFI partition gets the an4rch boot menu.
 alongside_partition() {
   # shellcheck disable=SC2034  # free_gb is set by lumen-disk-info's output
   local error="" max_gb=0 free_gb=0 win="" esp="" need_mib free_mib ss cur new_bytes num info type guid name first end before after
   eval "$(lumen-disk-info --space "$DISK")"
   [[ -z "$error" ]] || fail "$error"
   [[ -n "$ALONG_GB" ]] || ALONG_GB=$max_gb
-  # Lumen needs 30 GB: a smaller request gets 30 when there is room, and
+  # an4rch needs 30 GB: a smaller request gets 30 when there is room, and
   # one larger than the room gets all of it (above 30).
-  ((max_gb >= 30)) || fail "Not enough room next to Windows: Lumen needs 30 GB, and only ${max_gb} GB can be freed. Free up space in Windows (or delete files), then try again. Nothing was changed."
+  ((max_gb >= 30)) || fail "Not enough room next to Windows: an4rch needs 30 GB, and only ${max_gb} GB can be freed. Free up space in Windows (or delete files), then try again. Nothing was changed."
   if ((ALONG_GB < 30)); then
-    note "Lumen needs at least 30 GB; using 30 GB instead of ${ALONG_GB} GB."
+    note "an4rch needs at least 30 GB; using 30 GB instead of ${ALONG_GB} GB."
     ALONG_GB=30
   elif ((ALONG_GB > max_gb)); then
     note "Only ${max_gb} GB can be freed next to Windows; using ${max_gb} GB instead of ${ALONG_GB} GB."
@@ -496,19 +496,19 @@ alongside_partition() {
     gum style --foreground "#9fdc9b" "  ✓ Made room next to Windows"
   fi
   before=$(lsblk -nrpo NAME "$DISK")
-  sgdisk -n 0:0:+1G -t 0:ea00 -c 0:LumenBoot "$DISK" >>"$LOG" 2>&1 || fail "Couldn't add Lumen's boot partition (details: $LOG)."
+  sgdisk -n 0:0:+1G -t 0:ea00 -c 0:LumenBoot "$DISK" >>"$LOG" 2>&1 || fail "Couldn't add an4rch's boot partition (details: $LOG)."
   partprobe "$DISK" && udevadm settle
   BOOTP=$(comm -13 <(sort <<<"$before") <(lsblk -nrpo NAME "$DISK" | sort) | head -n1)
   before=$(lsblk -nrpo NAME "$DISK")
   free_mib=$(parted -sm "$DISK" unit MiB print free 2>/dev/null |
     awk -F: '$NF ~ /free;$/ { v = $4; sub(/MiB/, "", v); if (v + 0 > m) m = v + 0 } END { print int(m) }')
   if ((free_mib > ALONG_GB * 1024 + 2048)); then end="+${ALONG_GB}G"; else end=0; fi
-  sgdisk -n "0:0:$end" -t 0:8300 -c 0:lumen "$DISK" >>"$LOG" 2>&1 || fail "Couldn't add Lumen's partition (details: $LOG)."
+  sgdisk -n "0:0:$end" -t 0:8300 -c 0:lumen "$DISK" >>"$LOG" 2>&1 || fail "Couldn't add an4rch's partition (details: $LOG)."
   partprobe "$DISK" && udevadm settle
   SYS=$(comm -13 <(sort <<<"$before") <(lsblk -nrpo NAME "$DISK" | sort) | head -n1)
   EFI="$esp"
   [[ -b "$BOOTP" && -b "$SYS" && -b "$EFI" ]] || fail "The new partitions didn't appear (details: $LOG)."
-  gum style --foreground "#9fdc9b" "  ✓ Added Lumen's partitions next to Windows"
+  gum style --foreground "#9fdc9b" "  ✓ Added an4rch's partitions next to Windows"
 }
 
 if [[ $MODE == alongside ]]; then
@@ -528,7 +528,7 @@ if [[ $ENCRYPT -eq 1 ]]; then
   gum style --foreground "#9fdc9b" "  ✓ Encrypted the system partition"
 fi
 
-# Alongside Windows only Lumen's own boot partition is formatted, never
+# Alongside Windows only an4rch's own boot partition is formatted, never
 # Windows' EFI partition.
 BOOTLABEL=EFI
 [[ $MODE == alongside ]] && BOOTLABEL=LUMENBOOT
@@ -557,7 +557,7 @@ grep -q AuthenticAMD /proc/cpuinfo && UCODE=amd-ucode
 # mkinitcpio settings must exist before the kernels are installed.
 mkdir -p "$MNT/etc/mkinitcpio.conf.d"
 cat >"$MNT/etc/mkinitcpio.conf.d/lumen.conf" <<'EOF'
-# Lumen OS: systemd-based initramfs with boot splash and disk unlock.
+# an4rch OS: systemd-based initramfs with boot splash and disk unlock.
 HOOKS=(base systemd plymouth autodetect microcode modconf kms keyboard sd-vconsole block sd-encrypt filesystems fsck)
 EOF
 printf 'KEYMAP=%s\n' "$keymap" >"$MNT/etc/vconsole.conf"
@@ -585,7 +585,7 @@ step "Configuring the system"
 arch-chroot "$MNT" /bin/bash -e >>"$LOG" 2>&1 <<CHROOT || fail "System configuration failed"
 ln -sf "/usr/share/zoneinfo/$TIMEZONE" /etc/localtime
 if [[ $MODE == alongside ]]; then
-  # Windows keeps the hardware clock in local time; so does Lumen next to it,
+  # Windows keeps the hardware clock in local time; so does an4rch next to it,
   # or the clock would be off by hours after switching.
   printf '0.0 0 0.0\n0\nLOCAL\n' >/etc/adjtime
 else
@@ -609,7 +609,7 @@ passwd -l root
 
 if [[ $UEFI -eq 1 ]]; then
 if [[ $MODE == alongside ]]; then
-  # Boot menu on Windows' EFI partition, kernels on Lumen's own; systemd-boot
+  # Boot menu on Windows' EFI partition, kernels on an4rch's own; systemd-boot
   # lists Windows by itself.
   bootctl install --esp-path=/efi --boot-path=/boot
   ESPDIR=/efi TIMEOUT=5
@@ -626,13 +626,13 @@ console-mode max
 editor no
 LOADER
 cat >/boot/loader/entries/lumen.conf <<ENTRY
-title   Lumen OS
+title   an4rch OS
 linux   /vmlinuz-linux
 initrd  /initramfs-linux.img
 options $CMDLINE
 ENTRY
 cat >/boot/loader/entries/lumen-lts.conf <<ENTRY
-title   Lumen OS (LTS kernel)
+title   an4rch OS (LTS kernel)
 linux   /vmlinuz-linux-lts
 initrd  /initramfs-linux-lts.img
 options $CMDLINE
@@ -646,11 +646,11 @@ insmod fat
 search --no-floppy --fs-uuid --set=root $ESP_UUID
 set timeout=3
 set default=0
-menuentry "Lumen OS" {
+menuentry "an4rch OS" {
   linux /vmlinuz-linux $CMDLINE
   initrd /initramfs-linux.img
 }
-menuentry "Lumen OS (LTS kernel)" {
+menuentry "an4rch OS (LTS kernel)" {
   linux /vmlinuz-linux-lts $CMDLINE
   initrd /initramfs-linux-lts.img
 }
@@ -682,8 +682,8 @@ if [[ -n "${WIFI_SSID:-}" ]]; then
   chmod 600 "$conn"
 fi
 
-# Lumen itself, installed as the new user with temporary password-less sudo.
-spin "Copying Lumen" bash -c "mkdir -p '$MNT/home/$USERNAME/.local/share' && cp -a '$LUMEN_SRC' '$MNT/home/$USERNAME/.local/share/lumen' && arch-chroot '$MNT' chown -R '$USERNAME:$USERNAME' '/home/$USERNAME/.local'"
+# an4rch itself, installed as the new user with temporary password-less sudo.
+spin "Copying an4rch" bash -c "mkdir -p '$MNT/home/$USERNAME/.local/share' && cp -a '$LUMEN_SRC' '$MNT/home/$USERNAME/.local/share/lumen' && arch-chroot '$MNT' chown -R '$USERNAME:$USERNAME' '/home/$USERNAME/.local'"
 # verifypw/listpw=any: otherwise `sudo -v` (used by yay and makepkg) still asks
 # for a password, because the wheel rule above has no NOPASSWD.
 printf 'Defaults:%s verifypw=any, listpw=any\n%s ALL=(ALL) NOPASSWD: ALL\n' "$USERNAME" "$USERNAME" >"$MNT/etc/sudoers.d/99-lumen-install"
@@ -701,18 +701,18 @@ if [[ -f /usr/lib/lumen/hyprbars.so && -f /var/lib/lumen/hyprbars-hyprland ]]; t
   install -D -m644 /var/lib/lumen/hyprbars-hyprland "$MNT/var/lib/lumen/hyprbars-hyprland"
 fi
 offline_on
-step "Lumen installer: ${lumen_args[*]}"
-gum style --foreground "$DIM" --margin "1 2 0" "Installing the Lumen desktop and apps (a few minutes). Progress: $LOG"
+step "an4rch installer: ${lumen_args[*]}"
+gum style --foreground "$DIM" --margin "1 2 0" "Installing the an4rch desktop and apps (a few minutes). Progress: $LOG"
 if ! setsid -w arch-chroot "$MNT" sudo -u "$USERNAME" env HOME="/home/$USERNAME" USER="$USERNAME" LUMEN_YES=1 LUMEN_VERBOSE=1 LUMEN_OFFLINE=$((NET ? 0 : 1)) LUMEN_GPU="${K[gpu]:-}" \
   bash "/home/$USERNAME/.local/share/lumen/install.sh" "${lumen_args[@]}" </dev/null >>"$LOG" 2>&1; then
   rm -f "$MNT/etc/sudoers.d/99-lumen-install"
   offline_off
-  fail "The Lumen desktop didn't install completely. The system boots to a console; log in and run ~/.local/share/lumen/install.sh to finish."
+  fail "The an4rch desktop didn't install completely. The system boots to a console; log in and run ~/.local/share/lumen/install.sh to finish."
 fi
 rm -f "$MNT/etc/sudoers.d/99-lumen-install"
 offline_off
 cp "$LOG" "$MNT/var/log/lumen-os-install.log" 2>/dev/null || true
-gum style --foreground "#9fdc9b" "  ✓ Installed the Lumen desktop"
+gum style --foreground "#9fdc9b" "  ✓ Installed the an4rch desktop"
 
 # The keyboard layout chosen above, for the desktop and the login screen too
 # (not only the console): console keymap names → XKB layout (+ variant).
@@ -757,8 +757,8 @@ if [[ "${K[serial]:-0}" == 1 ]]; then
   for t in report:150 tasks:240; do
     name=${t%%:*} after=${t#*:}
     install -m755 "$LUMEN_SRC/tests/vm/$name.sh" "$MNT/usr/local/bin/lumen-e2e-$name"
-    printf '[Unit]\nDescription=Lumen VM test: %s\n[Service]\nType=oneshot\nTimeoutStartSec=infinity\nExecStart=/usr/local/bin/lumen-e2e-%s\n' "$name" "$name" >"$MNT/etc/systemd/system/lumen-e2e-$name.service"
-    printf '[Unit]\nDescription=Lumen VM test: %s\n[Timer]\nOnBootSec=%s\n[Install]\nWantedBy=timers.target\n' "$name" "$after" >"$MNT/etc/systemd/system/lumen-e2e-$name.timer"
+    printf '[Unit]\nDescription=an4rch VM test: %s\n[Service]\nType=oneshot\nTimeoutStartSec=infinity\nExecStart=/usr/local/bin/lumen-e2e-%s\n' "$name" "$name" >"$MNT/etc/systemd/system/lumen-e2e-$name.service"
+    printf '[Unit]\nDescription=an4rch VM test: %s\n[Timer]\nOnBootSec=%s\n[Install]\nWantedBy=timers.target\n' "$name" "$after" >"$MNT/etc/systemd/system/lumen-e2e-$name.timer"
     arch-chroot "$MNT" systemctl enable "lumen-e2e-$name.timer" >>"$LOG" 2>&1
   done
 fi
@@ -777,6 +777,6 @@ if [[ $AUTO -eq 1 ]]; then
   exit 0
 fi
 
-title "Lumen OS is installed"
+title "an4rch OS is installed"
 note "Remove the USB stick, then restart." "" "After logging in, tap the Windows key to open Start."
 gum confirm --affirmative "Restart now" --negative "Stay here" "Restart?" && systemctl reboot

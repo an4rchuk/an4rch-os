@@ -7,7 +7,7 @@
 #   lumen-tune kernel zen|remove-zen add (or remove) the linux-zen desktop kernel as a boot entry
 #   lumen-tune mirrors               rank Arch mirrors by speed now (and weekly from now on)
 #
-# Lumen OS already ships the low-risk tweaks (see install/distro.sh): tuned
+# an4rch OS already ships the low-risk tweaks (see install/distro.sh): tuned
 # sysctls for zram and desktops, per-device I/O schedulers, NTSYNC for Wine
 # and Proton, faster shutdowns. These are the opt-in ones.
 set -euo pipefail
@@ -110,7 +110,7 @@ scheduler() {
   fi
   sleep 1
   say "CPU scheduler: $(current_scheduler)"
-  echo "  It starts with every boot. Switch back with: lumen tune scheduler off"
+  echo "  It starts with every boot. Switch back with: anarch tune scheduler off"
 }
 
 # --- Kernels ---------------------------------------------------------------------------
@@ -122,11 +122,11 @@ kernel() {
     zen)
       add "${PKGS_TUNE_ZEN[@]}"
       if [[ -f $entries/lumen.conf ]]; then
-        sudo sed -e 's/^title .*/title   Lumen OS (zen kernel)/' \
+        sudo sed -e 's/^title .*/title   an4rch OS (zen kernel)/' \
           -e 's#/vmlinuz-linux$#/vmlinuz-linux-zen#' \
           -e 's#/initramfs-linux\.img$#/initramfs-linux-zen.img#' \
           "$entries/lumen.conf" | sudo tee "$entries/lumen-zen.conf" >/dev/null
-        say "Added \"Lumen OS (zen kernel)\" to the boot menu"
+        say "Added \"an4rch OS (zen kernel)\" to the boot menu"
         printf '  Make it the default? [y/N] '
         read -r yn
         if [[ "$yn" == [yY]* ]]; then
@@ -155,7 +155,7 @@ mirrors() {
   say "Ranking mirrors (about a minute)"
   sudo install -d /etc/xdg/reflector
   sudo tee /etc/xdg/reflector/reflector.conf >/dev/null <<'EOF'
-# Lumen: the 20 fastest recently-synced HTTPS mirrors, re-ranked weekly.
+# an4rch: the 20 fastest recently-synced HTTPS mirrors, re-ranked weekly.
 --save /etc/pacman.d/mirrorlist
 --protocol https
 --latest 20

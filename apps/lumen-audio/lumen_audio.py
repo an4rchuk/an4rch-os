@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Lumen sound panel — drops down from the volume icon in the top bar:
+"""an4rch sound panel — drops down from the volume icon in the top bar:
 volume, mute, which speakers or headphones to use, the microphone, and
 links to the full mixer and Sound settings.
 

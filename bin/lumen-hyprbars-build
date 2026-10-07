@@ -7,7 +7,7 @@
 # headers the hyprland package installs, at the plugin commit that repository
 # pins for this Hyprland release. Needs gcc, make, pkgconf and git.
 # lumen-titlebars and the ISO build (iso/offline.sh) use it; most people want
-# `lumen titlebars setup` instead.
+# `anarch titlebars setup` instead.
 set -euo pipefail
 
 out="${1:?usage: lumen-hyprbars-build OUT.so}"

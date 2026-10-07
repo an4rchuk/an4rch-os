@@ -1,4 +1,4 @@
--- Visual tweaks on top of Lumen's defaults and the active theme.
+-- Visual tweaks on top of an4rch's defaults and the active theme.
 -- Colours belong to the theme: SUPER + CTRL + T, or `lumen-theme new mytheme`.
 
 -- hl.config({

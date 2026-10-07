@@ -3,7 +3,7 @@
 #
 #   lumen-extras             pick an extra from a menu
 #   lumen-extras list        list them all
-#   lumen-extras NAME        set one up, e.g. `lumen extras sunshine`
+#   lumen-extras NAME        set one up, e.g. `anarch extras sunshine`
 #
 # Each recipe installs the packages, turns on the services, opens the
 # firewall where needed and tells you what to do next.
@@ -64,11 +64,11 @@ recipe_sunshine() {
 
 recipe_decky() {
   say "Decky Loader"
-  pacman -Q steam >/dev/null 2>&1 || die "Install Steam first: lumen gaming"
+  pacman -Q steam >/dev/null 2>&1 || die "Install Steam first: anarch gaming"
   echo "  This runs the official Decky installer from github.com/SteamDeckHomebrew."
   curl -fsSL https://github.com/SteamDeckHomebrew/decky-installer/releases/latest/download/install_release.sh | sh
   next "Turn on Steam's developer mode (Settings → System → Enable Developer Mode)." \
-    "Decky's menu is under the … button in Game Mode (lumen gaming game-mode on)."
+    "Decky's menu is under the … button in Game Mode (anarch gaming game-mode on)."
 }
 
 recipe_controllers() {
@@ -118,7 +118,7 @@ recipe_waydroid() {
   say "Waydroid"
   [[ -e /dev/binderfs || -d /sys/module/binder_linux || "$(uname -r)" == *zen* ]] ||
     grep -q 'CONFIG_ANDROID_BINDER_IPC=y' <(zcat /proc/config.gz 2>/dev/null) ||
-    echo "  ! This kernel may lack Android binder support; the zen kernel has it (lumen tune kernel zen)."
+    echo "  ! This kernel may lack Android binder support; the zen kernel has it (anarch tune kernel zen)."
   add "${PKGS_X_WAYDROID[@]}"
   sudo waydroid init
   sudo systemctl enable --now waydroid-container.service
@@ -168,7 +168,7 @@ recipe_backup() {
   add "${PKGS_X_BACKUP[@]}"
   next "Open Backups from Start, pick what to save and where (a USB drive, a network share or Google Drive)." \
     "Turn on automatic backups there; restoring is in the same app." \
-    "System snapshots (lumen snapshot) protect the system; this protects your own files."
+    "System snapshots (anarch snapshot) protect the system; this protects your own files."
 }
 
 recipe_office() {

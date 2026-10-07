@@ -57,7 +57,7 @@ setup() {
   if [[ -f "$conf" ]]; then initial=$(sed -n '/^\[initial_session\]/,$p' "$conf"); fi
   sudo mkdir -p /etc/greetd
   {
-    printf '# Lumen login screen: greetd runs lumen-greeter (ReGreet, or tuigreet as a fallback).\n'
+    printf '# an4rch login screen: greetd runs lumen-greeter (ReGreet, or tuigreet as a fallback).\n'
     printf '[terminal]\nvt = 1\n\n[default_session]\ncommand = "/usr/local/bin/lumen-greeter"\nuser = "greeter"\n'
     if [[ -n "$initial" ]]; then printf '\n%s\n' "$initial"; fi
   } | sudo tee "$conf" >/dev/null

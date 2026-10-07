@@ -1,4 +1,4 @@
--- Your key bindings. They are added after Lumen's (SUPER + / lists them all).
+-- Your key bindings. They are added after an4rch's (SUPER + / lists them all).
 --
 -- Replace a default:
 --   hl.unbind("SUPER + B")

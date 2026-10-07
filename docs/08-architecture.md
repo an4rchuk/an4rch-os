@@ -1,6 +1,6 @@
-# How Lumen works
+# How an4rch works
 
-This chapter is for anyone changing Lumen itself, or curious how the pieces fit together.
+This chapter is for anyone changing an4rch itself, or curious how the pieces fit together.
 
 ## Repository layout
 
@@ -13,16 +13,16 @@ lumen/
 │   ├── packages.sh         package sets (required vs best-effort)
 │   ├── migrate.sh          runs after updates: new configs + one-off migrations
 │   └── migrations/         dated, run-once scripts
-├── apps/                   Lumen's own GTK 4 apps (Python + libadwaita)
+├── apps/                   an4rch's own GTK 4 apps (Python + libadwaita)
 │   ├── lumen-start/        the Start menu (layer-shell overlay, D-Bus toggled)
 │   ├── lumen-store/        the App Store and its curated catalog.json
 │   └── lumen-welcome/      the first-boot tour
-├── iso/                    Lumen OS: archiso overlay, build.sh, the OS installer and rescue tool
+├── iso/                    an4rch OS: archiso overlay, build.sh, the OS installer and rescue tool
 ├── system/                 OS-level files (fastfetch logo and layout)
-├── share/                  .desktop launchers and icons for Lumen's apps
+├── share/                  .desktop launchers and icons for an4rch's apps
 ├── bin/                    every `lumen-*` command (bash; one Python tool)
 ├── lib/lumen.sh            shared shell library: paths, settings, menus, terminals
-├── default/                Lumen-managed defaults, loaded before user config
+├── default/                an4rch-managed defaults, loaded before user config
 │   ├── hypr/*.lua          Hyprland: env, looks, input, rules, binds, autostart
 │   └── zsh/rc.zsh          shell defaults
 ├── config/                 the user's starting configs, copied to ~/.config once
@@ -36,7 +36,7 @@ lumen/
 
 `~/.config/hypr/hyprland.lua` requires `default/hypr/init.lua` from the checkout first, then the user's own files. Hyprland's Lua `hl.config()` calls merge, so later settings win key by key. Bindings can be removed with `hl.unbind()`. As a result:
 
-- `lumen update` can change defaults without touching anything the user edited.
+- `anarch update` can change defaults without touching anything the user edited.
 - A user file can be deleted to fall back to the defaults.
 - The installer copies `config/` only on the first install. Later runs, and `migrate.sh`, add files that are missing but never replace existing ones.
 
@@ -55,7 +55,7 @@ To add support for a new app, drop a template in `templates/`. It's rendered for
 
 ## Session start
 
-Hyprland runs under [uwsm](https://github.com/Vladimir-csp/uwsm), so the session is a set of systemd units with a clean environment and clean shutdown. On `hyprland.start`, Lumen runs `lumen-session start`, which:
+Hyprland runs under [uwsm](https://github.com/Vladimir-csp/uwsm), so the session is a set of systemd units with a clean environment and clean shutdown. On `hyprland.start`, an4rch runs `lumen-session start`, which:
 
 - renders a theme if none exists and restores the wallpaper (`swaybg`);
 - starts Waybar, mako, hypridle and the clipboard watchers, each as its own systemd scope via `uwsm app`;
@@ -65,7 +65,7 @@ Hyprland runs under [uwsm](https://github.com/Vladimir-csp/uwsm), so the session
 
 Apps launched from the launcher or key bindings go through `lumen-launch`, which uses `uwsm app` too. That way every app gets its own scope, and its logs land in `journalctl --user`.
 
-## Lumen OS
+## an4rch OS
 
 `iso/build.sh` copies Arch's official `releng` archiso profile and layers `iso/airootfs/` on top: the installer (`lumen-os-install`, a `gum` TUI), `lumen-rescue`, an auto-start on tty1, and a full copy of this repository at `/opt/lumen`. The profile is renamed and the boot menus rebranded. Because releng is copied at build time, the ISO keeps up with upstream archiso.
 
@@ -96,7 +96,7 @@ runs on any Linux machine, without a GPU or Hyprland:
 - **Themes:** every theme renders, with no unresolved placeholders.
 - **Scripts:** `shellcheck` and `bash -n` on every shell script.
 - **Waybar:** `config.jsonc` parses and every listed module has a config block.
-- **Lumen apps:** Python compiles, the store catalogue validates, and the Start menu, App Store and Welcome each launch and render headlessly under Xvfb.
+- **an4rch apps:** Python compiles, the store catalogue validates, and the Start menu, App Store and Welcome each launch and render headlessly under Xvfb.
 - **Wallpapers:** the generator runs.
 
 When Hyprland releases a new version, refresh the API snapshot:
@@ -118,4 +118,4 @@ lua tests/gen-keys-doc.lua . > docs/02-keybindings.md
 - **One way to do each thing.** One launcher and menu system (fuzzel), one notification daemon (mako), one palette.
 - **Never strand the user.** Display changes revert unless confirmed. Configs are backed up before replacement. A broken theme or missing wallpaper falls back gracefully. Hardware keys work on the lock screen.
 - **Plain files.** Every setting is a readable file with comments. Every feature is a small command you can run, script or bind.
-- **Upstream formats.** Lumen uses each tool's native config and documents it, rather than inventing its own layer on top.
+- **Upstream formats.** an4rch uses each tool's native config and documents it, rather than inventing its own layer on top.

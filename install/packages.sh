@@ -39,7 +39,7 @@ PKGS_SYSTEM=(
   git base-devel curl
 )
 
-# Everyday command-line tools Lumen relies on.
+# Everyday command-line tools an4rch relies on.
 PKGS_TOOLS=(
   zsh zsh-autosuggestions zsh-syntax-highlighting starship
   fzf ripgrep fd bat eza zoxide jq

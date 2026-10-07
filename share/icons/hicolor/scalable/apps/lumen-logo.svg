@@ -1,17 +1,21 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <!-- an4rch OS logo (placeholder until the final artwork): a circled A. -->
   <defs>
-    <linearGradient id="g" gradientUnits="userSpaceOnUse" x1="30" y1="40" x2="98" y2="108">
+    <linearGradient id="g" gradientUnits="userSpaceOnUse" x1="28" y1="24" x2="100" y2="108">
       <stop offset="0" stop-color="#9d8cff"/>
       <stop offset="1" stop-color="#6ad7e5"/>
     </linearGradient>
-    <radialGradient id="glow" cx="64" cy="84" r="52" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#9d8cff" stop-opacity="0.55"/>
+    <radialGradient id="glow" cx="64" cy="64" r="56" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#9d8cff" stop-opacity="0.35"/>
       <stop offset="1" stop-color="#9d8cff" stop-opacity="0"/>
     </radialGradient>
+    <clipPath id="tile"><rect x="8" y="8" width="112" height="112" rx="30"/></clipPath>
   </defs>
   <rect x="8" y="8" width="112" height="112" rx="30" fill="#12131c"/>
-  <circle cx="64" cy="84" r="52" fill="url(#glow)"/>
-  <path d="M30 84 a34 34 0 0 1 68 0 z" fill="url(#g)"/>
-  <rect x="22" y="89" width="84" height="6" rx="3" fill="url(#g)"/>
-  <rect x="36" y="101" width="56" height="5" rx="2.5" fill="url(#g)" opacity="0.55"/>
+  <circle cx="64" cy="66" r="50" fill="url(#glow)"/>
+  <circle cx="64" cy="66" r="38" fill="none" stroke="url(#g)" stroke-width="8"/>
+  <g clip-path="url(#tile)" fill="none" stroke="url(#g)" stroke-width="9" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M30 112 L64 18 L98 112"/>
+    <path d="M44 76 H84"/>
+  </g>
 </svg>

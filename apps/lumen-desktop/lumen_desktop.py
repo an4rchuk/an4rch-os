@@ -2,9 +2,9 @@
 """lumen-desktop — icons on the desktop (top left, under the windows).
 
 The icons are listed in ~/.config/lumen/desktop-icons.json:
-    [{"id": "lumen-installer.desktop", "label": "Install Lumen OS"}, ...]
+    [{"id": "lumen-installer.desktop", "label": "Install an4rch OS"}, ...]
 (an "id" is a .desktop file name; "label" is optional). The live USB shows
-"Install Lumen OS" and the Welcome guide here. A single click opens an icon.
+"Install an4rch OS" and the Welcome guide here. A single click opens an icon.
 """
 from __future__ import annotations
 
@@ -72,7 +72,7 @@ def open_app(info: Gio.DesktopAppInfo) -> None:
 
 class Desktop(Gtk.ApplicationWindow):
     def __init__(self, app: Gtk.Application):
-        super().__init__(application=app, title="Lumen desktop")
+        super().__init__(application=app, title="an4rch desktop")
         self.add_css_class("lumen-desktop")
         if LayerShell is not None and LayerShell.is_supported():
             LayerShell.init_for_window(self)

@@ -9,7 +9,7 @@
 #   lumen-titlebars load     load the plugin into the running session (used at login)
 #
 # The bars come from hyprbars, Hyprland's official plugin, compiled for your
-# exact Hyprland version (Lumen OS ships it prebuilt) into
+# exact Hyprland version (an4rch OS ships it prebuilt) into
 # /usr/lib/lumen/hyprbars.so. Their colours follow your theme.
 set -euo pipefail
 source "${LUMEN_PATH:-$HOME/.local/share/lumen}/lib/lumen.sh"
@@ -63,7 +63,7 @@ load() {
   {
     date
     if ! up_to_date; then
-      echo "not loading: plugin built for '$(cat "$STAMP" 2>/dev/null)', Hyprland is '$(hyprland_version)' (run: lumen titlebars setup)"
+      echo "not loading: plugin built for '$(cat "$STAMP" 2>/dev/null)', Hyprland is '$(hyprland_version)' (run: anarch titlebars setup)"
     elif loaded; then
       echo "already loaded"
     else
@@ -90,9 +90,9 @@ status() {
   if up_to_date; then
     echo "Plugin:   built for Hyprland $(cat "$STAMP")"
   elif built; then
-    echo "Plugin:   built for Hyprland $(cat "$STAMP" 2>/dev/null || echo '?'), but $(hyprland_version) is installed (lumen titlebars setup)"
+    echo "Plugin:   built for Hyprland $(cat "$STAMP" 2>/dev/null || echo '?'), but $(hyprland_version) is installed (anarch titlebars setup)"
   else
-    echo "Plugin:   not built (lumen titlebars setup)"
+    echo "Plugin:   not built (anarch titlebars setup)"
   fi
   if in_session && loaded; then echo "Session:  loaded"; else echo "Session:  not loaded"; fi
 }

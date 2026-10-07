@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Lumen installer — turns a fresh Arch Linux install into the Lumen desktop.
+# an4rch installer — turns a fresh Arch Linux install into the an4rch desktop.
 #
 #   ./install.sh                 interactive install
 #   ./install.sh --yes           accept every default (unattended)
@@ -9,10 +9,10 @@
 #   --browser NAME     firefox (default), chromium, brave, zen-browser
 #   --terminal NAME    ghostty (default), alacritty, kitty
 #   --editor NAME      code (default), zed, nvim
-#   --theme NAME       starting theme (default: lumen)
+#   --theme NAME       starting theme (default: an4rch)
 #   --gaming           also install the gaming stack (Steam, Proton tools, …)
-#   --distro           apply the Lumen OS system layer (branding, snapshots,
-#                      boot splash, zram) — used by the Lumen OS ISO installer
+#   --distro           apply the an4rch OS system layer (branding, snapshots,
+#                      boot splash, zram) — used by the an4rch OS ISO installer
 #   --no-reboot        don't offer to restart at the end
 #   --no-greeter       don't set up the greetd login screen
 #   --autologin        log straight in (sensible with full-disk encryption)
@@ -32,7 +32,7 @@ chmod +x "$LUMEN_PATH"/bin/* "$LUMEN_PATH"/install.sh "$LUMEN_PATH"/boot.sh 2>/d
 source "$LUMEN_PATH/install/lib.sh"
 source "$LUMEN_PATH/install/packages.sh"
 
-BROWSER="" TERMINAL_APP="" EDITOR_APP="" THEME="lumen"
+BROWSER="" TERMINAL_APP="" EDITOR_APP="" THEME="an4rch"
 GREETER=1 AUTOLOGIN=0 CONFIGS_ONLY=0 GAMING=0 DISTRO=0 REBOOT=1 TASKBAR=no TITLEBARS=yes
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -62,12 +62,12 @@ FIRST_INSTALL=1
 # --- 1. Preflight ---------------------------------------------------------------
 preflight() {
   step "Checking this computer"
-  [[ -f /etc/arch-release ]] || fail "Lumen needs Arch Linux (or an Arch-based distro)."
+  [[ -f /etc/arch-release ]] || fail "an4rch needs Arch Linux (or an Arch-based distro)."
   [[ $EUID -ne 0 ]] || fail "Run the installer as your normal user, not root. It uses sudo when needed."
   command -v sudo >/dev/null || fail "sudo is required: as root, run 'pacman -S sudo' and add yourself to the wheel group."
   ok "Arch Linux, user $USER"
 
-  info "Lumen needs administrator rights to install packages."
+  info "an4rch needs administrator rights to install packages."
   # sudo -n first: with password-less sudo, -v can still prompt (verifypw=all).
   sudo -n true 2>/dev/null || sudo -v || fail "sudo authentication failed"
   # Keep sudo alive for the whole install.
@@ -86,14 +86,14 @@ preflight() {
     if ((online)); then
       ok "Internet connection"
     elif [[ "${LUMEN_OFFLINE:-0}" == 1 ]]; then
-      # Lumen OS installing from its USB stick: every package is on the stick.
+      # an4rch OS installing from its USB stick: every package is on the stick.
       ok "No internet: installing from the USB stick"
     else
       fail "No internet connection. Connect first (for Wi-Fi on a fresh install: iwctl)."
     fi
     local free
     free=$(df -Pk / | awk 'NR==2 {print int($4/1024/1024)}')
-    ((free >= 6)) || fail "Only ${free} GB free on /. Lumen needs about 6 GB."
+    ((free >= 6)) || fail "Only ${free} GB free on /. an4rch needs about 6 GB."
     ok "${free} GB free"
   fi
 
@@ -102,7 +102,7 @@ preflight() {
   [[ "$cpu_arch" == x86_64 || "$cpu_arch" == aarch64 ]] || warn "Untested CPU architecture: $cpu_arch"
 
   if [[ -n "${WAYLAND_DISPLAY:-}${DISPLAY:-}" ]] && [[ "${XDG_CURRENT_DESKTOP:-}" != *Hyprland* ]]; then
-    warn "You're running another desktop (${XDG_CURRENT_DESKTOP:-unknown}). It stays installed; pick Lumen at the login screen."
+    warn "You're running another desktop (${XDG_CURRENT_DESKTOP:-unknown}). It stays installed; pick an4rch at the login screen."
   fi
 }
 
@@ -113,6 +113,7 @@ choose_apps() {
   [[ -n "$TERMINAL_APP" ]] || ask_choice TERMINAL_APP "Terminal" ghostty ghostty alacritty kitty
   [[ -n "$EDITOR_APP" ]] || ask_choice EDITOR_APP "Code editor" code code zed nvim
   ok "Browser: $BROWSER · Terminal: $TERMINAL_APP · Editor: $EDITOR_APP"
+  [[ "$THEME" == lumen ]] && THEME=an4rch  # renamed in 1.1.0
   [[ -d "$LUMEN_PATH/themes/$THEME" ]] || fail "Unknown theme '$THEME'"
 }
 
@@ -126,7 +127,7 @@ setup_pacman() {
   fi
   run "Updating the system" sudo pacman -Syu --noconfirm
 
-  # The Lumen OS USB stick carries yay prebuilt; elsewhere it's built from the AUR.
+  # The an4rch OS USB stick carries yay prebuilt; elsewhere it's built from the AUR.
   if ! command -v yay >/dev/null && pacman -Si yay-bin >/dev/null 2>&1; then
     pkg_install OPTIONAL yay-bin
   fi
@@ -231,7 +232,7 @@ install_configs() {
       ln -sfn "$LUMEN_PATH" "$home_path"
       ok "Linked ~/.local/share/lumen → $LUMEN_PATH"
     else
-      warn "$home_path exists and isn't this checkout; Lumen commands will use that copy"
+      warn "$home_path exists and isn't this checkout; an4rch commands will use that copy"
     fi
   fi
   local f rel
@@ -245,7 +246,7 @@ install_configs() {
   done < <(find "$LUMEN_PATH/config" -type f -print0)
   ok "Configs in ~/.config (hypr, waybar, fuzzel, mako, ghostty, …)"
 
-  # Launchers and icons for Lumen's own apps (Start, App Store, Welcome, …).
+  # Launchers and icons for an4rch's own apps (Start, App Store, Welcome, …).
   local data="${XDG_DATA_HOME:-$HOME/.local/share}"
   mkdir -p "$data/applications" "$data/icons/hicolor/scalable/apps"
   cp "$LUMEN_PATH"/share/applications/*.desktop "$data/applications/"
@@ -259,7 +260,7 @@ install_configs() {
   local settings="$HOME/.config/lumen/settings.conf"
   if [[ ! -f "$settings" ]]; then
     cat >"$settings" <<EOF
-# Lumen settings. Change apps here or with: Lumen menu → Setup → Default apps.
+# an4rch settings. Change apps here or with: an4rch menu → Setup → Default apps.
 LUMEN_TERMINAL=$TERMINAL_APP
 LUMEN_BROWSER=$( [[ "$BROWSER" == brave ]] && echo brave || echo "$BROWSER")
 LUMEN_EDITOR=$EDITOR_APP
@@ -287,7 +288,7 @@ EOF
   if ((HAS_NVIDIA)); then
     ((NVIDIA_ONLY)) && ! grep -q LIBVA_DRIVER_NAME "$HOME/.config/uwsm/env" 2>/dev/null && cat >>"$HOME/.config/uwsm/env" <<'EOF'
 
-# NVIDIA (added by the Lumen installer: NVIDIA is the only GPU)
+# NVIDIA (added by the an4rch installer: NVIDIA is the only GPU)
 export LIBVA_DRIVER_NAME=nvidia
 export __GLX_VENDOR_LIBRARY_NAME=nvidia
 export NVD_BACKEND=direct
@@ -341,7 +342,7 @@ setup_system() {
     fi
   fi
 
-  # Power button opens Lumen's power menu instead of shutting down at once;
+  # Power button opens an4rch's power menu instead of shutting down at once;
   # holding it still powers off.
   sudo mkdir -p /etc/systemd/logind.conf.d
   printf '[Login]\nHandlePowerKey=ignore\nHandlePowerKeyLongPress=poweroff\n' |
@@ -357,23 +358,23 @@ setup_system() {
   fi
 
   if [[ $DISTRO -eq 1 ]]; then
-    run "Applying the Lumen OS system layer (branding, snapshots, boot splash, zram)" sudo LUMEN_PATH="$LUMEN_PATH" bash "$LUMEN_PATH/install/distro.sh"
+    run "Applying the an4rch OS system layer (branding, snapshots, boot splash, zram)" sudo LUMEN_PATH="$LUMEN_PATH" bash "$LUMEN_PATH/install/distro.sh"
   fi
 
   if [[ $GAMING -eq 1 ]] || { [[ -z "${LUMEN_YES:-}" ]] && ask_yes "Set up gaming too? (Steam, Proton tools, GameMode, MangoHud)" n; }; then
     # Steam and the 32-bit libraries come from the internet: offline, or if a
     # download fails, the desktop still installs and gaming is set up later.
     if [[ "${LUMEN_OFFLINE:-0}" == 1 ]]; then
-      warn "No internet: gaming (Steam, Proton tools…) is set up later with: lumen gaming install"
+      warn "No internet: gaming (Steam, Proton tools…) is set up later with: anarch gaming install"
     elif ! (run "Installing the gaming stack" env LUMEN_YES=1 "$LUMEN_PATH/bin/lumen-gaming" install); then
-      warn "Gaming couldn't be set up right now; run 'lumen gaming install' later (the desktop is fine)"
+      warn "Gaming couldn't be set up right now; run 'anarch gaming install' later (the desktop is fine)"
     fi
   fi
 
   if [[ $GREETER -eq 1 ]]; then
     setup_greeter
   else
-    info "No login screen: logging in on the first console starts Lumen (see ~/.zprofile)."
+    info "No login screen: logging in on the first console starts an4rch (see ~/.zprofile)."
   fi
 }
 
@@ -383,7 +384,7 @@ setup_greeter() {
     systemctl is-enabled -q "$dm" 2>/dev/null && other="$dm"
   done
   if [[ -n "$other" ]]; then
-    if ask_yes "Replace the $other login screen with Lumen's (greetd)?" n; then
+    if ask_yes "Replace the $other login screen with an4rch's (greetd)?" n; then
       run "Disabling $other" sudo systemctl disable "$other"
     else
       info "Keeping $other. Choose \"Hyprland (uwsm-managed)\" when you log in."
@@ -391,7 +392,7 @@ setup_greeter() {
     fi
   fi
 
-  # The graphical login screen in Lumen's theme (text login as a fallback).
+  # The graphical login screen in an4rch's theme (text login as a fallback).
   run "Setting up the login screen" "$LUMEN_PATH/bin/lumen-login" setup
   if [[ $AUTOLOGIN -eq 1 ]] && ! grep -q '^\[initial_session\]' /etc/greetd/config.toml; then
     printf '\n[initial_session]\ncommand = "uwsm start -- hyprland.desktop"\nuser = "%s"\n' "$USER" | sudo tee -a /etc/greetd/config.toml >/dev/null
@@ -443,6 +444,14 @@ setup_look() {
   } >>"$LOG" 2>&1 || true
   ok "Default apps"
 
+  # Wallpapers first (switching theme picks one). The other themes get
+  # theirs the first time they're picked.
+  if python3 -c 'import PIL' 2>/dev/null; then
+    try "Painting wallpapers for the theme" python3 "$LUMEN_PATH/bin/lumen-wallgen" --theme "$THEME" --out "${XDG_DATA_HOME:-$HOME/.local/share}/backgrounds/lumen"
+  else
+    warn "python-pillow missing: run 'lumen-wallpaper generate' later"
+  fi
+
   local theme_out
   if theme_out=$("$LUMEN_PATH/bin/lumen-theme" set "$THEME" 2>&1); then
     ok "Theme: $THEME"
@@ -450,13 +459,6 @@ setup_look() {
     warn "Theme could not be applied: $(tail -n 1 <<<"$theme_out")"
   fi
   printf '%s\n' "$theme_out" >>"$LOG"
-
-  if python3 -c 'import PIL' 2>/dev/null; then
-    try "Painting wallpapers for every theme" python3 "$LUMEN_PATH/bin/lumen-wallgen" --all --out "${XDG_DATA_HOME:-$HOME/.local/share}/backgrounds/lumen"
-    "$LUMEN_PATH/bin/lumen-wallpaper" theme >>"$LOG" 2>&1 || true
-  else
-    warn "python-pillow missing: run 'lumen-wallpaper generate' later"
-  fi
 }
 
 # --- 8. Done ----------------------------------------------------------------------
@@ -464,7 +466,7 @@ finish() {
   step "Finishing up"
   bash "$LUMEN_PATH/install/migrate.sh" --mark-all >>"$LOG" 2>&1 || true
 
-  printf '\n  %s%s✓ Lumen is installed.%s\n\n' "$BOLD" "$GREEN" "$RESET"
+  printf '\n  %s%s✓ an4rch is installed.%s\n\n' "$BOLD" "$GREEN" "$RESET"
   if [[ ${#WARNINGS[@]} -gt 0 ]]; then
     printf '  %sNotes:%s\n' "$YELLOW" "$RESET"
     printf '    • %s\n' "${WARNINGS[@]}"
@@ -473,14 +475,14 @@ finish() {
   cat <<EOF
   ${BOLD}First steps${RESET}
     ${ACCENT}SUPER + SPACE${RESET}        open apps
-    ${ACCENT}SUPER + ALT + SPACE${RESET}  the Lumen menu: Wi-Fi, themes, capture, settings…
+    ${ACCENT}SUPER + ALT + SPACE${RESET}  the an4rch menu: Wi-Fi, themes, capture, settings…
     ${ACCENT}SUPER + /${RESET}            every key binding
-    ${ACCENT}SUPER + F1${RESET}           the manual (or: lumen manual)
+    ${ACCENT}SUPER + F1${RESET}           the manual (or: anarch manual)
 
   Log: ${DIM}$LOG${RESET}
 
 EOF
-  if [[ $REBOOT -eq 1 && -z "${WAYLAND_DISPLAY:-}" ]] && ask_yes "Restart now to start Lumen?" y; then
+  if [[ $REBOOT -eq 1 && -z "${WAYLAND_DISPLAY:-}" ]] && ask_yes "Restart now to start an4rch?" y; then
     sudo systemctl reboot
   fi
 }

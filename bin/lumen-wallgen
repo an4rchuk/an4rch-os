@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # lumen-wallgen — paint original wallpapers from a theme's palette.
-"""Generate Lumen wallpapers from theme palettes.
+"""Generate an4rch wallpapers from theme palettes.
 
 Every theme gets a small set of abstract, softly lit wallpapers drawn from its
 own colours, so switching themes always lands on a background that matches.
@@ -89,7 +89,10 @@ def aurora(p, size, rnd: random.Random) -> Image.Image:
     img = Image.new("RGB", (sw, sh), bg)
     layer = Image.new("RGBA", (sw, sh), (0, 0, 0, 0))
     d = ImageDraw.Draw(layer)
-    colours = [rgb(p[k]) for k in ("accent", "accent2", "purple", "blue", "cyan") if k in p]
+    if "gradient" in p:  # stay within the theme's own colours
+        colours = [rgb(p["accent"]), rgb(p.get("accent2", p["accent"]))] + [c for c, _ in gradient_stops(p)[1:]]
+    else:
+        colours = [rgb(p[k]) for k in ("accent", "accent2", "purple", "blue", "cyan") if k in p]
     for i in range(7):
         c = colours[i % len(colours)]
         cx = rnd.uniform(-0.1, 1.1) * sw
@@ -187,7 +190,8 @@ def silk(p, size, rnd: random.Random) -> Image.Image:
     w, h = size
     sw, sh = w // 6, h // 6
     bg, bg_alt = rgb(p["bg"]), rgb(p["bg_alt"])
-    accent, purple = rgb(p["accent"]), rgb(p.get("purple", p["accent"]))
+    accent = rgb(p["accent"])
+    purple = rgb(p["accent2"] if "gradient" in p else p.get("purple", p["accent"]))
     img = Image.new("RGB", (sw, sh), bg)
     d = ImageDraw.Draw(img)
     folds = 9
@@ -201,7 +205,177 @@ def silk(p, size, rnd: random.Random) -> Image.Image:
     return out
 
 
-STYLES = {"aurora": aurora, "dunes": dunes, "orbit": orbit, "silk": silk}
+# --- gradients -------------------------------------------------------------------
+# A theme can describe its own gradient in theme.conf, CSS style:
+#   gradient = #0b0b0b 0%, #2a070d 40%, #7a0a1c 70%, #c8102e 100%
+#   gradient_angle = 135
+# Themes without one get a gradient from their background to their accent.
+
+def gradient_stops(p) -> list[tuple[tuple[int, int, int], float]]:
+    stops = []
+    for part in p.get("gradient", "").split(","):
+        bits = part.split()
+        if not bits or not bits[0].startswith("#"):
+            continue
+        pos = float(bits[1].rstrip("%")) / 100 if len(bits) > 1 else None
+        stops.append([rgb(bits[0]), pos])
+    if len(stops) < 2:
+        bg, bg_alt, accent = rgb(p["bg"]), rgb(p["bg_alt"]), rgb(p["accent"])
+        return [(bg, 0.0), (mix(bg_alt, accent, 0.25), 0.4), (mix(bg, accent, 0.6), 0.75), (accent, 1.0)]
+    # Stops without a position are spread evenly, like CSS.
+    if stops[0][1] is None:
+        stops[0][1] = 0.0
+    if stops[-1][1] is None:
+        stops[-1][1] = 1.0
+    i = 0
+    while i < len(stops):
+        if stops[i][1] is None:
+            j = i
+            while stops[j][1] is None:
+                j += 1
+            a, b = stops[i - 1][1], stops[j][1]
+            for k in range(i, j):
+                stops[k][1] = a + (b - a) * (k - i + 1) / (j - i + 1)
+            i = j
+        i += 1
+    return [(tuple(c), max(0.0, min(1.0, t))) for c, t in stops]
+
+
+def _lin(v: float) -> float:
+    v /= 255
+    return v / 12.92 if v <= 0.04045 else ((v + 0.055) / 1.055) ** 2.4
+
+
+def _srgb(v: float) -> int:
+    v = max(0.0, v)
+    v = v * 12.92 if v <= 0.0031308 else 1.055 * v ** (1 / 2.4) - 0.055
+    return max(0, min(255, round(v * 255)))
+
+
+def ramp(stops, n: int = 1024):
+    """n colours along the gradient, mixed in linear light along a smooth
+    (monotone cubic) curve through the stops: the colours flow into each
+    other over a long, even stretch with no visible lines where stops meet."""
+    xs = [t for _, t in stops]
+    chans = [[_lin(c[i]) for c, _ in stops] for i in range(3)]
+    m = len(xs)
+
+    def slopes(ys):
+        d = [(ys[k + 1] - ys[k]) / ((xs[k + 1] - xs[k]) or 1e-6) for k in range(m - 1)]
+        tang = [d[0]] + [0.0 if d[k - 1] * d[k] <= 0 else (d[k - 1] + d[k]) / 2 for k in range(1, m - 1)] + [d[-1]]
+        for k in range(m - 1):  # Fritsch-Carlson: no overshoot
+            if d[k] == 0:
+                tang[k] = tang[k + 1] = 0.0
+                continue
+            a, b = tang[k] / d[k], tang[k + 1] / d[k]
+            if a * a + b * b > 9:
+                s_ = 3 / math.sqrt(a * a + b * b)
+                tang[k], tang[k + 1] = s_ * a * d[k], s_ * b * d[k]
+        return tang
+
+    tangents = [slopes(ys) for ys in chans]
+    out = []
+    k = 0
+    for i in range(n):
+        t = i / (n - 1)
+        while k < m - 2 and t > xs[k + 1]:
+            k += 1
+        h = (xs[k + 1] - xs[k]) or 1e-6
+        u = min(1.0, max(0.0, (t - xs[k]) / h))
+        h00, h10 = 2 * u ** 3 - 3 * u ** 2 + 1, u ** 3 - 2 * u ** 2 + u
+        h01, h11 = -2 * u ** 3 + 3 * u ** 2, u ** 3 - u ** 2
+        out.append(tuple(_srgb(h00 * ys[k] + h10 * h * tg[k] + h01 * ys[k + 1] + h11 * h * tg[k + 1])
+                         for ys, tg in zip(chans, tangents)))
+    return out
+
+
+def paint(size, position, colours) -> Image.Image:
+    """Colour every pixel by position(x, y) -> 0..1 along the gradient."""
+    w, h = size
+    n = len(colours) - 1
+    data = []
+    for y in range(h):
+        for x in range(w):
+            t = position(x, y)
+            data.append(colours[round(min(1.0, max(0.0, t)) * n)])
+    img = Image.new("RGB", size)
+    img.putdata(data)
+    return img
+
+
+def linear(size, angle: float):
+    """CSS-style linear gradient positions (angle in degrees, 0 = to top)."""
+    w, h = size
+    a = math.radians(angle)
+    dx, dy = math.sin(a), -math.cos(a)
+    length = abs(w * dx) + abs(h * dy)
+    cx, cy = w / 2, h / 2
+    return lambda x, y: ((x - cx) * dx + (y - cy) * dy) / length + 0.5
+
+
+def sweep(p, size, rnd: random.Random) -> Image.Image:
+    """The theme's gradient corner to corner, long and even."""
+    w, h = size
+    small = (w // 12, h // 12)
+    angle = float(p.get("gradient_angle", 135))
+    return soft_upscale(paint(small, linear(small, angle), ramp(gradient_stops(p))), size, 1)
+
+
+def rise(p, size, rnd: random.Random) -> Image.Image:
+    """Dark at the top, the accent rising from the bottom edge."""
+    w, h = size
+    small = (w // 12, h // 12)
+    pos = linear(small, 180)
+    return soft_upscale(paint(small, lambda x, y: pos(x, y) ** 1.6, ramp(gradient_stops(p))), size, 1)
+
+
+def glow(p, size, rnd: random.Random) -> Image.Image:
+    """Light spreading out from one corner."""
+    w, h = size
+    sw, sh = w // 12, h // 12
+    cx, cy = rnd.choice(((sw, sh), (0, sh), (sw * 0.85, 0)))
+    radius = math.hypot(sw, sh) * 0.9
+    pos = lambda x, y: 1 - math.hypot((x - cx), (y - cy) * 1.25) / radius
+    return soft_upscale(paint((sw, sh), pos, ramp(gradient_stops(p))), size, 1)
+
+
+def horizon(p, size, rnd: random.Random) -> Image.Image:
+    """A band of light low on the screen, fading up into the dark."""
+    w, h = size
+    sw, sh = w // 12, h // 12
+    line = rnd.uniform(0.66, 0.74)
+
+    def pos(x, y):
+        v = y / sh
+        if v <= line:
+            return (v / line) ** 2.4
+        return max(0.0, 1 - ((v - line) / (1 - line)) ** 1.1 * 0.7)
+    return soft_upscale(paint((sw, sh), pos, ramp(gradient_stops(p))), size, 2)
+
+
+def mesh(p, size, rnd: random.Random) -> Image.Image:
+    """Soft pools of the gradient's colours drifting over it."""
+    w, h = size
+    sw, sh = w // 8, h // 8
+    colours = ramp(gradient_stops(p))
+    img = paint((sw, sh), linear((sw, sh), rnd.choice((120, 150, 200, 240))), colours)
+    for _ in range(5):
+        c = colours[round(rnd.uniform(0.35, 1.0) * (len(colours) - 1))]
+        cx, cy = rnd.uniform(-0.1, 1.1) * sw, rnd.uniform(0.1, 1.1) * sh
+        r = rnd.uniform(0.25, 0.5) * sw
+        mask = Image.new("L", (sw, sh), 0)
+        ImageDraw.Draw(mask).ellipse((cx - r, cy - r * 0.6, cx + r, cy + r * 0.6), fill=round(rnd.uniform(90, 150)))
+        mask = mask.filter(ImageFilter.GaussianBlur(r * 0.5))
+        img = Image.composite(Image.new("RGB", (sw, sh), c), img, mask)
+    # A darker top keeps the bar readable.
+    top = Image.linear_gradient("L").resize((sw, sh)).point(lambda v: round((255 - v) * 0.5))
+    img = Image.composite(Image.new("RGB", (sw, sh), colours[0]), img, top)
+    return soft_upscale(img, size, sw / 50)
+
+
+GRADIENTS = ("sweep", "glow", "horizon", "rise", "mesh")
+STYLES = {"sweep": sweep, "glow": glow, "horizon": horizon, "rise": rise, "mesh": mesh,
+          "aurora": aurora, "dunes": dunes, "orbit": orbit, "silk": silk}
 
 
 def render(theme: str, palette: dict[str, str], out_dir: Path, size, styles) -> list[Path]:
@@ -212,13 +386,18 @@ def render(theme: str, palette: dict[str, str], out_dir: Path, size, styles) -> 
         seed = sum(ord(c) for c in theme) * 97 + n
         rnd = random.Random(seed)
         img = STYLES[style](palette, size, rnd)
-        img = vignette(img, 0.35 if luminance(bg) < 0.5 else 0.12, mix(bg, (0, 0, 0), 0.4))
+        if style not in GRADIENTS:  # gradients carry their own light and shade
+            img = vignette(img, 0.35 if luminance(bg) < 0.5 else 0.12, mix(bg, (0, 0, 0), 0.4))
         img = Image.blend(img, ImageChops.overlay(img, Image.effect_noise(size, 40).convert("RGB")), 0.06)
         # High-quality JPEG: the grain hides any compression artefacts and
         # saving is ~50x faster than an optimised PNG.
         path = out_dir / f"{n:02d}-{style}.jpg"
         img.save(path, quality=94, subsampling=0)
         written.append(path)
+    # Drop wallpapers an earlier version painted under other numbers.
+    for old in out_dir.glob("[0-9][0-9]-*.jpg"):
+        if old not in written and old.stem.split("-", 1)[1] in STYLES:
+            old.unlink()
     return written
 
 
@@ -252,6 +431,11 @@ def main() -> int:
     if not names:
         ap.error("pass --all or --theme NAME")
     for name in names:
+        if name not in themes:
+            # Themes from a pack that isn't installed yet (for previews).
+            found = sorted((LUMEN_PATH / "themes-extra").glob(f"*/{name}/theme.conf"))
+            if found:
+                themes[name] = found[0].parent
         if name not in themes:
             print(f"skipping unknown theme {name}", file=sys.stderr)
             continue

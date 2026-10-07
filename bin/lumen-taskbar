@@ -3,7 +3,7 @@
 #
 #   lumen-taskbar on       show it now and at every login
 #   lumen-taskbar off      hide it
-#   lumen-taskbar toggle   switch (Lumen menu → Toggle → Taskbar)
+#   lumen-taskbar toggle   switch (an4rch menu → Toggle → Taskbar)
 #   lumen-taskbar start    start it if the setting is on (used at login)
 #
 # It shows Start, your open windows (click to switch, click the active one

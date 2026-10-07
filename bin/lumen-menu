@@ -16,7 +16,7 @@ show() {
 }
 
 main_menu() {
-  case $(show "Lumen" \
+  case $(show "an4rch" \
     "󰀻  Apps" \
     "󰒓  Settings" \
     "󰏓  App Store" \
@@ -136,7 +136,7 @@ setup_menu() {
     "󰈷  Fingerprint login" \
     "󰐪  Printers" \
     "󰏘  Default apps" \
-    "󰒓  Lumen settings" \
+    "󰒓  an4rch settings" \
     "󰈙  Edit key bindings" \
     "󰩟  Health check" \
     "󰍹  Hardware report") in
@@ -155,9 +155,9 @@ setup_menu() {
     *Fingerprint*) term --float --hold -- "$bin/lumen-setup" fingerprint ;;
     *Printers) term --float --hold -- "$bin/lumen-setup" printing ;;
     *"Default apps") "$bin/lumen-setup" defaults ;;
-    *"Lumen settings") "$bin/lumen-settings" ;;
+    *"an4rch settings") "$bin/lumen-settings" ;;
     *"key bindings") edit "$HOME/.config/hypr/bindings.lua" ;;
-    *"Health check") term --float --hold --title "Lumen doctor" -- "$bin/lumen-doctor" ;;
+    *"Health check") term --float --hold --title "an4rch doctor" -- "$bin/lumen-doctor" ;;
     *"Hardware report") term --float --hold --title "Hardware report" -- "$bin/lumen-doctor" hardware ;;
   esac
 }
@@ -186,7 +186,7 @@ install_menu() {
 learn_menu() {
   case $(show "Learn" \
     "󰌌  Key bindings" \
-    "󰈙  Lumen manual" \
+    "󰈙  an4rch manual" \
     "󰖟  Hyprland wiki" \
     "󰣇  Arch Wiki" \
     "󰋑  Welcome tour" \
@@ -196,7 +196,7 @@ learn_menu() {
     *Hyprland*) launch xdg-open "https://wiki.hypr.land/" ;;
     *Arch*) launch xdg-open "https://wiki.archlinux.org/" ;;
     *"Welcome tour") "$bin/lumen-welcome" ;;
-    *About*) term --float --hold --title "About" -- bash -c 'fastfetch; echo; printf "Lumen %s\n" "$(cat "$LUMEN_PATH/VERSION" 2>/dev/null)"' ;;
+    *About*) term --float --hold --title "About" -- bash -c 'fastfetch; echo; printf "an4rch %s\n" "$(cat "$LUMEN_PATH/VERSION" 2>/dev/null)"' ;;
   esac
 }
 

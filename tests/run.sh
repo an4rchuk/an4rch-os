@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Lumen test suite. Runs on any Linux box (no Hyprland needed):
+# an4rch test suite. Runs on any Linux box (no Hyprland needed):
 #   - Hyprland Lua config checked against the real 0.56 API (tests/hypr-api.lua)
 #   - every theme renders with no leftover placeholders
 #   - shellcheck on all shell scripts
@@ -33,7 +33,25 @@ for t in "$root"/themes/*/; do
     bad "$name: $out"
   fi
 done
-"$root/bin/lumen-theme" set lumen >/dev/null
+# Themes from the packs (anarch theme get …).
+for t in "$root"/themes-extra/*/*/; do
+  [[ -f "$t/theme.conf" ]] || continue
+  name=$(basename "$t")
+  mkdir -p "$HOME/.config/lumen/themes" && cp -r "$t" "$HOME/.config/lumen/themes/$name"
+  if out=$("$root/bin/lumen-theme" set "$name" 2>&1) && ! grep -rq '{{' "$HOME/.config/lumen/current/theme/"; then
+    ok "pack theme $name"
+  else
+    bad "pack theme $name: $out"
+  fi
+  rm -rf "$HOME/.config/lumen/themes/$name"
+done
+# The signature theme's old name still works.
+if "$root/bin/lumen-theme" set lumen >/dev/null 2>&1 && [[ "$("$root/bin/lumen-theme" current)" == an4rch ]]; then
+  ok "old theme name 'lumen' switches to an4rch"
+else
+  bad "theme 'lumen' doesn't map to an4rch"
+fi
+"$root/bin/lumen-theme" set an4rch >/dev/null
 
 step "Hyprland config (Lua)"
 lua=$(command -v lua5.4 || command -v lua5.3 || command -v luajit || command -v lua)
@@ -79,7 +97,7 @@ fi
 for s in "${scripts[@]}"; do bash -n "$s" || bad "syntax: $s"; done
 ok "bash -n"
 
-step "Lumen apps (Start menu, App Store, Welcome)"
+step "an4rch apps (Start menu, App Store, Welcome)"
 if python3 -m py_compile "$root"/apps/*/*.py "$root/bin/lumen-wallgen" 2>&1; then ok "Python compiles"; else bad "Python syntax"; fi
 rm -rf "$root"/apps/*/__pycache__ "$root"/bin/__pycache__
 if python3 - "$root/apps/lumen-store/catalog.json" <<'PY'
@@ -103,7 +121,7 @@ PY
 then ok "store catalogue is valid"; else bad "store catalogue"; fi
 
 # Every menu entry, Start search action, Settings button, bar click, key
-# binding and app shortcut must point at a command Lumen ships (or a
+# binding and app shortcut must point at a command an4rch ships (or a
 # well-known system one), so no menu item silently does nothing.
 if python3 - "$root" <<'PY'
 import re, sys
@@ -199,8 +217,9 @@ fi
 
 step "Wallpapers"
 if python3 -c 'import PIL' 2>/dev/null; then
-  if python3 "$root/bin/lumen-wallgen" --theme lumen --theme catppuccin-latte --size 640x360 --out "$tmp/walls" >/dev/null; then
-    ok "$(find "$tmp/walls" -type f | wc -l) wallpapers generated"
+  if python3 "$root/bin/lumen-wallgen" --theme an4rch --theme catppuccin-latte --theme ancom --size 640x360 --out "$tmp/walls" >/dev/null &&
+    [[ $(find "$tmp/walls" -type f | wc -l) -eq 27 ]]; then
+    ok "$(find "$tmp/walls" -type f | wc -l) wallpapers generated (incl. a pack theme)"
   else
     bad "lumen-wallgen failed"
   fi

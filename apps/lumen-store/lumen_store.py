@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Lumen App Store — find, install, update and remove apps.
+"""an4rch App Store — find, install, update and remove apps.
 
-One place for every source Lumen supports:
+One place for every source an4rch supports:
   * Arch repositories (pacman) — fast, integrated, updated with the system
   * Flathub (Flatpak)          — sandboxed apps straight from developers
   * AUR (yay)                  — community packages for everything else
@@ -732,7 +732,7 @@ class StoreWindow(Adw.ApplicationWindow):
             self.installed_box.append(fgroup)
 
         note = Gtk.Label(wrap=True, xalign=0, css_classes=["dim-label", "caption"],
-                         label="Command-line tools and system packages are managed with “lumen pkg” in a terminal.")
+                         label="Command-line tools and system packages are managed with “anarch pkg” in a terminal.")
         self.installed_box.append(note)
 
     def installed_row(self, app: App, src: dict) -> Adw.ActionRow:
@@ -772,7 +772,7 @@ class StoreWindow(Adw.ApplicationWindow):
         total = len(res["system"]) + len(res["flatpak"])
         if total == 0:
             self.updates_box.append(Adw.StatusPage(icon_name="emblem-ok-symbolic", title="You're up to date",
-                                                   description="Lumen checks for updates every hour."))
+                                                   description="an4rch checks for updates every hour."))
             return
         status = Adw.StatusPage(icon_name="software-update-available-symbolic",
                                 title=f"{total} update{'s' if total != 1 else ''} available",

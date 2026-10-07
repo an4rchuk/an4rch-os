@@ -2,9 +2,9 @@
 
 The quickest way is the **Settings** app (<kbd>SUPER</kbd> + <kbd>I</kbd>, or Start → Settings): theme and wallpaper, the top bar and taskbar, title bars, the window layout, night light, gaps, borders, rounded corners, animations, blur, shadows and transparency, sound devices, Wi-Fi and Bluetooth, displays, keyboard repeat, pointer speed and touchpad behaviour, power and sleep, default apps, and system information. Window and input choices are saved to `~/.config/lumen/desktop.lua`; everything below goes further by hand.
 
-Lumen keeps two kinds of files apart:
+an4rch keeps two kinds of files apart:
 
-- **Lumen's defaults** live in `~/.local/share/lumen` (a git checkout). `lumen update` replaces them, so don't edit them.
+- **an4rch's defaults** live in `~/.local/share/lumen` (a git checkout). `anarch update` replaces them, so don't edit them.
 - **Your files** live in `~/.config`. They're loaded *after* the defaults, so anything you set there wins. Updates never overwrite them.
 
 ## Where things live
@@ -25,7 +25,7 @@ Lumen keeps two kinds of files apart:
 | Notifications | `~/.config/mako/config` |
 | Terminal | `~/.config/ghostty/config` |
 | Session environment variables | `~/.config/uwsm/env` |
-| Shell | `~/.zshrc` (Lumen's defaults are in `default/zsh/rc.zsh`) |
+| Shell | `~/.zshrc` (an4rch's defaults are in `default/zsh/rc.zsh`) |
 
 Hyprland, Waybar's style and the theme files reload by themselves when you save. For other changes:
 
@@ -52,11 +52,11 @@ LUMEN_OCR_LANG=eng            # tesseract languages, e.g. eng+deu
 LUMEN_SEARCH_URL="https://duckduckgo.com/?q="
 ```
 
-**Lumen menu → Setup → Default apps** changes the first four for you and also updates which browser opens links.
+**an4rch menu → Setup → Default apps** changes the first four for you and also updates which browser opens links.
 
 ## Hyprland in Lua
 
-Hyprland 0.55 and later is configured in **Lua**, and Lumen uses that format. A few patterns cover most needs.
+Hyprland 0.55 and later is configured in **Lua**, and an4rch uses that format. A few patterns cover most needs.
 
 **Change options:**
 
@@ -72,7 +72,7 @@ hl.config({
 
 ```lua
 -- ~/.config/hypr/bindings.lua
-hl.unbind("SUPER + B")                                   -- drop a Lumen default
+hl.unbind("SUPER + B")                                   -- drop a an4rch default
 hl.bind("SUPER + B", hl.dsp.exec_cmd("lumen-launch -- chromium"), { description = "Chromium" })
 hl.bind("SUPER + O", hl.dsp.exec_cmd("lumen-launch -- obsidian"), { description = "Notes" })
 hl.bind("SUPER + U", hl.dsp.exec_cmd("lumen-webapp https://web.whatsapp.com"), { description = "WhatsApp" })
@@ -88,7 +88,7 @@ hl.bind("SUPER + CTRL + C", function()
 end, { description = "Float, size and centre" })
 ```
 
-**Window rules** (find classes with `lumen doctor windows` or `hyprctl clients`):
+**Window rules** (find classes with `anarch doctor windows` or `hyprctl clients`):
 
 ```lua
 -- ~/.config/hypr/rules.lua
@@ -108,13 +108,13 @@ end)
 
 Apps with an XDG autostart entry (`~/.config/autostart/*.desktop`, what most apps create with a "start at login" checkbox) are started automatically.
 
-**Keyboard layouts:** **Lumen menu → Setup → Keyboard layout**, or edit `input.lua`:
+**Keyboard layouts:** **an4rch menu → Setup → Keyboard layout**, or edit `input.lua`:
 
 ```lua
 hl.config({ input = { kb_layout = "us,de", kb_options = "compose:ralt,grp:alt_shift_toggle" } })
 ```
 
-Lumen also exposes a small helper table for your Lua files: `lumen.cmd("screenshot", "region")` gives the absolute path of a Lumen command, and `lumen.theme.accent` is the current theme's accent colour (hex, no `#`).
+an4rch also exposes a small helper table for your Lua files: `lumen.cmd("screenshot", "region")` gives the absolute path of a an4rch command, and `lumen.theme.accent` is the current theme's accent colour (hex, no `#`).
 
 Full reference: <https://wiki.hypr.land/configuring/>. Hyprland reports config errors in a banner at the top of the screen, and `hyprctl configerrors` lists them.
 
@@ -122,7 +122,7 @@ Full reference: <https://wiki.hypr.land/configuring/>. Hyprland reports config e
 
 `~/.config/waybar/config.jsonc` lists the modules on the left, centre and right. Remove a name from `modules-right` to hide it. `style.css` styles every module as a soft pill and gets its colours from the theme via `@define-color` (`@bg`, `@fg`, `@accent`, …).
 
-Lumen's own modules show status from `lumen-status` and refresh instantly when something changes:
+an4rch's own modules show status from `lumen-status` and refresh instantly when something changes:
 
 | Module | Shows |
 | --- | --- |
@@ -135,7 +135,7 @@ Lumen's own modules show status from `lumen-status` and refresh instantly when s
 
 ## The shell
 
-Lumen sets up **zsh** with autosuggestions, syntax highlighting, a fast history search, the **starship** prompt and **zoxide** (`cd` learns your folders: `cd proj` jumps to `~/code/project`). There are a few handy aliases:
+an4rch sets up **zsh** with autosuggestions, syntax highlighting, a fast history search, the **starship** prompt and **zoxide** (`cd` learns your folders: `cd proj` jumps to `~/code/project`). There are a few handy aliases:
 
 | Alias | Runs |
 | --- | --- |
@@ -148,4 +148,4 @@ Lumen sets up **zsh** with autosuggestions, syntax highlighting, a fast history 
 | <kbd>CTRL</kbd> + <kbd>T</kbd> | Insert a file path |
 | <kbd>ALT</kbd> + <kbd>C</kbd> | Jump into a sub-folder |
 
-Put your own settings at the bottom of `~/.zshrc`. Prefer bash? `chsh -s /bin/bash`; Lumen's commands don't depend on zsh.
+Put your own settings at the bottom of `~/.zshrc`. Prefer bash? `chsh -s /bin/bash`; an4rch's commands don't depend on zsh.

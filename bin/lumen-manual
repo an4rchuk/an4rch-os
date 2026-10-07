@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# lumen-manual — read the Lumen manual (SUPER + F1).
+# lumen-manual — read the an4rch manual (SUPER + F1).
 #
 #   lumen-manual            open the manual
 #   lumen-manual TOPIC      jump to a chapter, e.g. `lumen-manual themes`
@@ -29,5 +29,5 @@ fi
 if [[ -t 1 ]]; then
   exec "${reader[@]}" "$file"
 else
-  term --float --title "Lumen manual" -- "${reader[@]}" "$file"
+  term --float --title "an4rch manual" -- "${reader[@]}" "$file"
 fi

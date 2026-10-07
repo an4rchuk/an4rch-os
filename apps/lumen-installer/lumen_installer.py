@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Lumen OS installer — the graphical installer on the live USB.
+"""an4rch OS installer — the graphical installer on the live USB.
 
-Runs on the live Lumen desktop, Bazzite-style: you try the system while you
+Runs on the live an4rch desktop, Bazzite-style: you try the system while you
 answer a few questions (network, disk, account, region, look, apps), then
 it installs. The work itself is done by lumen-os-install, the same engine as
 the text-mode installer, fed an answers file; this app shows its progress.
@@ -42,12 +42,12 @@ TERMINALS = [("ghostty", "Ghostty", "Fast and modern (recommended)"), ("alacritt
              ("kitty", "Kitty", "Feature-rich")]
 EDITORS = [("code", "VS Code", "Code - OSS, with extensions"), ("zed", "Zed", "Fast, collaborative"),
            ("nvim", "Neovim", "In the terminal")]
-LAYOUTS = [("classic", "Lumen", "Top bar, title bars and a taskbar along the bottom", "yes", "yes"),
+LAYOUTS = [("classic", "an4rch", "Top bar, title bars and a taskbar along the bottom", "yes", "yes"),
            ("modern", "Top bar only", "No taskbar: tap the Windows key for Start and your apps", "no", "yes"),
            ("minimal", "Minimal", "Edge-to-edge tiling windows, no title bars", "no", "no")]
 # Steps of the engine and of the desktop installer, for the progress bar.
 STEPS = ["Mirrors", "Partitioning", "Encrypting", "Formatting", "Creating btrfs", "Installing the base system",
-         "Configuring the system", "Copying Lumen", "[1/9]", "[2/9]", "[3/9]", "[4/9]", "[5/9]", "[6/9]",
+         "Configuring the system", "Copying an4rch", "[1/9]", "[2/9]", "[3/9]", "[4/9]", "[5/9]", "[6/9]",
          "[7/9]", "[8/9]", "[9/9]", "LUMEN-INSTALL-OK"]
 FRIENDLY = {"[1/9]": "Checking the new system", "[2/9]": "Choosing your apps", "[3/9]": "Preparing the package manager",
             "[4/9]": "Installing the desktop", "[5/9]": "Installing your apps", "[6/9]": "Writing your settings",
@@ -110,7 +110,7 @@ def disks() -> list[dict]:
 
 
 def alongside_space(path: str) -> dict[str, str]:
-    """Can Lumen go next to the Windows on this disk, and how big can it be?
+    """Can an4rch go next to the Windows on this disk, and how big can it be?
     (lumen-disk-info --space: max_gb=…, or error=…)."""
     if DEMO:
         return {"max_gb": "180"}
@@ -218,8 +218,8 @@ def themes() -> list[tuple[str, dict]]:
     for d in sorted((LUMEN_PATH / "themes").iterdir()):
         if (d / "theme.conf").is_file():
             found[d.name] = read_theme(d / "theme.conf")
-    # Lumen first, CachyOS-inspired second, then the rest A–Z.
-    order = ["lumen", "cachy"]
+    # an4rch first, CachyOS-inspired second, then the rest A–Z.
+    order = ["an4rch", "cachy"]
     return sorted(found.items(), key=lambda kv: (order.index(kv[0]) if kv[0] in order else 9, kv[1].get("name", kv[0])))
 
 
@@ -235,9 +235,9 @@ def wallpaper_for(slug: str) -> Path | None:
 # --- the window ------------------------------------------------------------------------------
 class Installer(Adw.ApplicationWindow):
     def __init__(self, app: Adw.Application):
-        super().__init__(application=app, title="Install Lumen OS", default_width=980, default_height=720)
+        super().__init__(application=app, title="Install an4rch OS", default_width=980, default_height=720)
         self.answers: dict[str, str] = {
-            "theme": "lumen", "layout": "classic", "browser": "firefox", "terminal": "ghostty", "editor": "code",
+            "theme": "an4rch", "layout": "classic", "browser": "firefox", "terminal": "ghostty", "editor": "code",
             "gaming": "0", "encrypt": "", "keymap": "us", "timezone": "UTC", "autologin": "0",
         }
         self.disk_choice: dict | None = None
@@ -273,7 +273,7 @@ class Installer(Adw.ApplicationWindow):
         self.nav.append(self.next)
 
         view = Adw.ToolbarView()
-        view.add_top_bar(Adw.HeaderBar(title_widget=Adw.WindowTitle(title="Install Lumen OS",
+        view.add_top_bar(Adw.HeaderBar(title_widget=Adw.WindowTitle(title="Install an4rch OS",
                                                                     subtitle="Demo mode: nothing will be written" if DEMO else "")))
         body = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         body.append(self.stack)
@@ -367,18 +367,18 @@ class Installer(Adw.ApplicationWindow):
         logo = Gtk.Image.new_from_file(str(svg)) if svg.exists() else Gtk.Image(icon_name="lumen-logo")
         logo.set_pixel_size(96)
         logo.set_margin_top(24)
-        hello = Gtk.Label(label="Welcome to Lumen OS", css_classes=["title-1"])
+        hello = Gtk.Label(label="Welcome to an4rch OS", css_classes=["title-1"])
         text = Gtk.Label(wrap=True, justify=Gtk.Justification.CENTER, css_classes=["installer-sub"],
-                         label="You're running Lumen from the USB stick right now: look around, open apps, try the "
+                         label="You're running an4rch from the USB stick right now: look around, open apps, try the "
                                "Start menu (tap the Windows key). When you're ready, this installer asks a few "
-                               "questions and puts Lumen on your computer. It only takes a few minutes.")
+                               "questions and puts an4rch on your computer. It only takes a few minutes.")
         keymap = Adw.ComboRow(title="Keyboard layout", subtitle="For the desktop, the login screen and the disk password (uk for a UK keyboard)")
         self.keymaps = keymaps()
         keymap.set_model(Gtk.StringList.new(self.keymaps))
         keymap.connect("notify::selected", self.on_keymap)
         group = Adw.PreferencesGroup(margin_top=12)
         group.add(keymap)
-        tips = Gtk.Button(label="New to Lumen? Open the tips", css_classes=["flat"], halign=Gtk.Align.CENTER)
+        tips = Gtk.Button(label="New to an4rch? Open the tips", css_classes=["flat"], halign=Gtk.Align.CENTER)
         tips.connect("clicked", lambda *_: lumen("lumen-welcome"))
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14, halign=Gtk.Align.CENTER)
         for w in (logo, hello, text, group, tips):
@@ -397,7 +397,7 @@ class Installer(Adw.ApplicationWindow):
         rescan.connect("clicked", lambda *_: self.scan_wifi())
         self.wifi_group.set_header_suffix(rescan)
         self.wifi_rows: list[Gtk.Widget] = []
-        return self.page("Connect to the internet", "Lumen downloads the latest packages while it installs. "
+        return self.page("Connect to the internet", "an4rch downloads the latest packages while it installs. "
                          "Plugged-in and virtual machine connections work by themselves.", status, self.wifi_group)
 
     def refresh_network(self) -> None:
@@ -453,11 +453,11 @@ class Installer(Adw.ApplicationWindow):
     # --- 3. disk -------------------------------------------------------------------------------
     def page_disk(self) -> Gtk.Widget:
         group = Adw.PreferencesGroup(title="Install on", description="Erasing a disk deletes everything on it. "
-                                     "A disk with Windows can keep it: Lumen goes alongside.")
+                                     "A disk with Windows can keep it: an4rch goes alongside.")
         self.disk_list = disks()
         first: Gtk.CheckButton | None = None
         if not self.disk_list:
-            group.add(Adw.ActionRow(title="No suitable disk found", subtitle="Lumen needs at least 20 GB"))
+            group.add(Adw.ActionRow(title="No suitable disk found", subtitle="an4rch needs at least 20 GB"))
         for d in self.disk_list:
             check = Gtk.CheckButton(group=first)
             first = first or check
@@ -475,7 +475,7 @@ class Installer(Adw.ApplicationWindow):
         self.how_mode = Adw.ComboRow(title="Install", model=Gtk.StringList.new(
             ["Alongside Windows (keep it)", "Erase the whole disk"]))
         self.how_size = Adw.SpinRow.new_with_range(30, 30, 1)
-        self.how_size.set_title("Space for Lumen (GB)")
+        self.how_size.set_title("Space for an4rch (GB)")
         self.how_size.set_subtitle("Windows keeps the rest. You choose which to start at every start-up.")
         self.how_status = Adw.ActionRow(title="", visible=False, css_classes=["error"])
         self.how_mode.connect("notify::selected", lambda *_: self.update_how())
@@ -496,7 +496,7 @@ class Installer(Adw.ApplicationWindow):
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=18)
         box.append(self.how)
         box.append(crypt)
-        return self.page("Where should Lumen go?", "", group, box)
+        return self.page("Where should an4rch go?", "", group, box)
 
     def pick_disk(self, d: dict) -> None:
         self.disk_choice = d
@@ -518,7 +518,7 @@ class Installer(Adw.ApplicationWindow):
         err = info.get("error", "")
         max_gb = int(info.get("max_gb", "0") or 0)
         if not err and max_gb < 30:
-            err = f"Only {max_gb} GB can be freed next to Windows; Lumen needs 30 GB. Free up space in Windows first."
+            err = f"Only {max_gb} GB can be freed next to Windows; an4rch needs 30 GB. Free up space in Windows first."
         along = self.how_mode.get_selected() == 0
         self.how_status.set_visible(along and bool(err))
         self.how_status.set_title(err)
@@ -535,7 +535,7 @@ class Installer(Adw.ApplicationWindow):
         self.username = Adw.EntryRow(title="Username")
         self.password = Adw.PasswordEntryRow(title="Password")
         self.password2 = Adw.PasswordEntryRow(title="Password again")
-        self.hostname = Adw.EntryRow(title="Computer name", text="lumen")
+        self.hostname = Adw.EntryRow(title="Computer name", text="an4rch")
         self.autologin = Adw.SwitchRow(title="Log in automatically", subtitle="Skip the login screen. Best with disk encryption")
         self.user_edited = False
         self.fullname.connect("changed", self.suggest_username)
@@ -599,9 +599,9 @@ class Installer(Adw.ApplicationWindow):
             b.connect("clicked", lambda _b, s=slug: self.pick_theme(s))
             self.theme_buttons[slug] = b
             flow.append(b)
-        self.pick_theme("lumen", apply=False)
+        self.pick_theme("an4rch", apply=False)
 
-        layouts = Adw.PreferencesGroup(title="Layout", description="Change any of this later from the Lumen menu.")
+        layouts = Adw.PreferencesGroup(title="Layout", description="Change any of this later from the an4rch menu.")
         first: Gtk.CheckButton | None = None
         for key, name, desc, taskbar, titlebars in LAYOUTS:
             check = Gtk.CheckButton(group=first)
@@ -667,7 +667,7 @@ class Installer(Adw.ApplicationWindow):
         theme = dict(themes()).get(a["theme"], {}).get("name", a["theme"])
         rows = [
             ("drive-harddisk-symbolic", "Disk", (f"{self.disk_choice['label']} · {self.disk_choice['size']} ({a['disk']}) — "
-                                                 + (f"alongside Windows, {int(self.how_size.get_value())} GB for Lumen" if self.alongside() else "will be erased"))
+                                                 + (f"alongside Windows, {int(self.how_size.get_value())} GB for an4rch" if self.alongside() else "will be erased"))
              if self.disk_choice else "none"),
             ("channel-secure-symbolic", "Encryption", "On" if a["encrypt"] else "Off"),
             ("avatar-default-symbolic", "Account", f"{a['fullname']} ({a['user']}) on “{a['hostname']}”" + (", logs in automatically" if a["autologin"] == "1" else "")),
@@ -696,7 +696,7 @@ class Installer(Adw.ApplicationWindow):
                 self.toast_msg("No disk to install on")
                 return False
             if self.alongside() and self.how_status.get_visible():
-                self.toast_msg("Lumen can't go alongside Windows on this disk yet (see the message)")
+                self.toast_msg("an4rch can't go alongside Windows on this disk yet (see the message)")
                 return False
             if self.encrypt.get_active():
                 p1, p2 = self.crypt_pass.get_text(), self.crypt_pass2.get_text()
@@ -749,7 +749,7 @@ class Installer(Adw.ApplicationWindow):
         if self.alongside():
             gb = int(self.how_size.get_value())
             dialog = Adw.AlertDialog(heading="Install alongside Windows?",
-                                     body=f"Windows will be shrunk to make {gb} GB of room for Lumen. Windows and its files "
+                                     body=f"Windows will be shrunk to make {gb} GB of room for an4rch. Windows and its files "
                                           "are kept, and you choose which to start every time the computer starts.\n\n"
                                           "Resizing is safe, but back up anything important first (a power cut during it "
                                           "could cause damage).")
@@ -791,7 +791,7 @@ class Installer(Adw.ApplicationWindow):
         cmd = ["sudo", "-n", ENGINE, "--answers", path]
         if DEMO:
             cmd = ["bash", "-c", "for s in Mirrors Partitioning Formatting 'Creating btrfs' 'Installing the base system' "
-                   "'Configuring the system' 'Copying Lumen' '[1/9]' '[4/9]' '[8/9]' '[9/9]'; do echo \"==> $s\"; sleep 1; done; "
+                   "'Configuring the system' 'Copying an4rch' '[1/9]' '[4/9]' '[8/9]' '[9/9]'; do echo \"==> $s\"; sleep 1; done; "
                    "echo LUMEN-INSTALL-OK"]
         self.proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1)
         self.answers_path = path
@@ -866,10 +866,10 @@ class Installer(Adw.ApplicationWindow):
                                      css_classes=["installer-log"])
         scroller = Gtk.ScrolledWindow(child=self.log_view, min_content_height=260, vexpand=True)
         details = Gtk.Expander(label="Details", child=scroller)
-        return self.page("Installing Lumen OS", "", self.progress_label, self.progress, tip, details)
+        return self.page("Installing an4rch OS", "", self.progress_label, self.progress, tip, details)
 
     def page_finished(self) -> Gtk.Widget:
-        status = Adw.StatusPage(icon_name="emblem-ok-symbolic", title="Lumen OS is installed",
+        status = Adw.StatusPage(icon_name="emblem-ok-symbolic", title="an4rch OS is installed",
                                 description="Remove the USB stick, then restart. After logging in, tap the Windows key to open Start.")
         restart = Gtk.Button(label="Restart now", halign=Gtk.Align.CENTER, css_classes=["suggested-action", "pill"])
         restart.connect("clicked", lambda *_: detached("systemctl", "reboot"))

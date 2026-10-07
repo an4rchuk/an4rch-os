@@ -1,4 +1,4 @@
-# Fallback terminal (Alacritty). Lumen uses Ghostty by default.
+# Fallback terminal (Alacritty). an4rch uses Ghostty by default.
 [general]
 import = ["~/.config/lumen/current/theme/alacritty.toml"]
 live_config_reload = true

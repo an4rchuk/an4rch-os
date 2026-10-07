@@ -1,12 +1,12 @@
 # Power tools
 
-Four commands for the things a fresh desktop doesn't do on its own: tuning the system, one-step setups for popular extras, a development environment, and sharing themes. Each one is also in the Lumen menu (<kbd>SUPER</kbd> + <kbd>ALT</kbd> + <kbd>SPACE</kbd>) and in Start's search.
+Four commands for the things a fresh desktop doesn't do on its own: tuning the system, one-step setups for popular extras, a development environment, and sharing themes. Each one is also in the an4rch menu (<kbd>SUPER</kbd> + <kbd>ALT</kbd> + <kbd>SPACE</kbd>) and in Start's search.
 
 They borrow from three distributions: performance tuning from [CachyOS](https://cachyos.org), one-command extras from [Bazzite](https://bazzite.gg)'s `ujust`, and the development setup from [Omarchy](https://omarchy.org).
 
-## Performance: `lumen tune`
+## Performance: `anarch tune`
 
-Lumen OS already applies the low-risk tweaks at install time:
+an4rch OS already applies the low-risk tweaks at install time:
 
 | Tweak | Why |
 | --- | --- |
@@ -20,11 +20,11 @@ Lumen OS already applies the low-risk tweaks at install time:
 The opt-in ones:
 
 ```sh
-lumen tune status              # kernel, CPU scheduler, governor, zram, I/O, gaming tweaks
-lumen tune scheduler bpfland   # a sched-ext CPU scheduler; switch live, no reboot
-lumen tune scheduler off       # back to the kernel's default
-lumen tune kernel zen          # add linux-zen to the boot menu (optionally as default)
-lumen tune mirrors             # rank Arch mirrors by speed, and again every week
+anarch tune status              # kernel, CPU scheduler, governor, zram, I/O, gaming tweaks
+anarch tune scheduler bpfland   # a sched-ext CPU scheduler; switch live, no reboot
+anarch tune scheduler off       # back to the kernel's default
+anarch tune kernel zen          # add linux-zen to the boot menu (optionally as default)
+anarch tune mirrors             # rank Arch mirrors by speed, and again every week
 ```
 
 The schedulers come from the [scx project](https://github.com/sched-ext/scx) and run as BPF programs inside the regular Arch kernel:
@@ -36,58 +36,58 @@ The schedulers come from the [scx project](https://github.com/sched-ext/scx) and
 | `rusty` | Heavy workloads such as compiling |
 | `flash` | Audio work and other latency-critical tasks |
 
-If something feels wrong, `lumen tune scheduler off` puts the default back immediately.
+If something feels wrong, `anarch tune scheduler off` puts the default back immediately.
 
-## Extras: `lumen extras`
+## Extras: `anarch extras`
 
 Ready-made setups, each one command. They install the packages, turn on the services, open firewall ports where needed and tell you the next step.
 
 | Command | What you get |
 | --- | --- |
-| `lumen extras sunshine` | Stream games from this PC to a phone, TV or laptop with Moonlight |
-| `lumen extras decky` | Decky Loader plugins in Steam's Game Mode |
-| `lumen extras controllers` | udev rules for 8BitDo, PlayStation, Switch and other controllers |
-| `lumen extras handheld` | Handheld Daemon for ROG Ally, Legion Go and similar: buttons, TDP, RGB |
-| `lumen extras openrgb` | OpenRGB, to control RGB lighting from any brand |
-| `lumen extras lact` | LACT: GPU fan curves, clocks and power limits |
-| `lumen extras distrobox` | Ubuntu, Fedora and other distributions in containers, plus BoxBuddy |
-| `lumen extras waydroid` | Android apps in a window |
-| `lumen extras virt` | Virtual machines with virt-manager and QEMU/KVM |
-| `lumen extras tailscale` | A private network between all your devices |
-| `lumen extras phone` | Phone link (KDE Connect): notifications, files and clipboard with your phone |
-| `lumen extras localsend` | LocalSend: send files to nearby phones and computers |
-| `lumen extras backup` | Déjà Dup: scheduled backups of your files to a drive or the cloud |
-| `lumen extras office` | LibreOffice: documents, spreadsheets, presentations (Word/Excel files too) |
+| `anarch extras sunshine` | Stream games from this PC to a phone, TV or laptop with Moonlight |
+| `anarch extras decky` | Decky Loader plugins in Steam's Game Mode |
+| `anarch extras controllers` | udev rules for 8BitDo, PlayStation, Switch and other controllers |
+| `anarch extras handheld` | Handheld Daemon for ROG Ally, Legion Go and similar: buttons, TDP, RGB |
+| `anarch extras openrgb` | OpenRGB, to control RGB lighting from any brand |
+| `anarch extras lact` | LACT: GPU fan curves, clocks and power limits |
+| `anarch extras distrobox` | Ubuntu, Fedora and other distributions in containers, plus BoxBuddy |
+| `anarch extras waydroid` | Android apps in a window |
+| `anarch extras virt` | Virtual machines with virt-manager and QEMU/KVM |
+| `anarch extras tailscale` | A private network between all your devices |
+| `anarch extras phone` | Phone link (KDE Connect): notifications, files and clipboard with your phone |
+| `anarch extras localsend` | LocalSend: send files to nearby phones and computers |
+| `anarch extras backup` | Déjà Dup: scheduled backups of your files to a drive or the cloud |
+| `anarch extras office` | LibreOffice: documents, spreadsheets, presentations (Word/Excel files too) |
 
-`lumen extras list` shows them all; `lumen extras` on its own opens a menu.
+`anarch extras list` shows them all; `anarch extras` on its own opens a menu.
 
-## Development: `lumen dev`
+## Development: `anarch dev`
 
 ```sh
-lumen dev lang node python go   # languages, managed by mise
-lumen dev docker                # Docker, Compose and Buildx; no sudo needed after logging back in
-lumen dev db postgres redis     # databases in Docker, on localhost only
-lumen dev status                # what's installed and running
+anarch dev lang node python go   # languages, managed by mise
+anarch dev docker                # Docker, Compose and Buildx; no sudo needed after logging back in
+anarch dev db postgres redis     # databases in Docker, on localhost only
+anarch dev status                # what's installed and running
 ```
 
 Languages: `node`, `python`, `go`, `rust`, `ruby`, `java`, `bun`, `deno`, `zig`, `elixir`, `php`, `dotnet`. They come from [mise](https://mise.jdx.dev), so each project can pin its own versions: run `mise use node@20` inside the project, and mise switches versions automatically when you `cd` into it.
 
 Databases: `postgres`, `mysql`, `redis`, `mongo`. Each runs as a container called `lumen-<name>` with its data in a Docker volume, restarts with the computer, and accepts connections from this computer only, without a password.
 
-## Sharing themes: `lumen theme install`
+## Sharing themes: `anarch theme install`
 
-Anyone can publish a Lumen theme as a git repository with a `theme.conf` at the top (see [Making your own theme](03-themes.md#making-your-own-theme)), plus an optional `backgrounds/` folder of wallpapers.
+Anyone can publish a an4rch theme as a git repository with a `theme.conf` at the top (see [Making your own theme](03-themes.md#making-your-own-theme)), plus an optional `backgrounds/` folder of wallpapers.
 
 ```sh
-lumen theme install https://github.com/someone/lumen-frosty-theme
-lumen theme remove frosty
+anarch theme install https://github.com/someone/lumen-frosty-theme
+anarch theme remove frosty
 ```
 
-The theme's name comes from the repository name, without `lumen-` and `-theme`. Themes without wallpapers get painted ones. Run the same install command again to update a theme. From the desktop: Lumen menu → Style → *Install a theme from git*.
+The theme's name comes from the repository name, without `lumen-` and `-theme`. Themes without wallpapers get painted ones. Run the same install command again to update a theme. From the desktop: an4rch menu → Style → *Install a theme from git*.
 
 ## Battery warnings
 
-On laptops, Lumen warns at 20% and again at 10%, and suspends at 4% so nothing is lost. Change the levels in `~/.config/lumen/settings.conf`:
+On laptops, an4rch warns at 20% and again at 10%, and suspends at 4% so nothing is lost. Change the levels in `~/.config/lumen/settings.conf`:
 
 ```sh
 LUMEN_BATTERY_LOW=25
@@ -95,4 +95,4 @@ LUMEN_BATTERY_CRITICAL=10
 LUMEN_BATTERY_SUSPEND=0   # 0: never suspend automatically
 ```
 
-`lumen battery` prints the current charge.
+`anarch battery` prints the current charge.

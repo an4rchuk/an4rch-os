@@ -6,13 +6,14 @@ One palette styles the whole desktop: window borders, the bar, the launcher and 
 
 - <kbd>SUPER</kbd> + <kbd>CTRL</kbd> + <kbd>T</kbd> opens the theme picker.
 - <kbd>SUPER</kbd> + <kbd>CTRL</kbd> + <kbd>SHIFT</kbd> + <kbd>T</kbd> moves to the next theme.
-- From a terminal: `lumen theme set nord`, `lumen theme list`, `lumen theme next`.
+- From a terminal: `anarch theme set nord`, `anarch theme list`, `anarch theme next`.
 
 Bundled themes:
 
 | Theme | Mood |
 | --- | --- |
-| `lumen` | The signature look: deep indigo night, violet and cyan light |
+| `an4rch` | The signature look: deep indigo night, violet and cyan light (called `lumen` before 1.1.0; that name still works) |
+| `cachy` | CachyOS-inspired: deep navy with teal-green and cyan |
 | `tokyo-night` | Neon city blues |
 | `catppuccin-mocha` | Soft pastels on dark |
 | `catppuccin-latte` | Soft pastels on light, the bundled light theme |
@@ -22,32 +23,55 @@ Bundled themes:
 | `everforest` | Gentle forest greens |
 | `kanagawa` | Ink-wash blues inspired by Hokusai |
 
+## Theme packs: `anarch anarch`
+
+More themes come in packs you add with one command. The **anarchism** pack has twelve themes, black with one colour each, one per school of anarchism: Anarcho-communism, Anarcho-syndicalism, Mutualism, Individualist, Anarcho-capitalism, Green anarchism, Anarcho-primitivism, Anarcha-feminism, Anarcho-pacifism, Queer anarchism, Insurrectionary and Without adjectives.
+
+```sh
+anarch anarch                 # add the anarchism pack (12 themes and their wallpapers)
+anarch theme packs            # list the packs, and which you've added
+anarch theme get ancom        # add just one theme from a pack, and switch to it
+anarch theme set queer        # switch (or use the picker: SUPER + CTRL + T)
+anarch theme drop anarchism   # remove the pack's themes again
+```
+
+Pack themes then work like any other theme. Packs live in `themes-extra/` in an4rch's folder; see its README to make one.
+
 ## Wallpapers
 
-Every theme comes with four original wallpapers painted from its own colours: *aurora*, *dunes*, *orbit* and *silk*. They're generated on your machine at install time and stored in `~/.local/share/backgrounds/lumen/<theme>/`.
+Every theme comes with nine original wallpapers painted from its own colours: five long, smooth gradients (*sweep* corner to corner, *glow* from a corner, *horizon*, *rise* and *mesh*) and four abstract ones (*aurora*, *dunes*, *orbit* and *silk*). They're painted on your machine the first time you use a theme and stored in `~/.local/share/backgrounds/lumen/<theme>/`.
+
+A theme can set its own gradient, CSS-style, in its `theme.conf`:
+
+```ini
+gradient       = #0b0b0b 0%, #2a070d 40%, #7a0a1c 70%, #c8102e 100%
+gradient_angle = 135
+```
+
+Without one, the gradient runs from the theme's background to its accent.
 
 - <kbd>SUPER</kbd> + <kbd>CTRL</kbd> + <kbd>W</kbd> shows the next wallpaper.
 - <kbd>SUPER</kbd> + <kbd>CTRL</kbd> + <kbd>SHIFT</kbd> + <kbd>W</kbd> picks one from a list.
-- `lumen wallpaper set ~/Pictures/photo.jpg` uses any image.
+- `anarch wallpaper set ~/Pictures/photo.jpg` uses any image.
 
-Lumen remembers the wallpaper you chose for each theme, so switching themes back and forth keeps your pick.
+an4rch remembers the wallpaper you chose for each theme, so switching themes back and forth keeps your pick.
 
 **Adding your own wallpapers:**
 
 - Images in `~/Pictures/Wallpapers/` are offered with every theme.
 - Images in `~/.config/lumen/backgrounds/<theme>/` are offered with that theme only.
 
-To repaint the generated set (for example after editing a theme's colours), run `lumen wallpaper generate`. For a different resolution use `lumen-wallgen --all --size 2560x1440 --out ~/.local/share/backgrounds/lumen`.
+To repaint the generated set (for example after editing a theme's colours), run `anarch wallpaper generate` (every theme; takes a minute). For a different resolution use `lumen-wallgen --all --size 2560x1440 --out ~/.local/share/backgrounds/lumen`.
 
 ## Making your own theme
 
 ```sh
-lumen theme new sunrise        # copies the active theme to ~/.config/lumen/themes/sunrise
+anarch theme new sunrise        # copies the active theme to ~/.config/lumen/themes/sunrise
 $EDITOR ~/.config/lumen/themes/sunrise/theme.conf
-lumen theme set sunrise
+anarch theme set sunrise
 ```
 
-You can also do this from the Lumen menu: **Style → Make my own theme**.
+You can also do this from the an4rch menu: **Style → Make my own theme**.
 
 A theme is one small file of colours:
 
@@ -78,8 +102,10 @@ Optional keys:
 | `gtk_theme` | `adw-gtk3-dark` / `adw-gtk3` by mode |
 | `icon_theme` | `Papirus-Dark` / `Papirus-Light` by mode |
 | `color_scheme` | `prefer-dark` / `prefer-light` by mode |
+| `accent_fg` | Text on accent-coloured buttons: `bg` (set it to a light colour for a dark accent) |
+| `gradient`, `gradient_angle` | The wallpaper gradient (see [Wallpapers](#wallpapers)): `bg` to `accent`, 135° |
 
-After editing, run `lumen theme render` to apply the changes.
+After editing, run `anarch theme render` to apply the changes.
 
 ### Overriding a single app
 
@@ -112,7 +138,7 @@ In templates, `{{accent}}` becomes `#9d8cff`, `{{accent.hex}}` becomes `9d8cff` 
 
 ## Installing someone else's theme
 
-Themes can be shared as git repositories: `lumen theme install URL` downloads one and switches to it, and `lumen theme remove NAME` deletes it. See [Power tools](10-power-tools.md#sharing-themes-lumen-theme-install).
+Themes can be shared as git repositories: `anarch theme install URL` downloads one and switches to it, and `anarch theme remove NAME` deletes it. See [Power tools](10-power-tools.md#sharing-themes-lumen-theme-install).
 
 ## Fonts
 

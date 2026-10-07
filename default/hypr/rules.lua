@@ -15,7 +15,7 @@ hl.window_rule({
     no_focus = true,
 })
 
--- Lumen dialogs: TUIs opened with `lumen-term --float` (Wi-Fi, Bluetooth,
+-- an4rch dialogs: TUIs opened with `lumen-term --float` (Wi-Fi, Bluetooth,
 -- audio, package installer, ...) behave like centred dialogs.
 hl.window_rule({
     name  = "lumen-floating",
@@ -63,7 +63,7 @@ hl.window_rule({
     center = true,
 })
 
--- Lumen's own windows.
+-- an4rch's own windows.
 hl.window_rule({ name = "lumen-welcome", match = { class = "^(org\\.lumen\\.Welcome)$" }, float = true, center = true, size = { 820, 640 } })
 hl.window_rule({ name = "lumen-settings", match = { class = "^(org\\.lumen\\.Settings)$" }, float = true, center = true, size = { 980, 700 } })
 

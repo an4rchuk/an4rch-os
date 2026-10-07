@@ -86,9 +86,9 @@ sleep 2
 shot 10-clean-desktop
 
 # --- Health check ---------------------------------------------------------------------
-cli "lumen doctor" lumen-doctor
+cli "anarch doctor" lumen-doctor
 
-# --- Apps from Lumen's launcher ------------------------------------------------------
+# --- Apps from an4rch's launcher ------------------------------------------------------
 as_user lumen-launch terminal
 if wait_window "terminal opens (lumen-launch)" 'ghostty|alacritty|kitty' 30; then
   type_text "fastfetch"
@@ -109,7 +109,7 @@ shot 12-theme-nord
 task "next wallpaper" as_user lumen-wallpaper next
 
 # --- Notifications, reminders, clipboard, screenshots --------------------------------
-task "notification" as_user notify-send -a Lumen "Hello from the test" "Notifications work"
+task "notification" as_user notify-send -a an4rch "Hello from the test" "Notifications work"
 sleep 1
 shot 13-notification
 task "reminder scheduled" as_user lumen-remind 30m "Test reminder"
@@ -141,7 +141,7 @@ rm -f "$marker"
 # --- Menus and keyboard ----------------------------------------------------------------
 as_user lumen-menu >/dev/null 2>&1 &
 sleep 4
-if pgrep -x fuzzel >/dev/null; then result "lumen menu opens" PASS; else result "lumen menu opens" FAIL; fi
+if pgrep -x fuzzel >/dev/null; then result "anarch menu opens" PASS; else result "anarch menu opens" FAIL; fi
 shot 14-lumen-menu
 keys esc
 pkill -x fuzzel
@@ -218,14 +218,24 @@ else
 fi
 
 # --- Command-line tools -------------------------------------------------------------------
-cli "lumen help" lumen help
-cli "lumen tune status" lumen tune status
-cli "lumen extras list" lumen extras list
-cli "lumen dev status" lumen dev status
-cli "lumen snapshot list" lumen snapshot
-cli "lumen theme list" lumen theme list
-bat=$(as_user lumen battery 2>&1)
-if [[ "$bat" =~ ^(No\ battery|[0-9]+%) ]]; then result "lumen battery" PASS "$bat"; else result "lumen battery" FAIL "${bat:-no output}"; fi
+cli "anarch help" anarch help
+cli "anarch tune status" anarch tune status
+cli "anarch extras list" anarch extras list
+cli "anarch dev status" anarch dev status
+cli "anarch snapshot list" anarch snapshot
+cli "anarch theme list" anarch theme list
+cli "lumen (old name) still works" lumen version
+cli "anarch theme packs" anarch theme packs
+cli "anarch theme get ancom (a pack theme)" anarch theme get ancom
+n=$(ls "$home/.local/share/backgrounds/lumen/ancom/"*.jpg 2>/dev/null | wc -l)
+if [[ "$(cat "$home/.config/lumen/current/theme.name" 2>/dev/null)" == ancom && "$n" -ge 9 ]]; then
+  result "pack theme switched on with its wallpapers" PASS "$n wallpapers"
+else
+  result "pack theme switched on with its wallpapers" FAIL "theme $(cat "$home/.config/lumen/current/theme.name" 2>/dev/null), $n wallpapers"
+fi
+shot 08b-pack-theme
+bat=$(as_user anarch battery 2>&1)
+if [[ "$bat" =~ ^(No\ battery|[0-9]+%) ]]; then result "anarch battery" PASS "$bat"; else result "anarch battery" FAIL "${bat:-no output}"; fi
 task "audio (wpctl status)" as_user wpctl status
 task "firewall active" systemctl is-active ufw
 task "NetworkManager online" nmcli -t -f STATE general
@@ -239,9 +249,9 @@ fi
 task "memory protection (systemd-oomd)" systemctl is-active systemd-oomd
 # The live USB leaves out manuals and translations; an install must still get them.
 task "installed system has manuals and translations" bash -c 'ls /usr/share/man/man1/ls.1* && ls -d /usr/share/locale/de/LC_MESSAGES'
-# lumen update reaches GitHub with no login prompt (real installs asked for a GitHub password).
+# anarch update reaches GitHub with no login prompt (real installs asked for a GitHub password).
 if nmcli -t -f STATE general 2>/dev/null | grep -q '^connected'; then
-  task "lumen update can reach GitHub without a login" as_user env GIT_TERMINAL_PROMPT=0 timeout 60 bash -c 'cd "$LUMEN_PATH" && git remote set-url origin https://github.com/an4rchuk/lumen-os.git && git fetch --quiet --tags origin && git tag -l "v*" | tail -n 3'
+  task "anarch update can reach GitHub without a login" as_user env GIT_TERMINAL_PROMPT=0 timeout 60 bash -c 'cd "$LUMEN_PATH" && for r in https://github.com/an4rchuk/an4rch-os.git https://github.com/an4rchuk/lumen-os.git; do git remote set-url origin "$r" && git fetch --quiet --tags origin 2>/dev/null && break; done && git tag -l "v*" | tail -n 3'
 fi
 task "text editor and camera installed" bash -c 'command -v gnome-text-editor && command -v snapshot'
 
@@ -359,7 +369,7 @@ keys ret
 sleep 5
 if pgrep -x hyprlock >/dev/null; then result "unlock with password" FAIL; else result "unlock with password" PASS; fi
 
-as_user lumen-theme set lumen >/dev/null 2>&1
+as_user lumen-theme set an4rch >/dev/null 2>&1
 sleep 3
 shot 22-final
 

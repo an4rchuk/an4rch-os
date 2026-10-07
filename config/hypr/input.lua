@@ -1,4 +1,4 @@
--- Keyboard, mouse and touchpad. Anything set here overrides Lumen's defaults.
+-- Keyboard, mouse and touchpad. Anything set here overrides an4rch's defaults.
 -- All options: https://wiki.hypr.land/configuring/core/config-options/#input
 
 hl.config({

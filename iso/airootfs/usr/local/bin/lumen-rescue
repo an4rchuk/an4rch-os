@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# lumen-rescue — roll back an installed Lumen OS that no longer starts.
+# lumen-rescue — roll back an installed an4rch OS that no longer starts.
 #
-# Run from the Lumen OS live USB. Unlocks the disk if needed, lists the
+# Run from the an4rch OS live USB. Unlocks the disk if needed, lists the
 # system snapshots, and makes the one you choose the active system again —
 # the same as `lumen-snapshot restore` on a running system. /home is never
 # touched; the broken system is kept as @broken-<date>.
@@ -9,12 +9,12 @@ set -euo pipefail
 ACCENT="#9d8cff"
 [[ $EUID -eq 0 ]] || { echo "Run as root."; exit 1; }
 
-gum style --foreground "$ACCENT" --bold --margin "1 2" "Lumen OS rescue" 
+gum style --foreground "$ACCENT" --bold --margin "1 2" "an4rch OS rescue" 
 gum style --margin "0 2 1" "Restore your system to a snapshot taken before things went wrong."
 
-# Find the Lumen system partition (encrypted or plain btrfs).
+# Find the an4rch system partition (encrypted or plain btrfs).
 mapfile -t parts < <(lsblk -pnro NAME,FSTYPE,LABEL | awk '$2 == "crypto_LUKS" || ($2 == "btrfs" && $3 == "lumen") {print $1" "$2}')
-[[ ${#parts[@]} -gt 0 ]] || { echo "No Lumen OS installation found."; exit 1; }
+[[ ${#parts[@]} -gt 0 ]] || { echo "No an4rch OS installation found."; exit 1; }
 pick=$(printf '%s\n' "${parts[@]}" | gum choose --header "Which installation?")
 dev="${pick%% *}"
 if [[ "$pick" == *crypto_LUKS ]]; then
@@ -50,7 +50,7 @@ new=/mnt/lumen-new
 mkdir -p "$new"
 mount -o subvol=@ "$dev" "$new"
 mount -o subvol=@pkg "$dev" "$new/var/cache/pacman/pkg"
-# Kernels live on Lumen's own boot partition when installed alongside
+# Kernels live on an4rch's own boot partition when installed alongside
 # Windows (LumenBoot), otherwise on the EFI partition.
 esp=$(lsblk -pnro NAME,PARTLABEL,FSTYPE | awk '$2 == "LumenBoot" && $3 == "vfat" {print $1; exit}')
 [[ -n "$esp" ]] || esp=$(lsblk -pnro NAME,PARTLABEL,FSTYPE | awk '$2 == "EFI" && $3 == "vfat" {print $1; exit}')
