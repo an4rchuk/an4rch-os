@@ -35,6 +35,7 @@ PKGS_SYSTEM=(
   greetd greetd-regreet greetd-tuigreet cage
   ufw
   exfatprogs ntfs-3g dosfstools
+  keyd
   git base-devel curl
 )
 

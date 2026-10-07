@@ -181,6 +181,7 @@ class NetworkPage(Gtk.Box):
         self.panel = panel
         self.networks: list[dict] = []
         self.known: set[str] = set()
+        self.profiles: dict[str, str] = {}
         self.active: dict = {}
         self.wired: dict = {}
         self.open_password: str | None = None
@@ -254,7 +255,7 @@ class NetworkPage(Gtk.Box):
             return {"wifi": True, "airplane": False, "hotspot": False,
                     "active": {"name": "Home Wi-Fi", "device": "wlan0", "signal": 72, "state": "connected"},
                     "wired": {"device": "eth0", "state": "unavailable"},
-                    "known": {"Home Wi-Fi"},
+                    "known": {"Home Wi-Fi"}, "profiles": {"Home Wi-Fi": "Home Wi-Fi"},
                     "networks": [{"ssid": "Home Wi-Fi", "signal": 72, "security": "WPA2", "inuse": True},
                                  {"ssid": "Cafe Guest", "signal": 54, "security": "", "inuse": False},
                                  {"ssid": "eduroam", "signal": 40, "security": "WPA2 802.1X", "inuse": False}]}
@@ -274,8 +275,13 @@ class NetworkPage(Gtk.Box):
                     data["active"] = {"name": conn, "device": dev, "state": state}
             elif kind == "ethernet" and not data["wired"]:
                 data["wired"] = {"device": dev, "state": state, "name": conn}
-        data["known"] = {f[0] for f in (nm_split(l) for l in out("nmcli", "-t", "-f", "NAME,TYPE", "connection").splitlines())
-                         if len(f) > 1 and "wireless" in f[1]}
+        # Saved Wi-Fi networks by SSID -> profile name (they can differ: "Home 1").
+        data["profiles"] = {}
+        for f in (nm_split(l) for l in out("nmcli", "-t", "-f", "NAME,TYPE", "connection").splitlines()):
+            if len(f) > 1 and "wireless" in f[1]:
+                ssid = out("nmcli", "-g", "802-11-wireless.ssid", "connection", "show", "id", f[0]) or f[0]
+                data["profiles"].setdefault(ssid, f[0])
+        data["known"] = set(data["profiles"])
         nets: dict[str, dict] = {}
         for line in out("nmcli", "-t", "-f", "IN-USE,SIGNAL,SECURITY,SSID", "device", "wifi", "list", "--rescan", "no").splitlines():
             f = nm_split(line)
@@ -291,7 +297,12 @@ class NetworkPage(Gtk.Box):
         return data
 
     def refresh(self, rescan: bool = False) -> None:
+        if getattr(self, "busy", False):  # the last refresh is still running
+            return
+        self.busy = True
+
         def done(data) -> None:
+            self.busy = False
             self.apply(data)
             if rescan and data.get("wifi"):
                 self.rescan()
@@ -302,6 +313,7 @@ class NetworkPage(Gtk.Box):
         set_chip(self.plane_chip, data["airplane"])
         self.hotspot.set_css_classes(["pill", "active"] if data["hotspot"] else ["pill"])
         self.active, self.wired, self.known = data["active"], data["wired"], data["known"]
+        self.profiles = data.get("profiles", {})
         self.networks = data["networks"]
         self.fill_connected()
         self.fill_available()
@@ -401,7 +413,7 @@ class NetworkPage(Gtk.Box):
         ssid = n["ssid"]
         self.status.set_text(f"Connecting to {ssid}…")
         if ssid in self.known and password is None:
-            cmd = ["nmcli", "connection", "up", "id", ssid]
+            cmd = ["nmcli", "connection", "up", "id", self.profiles.get(ssid, ssid)]
         else:
             cmd = ["nmcli", "device", "wifi", "connect", ssid]
             if password:
@@ -548,7 +560,14 @@ class BluetoothPage(Gtk.Box):
             self.scan = None
 
     def refresh(self) -> None:
-        background(self.read, self.apply)
+        if getattr(self, "busy", False):  # the last refresh is still running
+            return
+        self.busy = True
+
+        def done(data) -> None:
+            self.busy = False
+            self.apply(data)
+        background(self.read, done)
 
     def apply(self, data: dict) -> None:
         self.power_updating = True

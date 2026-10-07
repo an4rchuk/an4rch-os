@@ -32,6 +32,9 @@ case " $(</proc/cmdline) " in
   *" lumen.nvidia=1 "*) modprobe nvidia_drm modeset=1 fbdev=1 || echo "NVIDIA driver didn't load (card older than GTX 16xx / RTX 20xx?)" ;;
 esac
 
+# Chromebooks: top-row keys and touchpad drivers (keyd is on the stick).
+bash /opt/lumen/install/chromebook.sh || true
+
 # Wi-Fi through NetworkManager (on top of iwd); wired stays with networkd.
 # --no-block: this runs during boot, ordered before the login prompt;
 # waiting here for other services could stall the boot.
