@@ -238,6 +238,10 @@ fi
 task "memory protection (systemd-oomd)" systemctl is-active systemd-oomd
 # The live USB leaves out manuals and translations; an install must still get them.
 task "installed system has manuals and translations" bash -c 'ls /usr/share/man/man1/ls.1* && ls -d /usr/share/locale/de/LC_MESSAGES'
+# lumen update reaches GitHub with no login prompt (real installs asked for a GitHub password).
+if nmcli -t -f STATE general 2>/dev/null | grep -q '^connected'; then
+  task "lumen update can reach GitHub without a login" as_user env GIT_TERMINAL_PROMPT=0 timeout 60 bash -c 'cd "$LUMEN_PATH" && git remote set-url origin https://github.com/an4rchuk/lumen-os.git && git fetch --quiet --tags origin && git tag -l "v*" | tail -n 3'
+fi
 task "text editor and camera installed" bash -c 'command -v gnome-text-editor && command -v snapshot'
 
 # --- NVIDIA driver (installed with lumen.gpu=nvidia; this VM has no NVIDIA card) ----------

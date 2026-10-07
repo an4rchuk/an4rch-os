@@ -43,6 +43,8 @@ jobs:
 
       - name: Build the ISO (Arch container)
         run: |
+          # Releases carry their own version (Lumen menu → About, lumen doctor, os-release).
+          if [ -n "$TAG" ]; then echo "${TAG#v}" >VERSION; fi
           docker run --rm --privileged -v "$PWD:/src" -e LUMEN_STRICT=1 archlinux:latest bash -c '
             pacman -Syu --noconfirm --needed archiso git python-pillow >/dev/null &&
             git config --global --add safe.directory /src &&
