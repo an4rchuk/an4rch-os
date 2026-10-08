@@ -146,7 +146,10 @@ case "${1:-}" in
     save
     rm -f "$LUMEN_STATE/auto-phase"
     apply --force
-    [[ -n "${HYPRLAND_INSTANCE_SIGNATURE:-}" ]] && launch "$0" daemon
+    # Its own session, so closing the terminal this ran in doesn't stop it.
+    if [[ -n "${HYPRLAND_INSTANCE_SIGNATURE:-}" ]] && ! pgrep -f 'anarch-auto daemon' >/dev/null; then
+      setsid -f "$0" daemon </dev/null >/dev/null 2>&1
+    fi
     status
     ;;
   off)

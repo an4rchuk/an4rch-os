@@ -8,8 +8,8 @@
 #   anarch-health check     check quietly; a notification only if something's wrong
 #                           (runs daily once set up)
 #
-# Drive details need administrator rights; the report asks for your password
-# once (or shows what it can without).
+# Drive details need administrator rights: `sudo anarch health` shows them;
+# without, the report shows what it can.
 set -uo pipefail
 source "${LUMEN_PATH:-$HOME/.local/share/lumen}/lib/lumen.sh"
 
@@ -112,7 +112,6 @@ check_temps() {
 
 report() {
   printf '\e[1man4rch health\e[0m  %s\n\n' "$(date '+%F %H:%M')"
-  if [[ $EUID -ne 0 ]] && [[ -t 0 ]]; then sudo -v 2>/dev/null || true; fi
   check_drives
   check_filesystem
   check_space
@@ -122,6 +121,10 @@ report() {
   echo
   if ((${#problems[@]})); then printf '\e[33m%d thing(s) need attention.\e[0m\n' "${#problems[@]}"
   else printf '\e[32mAll good.\e[0m\n'; fi
+  # Drive and filesystem details need administrator rights; never ask here.
+  if [[ $EUID -ne 0 ]] && ! sudo -n true 2>/dev/null; then
+    printf '\e[2mFor drive and filesystem details too: sudo anarch health\e[0m\n'
+  fi
 }
 
 # The daily check, as a systemd user timer.

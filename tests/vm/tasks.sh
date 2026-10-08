@@ -330,6 +330,7 @@ root_cli() {
   task "$name" script -qefc "env LUMEN_PATH=$lumen HOME=/root $(printf '%q ' "$@")" /dev/null
 }
 cli "anarch health" anarch health
+task "anarch health (as administrator)" script -qefc "env LUMEN_PATH=$lumen HOME=/root $lumen/bin/anarch-health" /dev/null
 if ! systemctl is-failed -q smartd 2>/dev/null; then result "drive monitoring (smartd) not failed" PASS "$(systemctl is-active smartd)"; else result "drive monitoring (smartd) not failed" FAIL; fi
 if [[ "$(findmnt -no FSTYPE /)" == btrfs ]]; then
   task "monthly btrfs scrub timer" systemctl is-enabled btrfs-scrub@-.timer
@@ -381,7 +382,8 @@ if nmcli -t -f STATE general 2>/dev/null | grep -q '^connected'; then
   root_cli "anarch privacy on" "$lumen/bin/anarch-privacy" on
   sleep 3
   task "privacy: encrypted DNS in use" bash -c 'resolvectl status | grep -q "+DNSOverTLS" && getent hosts archlinux.org'
-  task "privacy: trackers blocked" bash -c 'getent hosts doubleclick.net | grep -q "^0\.0\.0\.0"'
+  # systemd-resolved answers a 0.0.0.0 entry with no address at all (blocked).
+  task "privacy: trackers blocked" bash -c 'grep -q "^0\.0\.0\.0 doubleclick\.net$" /etc/hosts && { ! getent hosts doubleclick.net || getent hosts doubleclick.net | grep -q "^0\.0\.0\.0"; }'
   task "privacy: hidden hardware address set" test -f /etc/NetworkManager/conf.d/50-lumen-privacy-mac.conf
   cli "anarch privacy status" anarch privacy status
   root_cli "anarch privacy off" "$lumen/bin/anarch-privacy" off
@@ -528,7 +530,10 @@ sleep 6
 if pgrep -x hyprlock >/dev/null; then result "panic key locks the screen" PASS; else result "panic key locks the screen" FAIL; fi
 if ! mountpoint -q "$home/Vaults/vmtest"; then result "panic key closes vaults" PASS; else result "panic key closes vaults" FAIL; fi
 if [[ "$(as_user wl-paste -n 2>/dev/null)" != panic-clipboard-test ]]; then result "panic key wipes the clipboard" PASS; else result "panic key wipes the clipboard" FAIL; fi
-if as_user wpctl get-volume @DEFAULT_AUDIO_SOURCE@ 2>/dev/null | grep -q MUTED || ! as_user wpctl status 2>/dev/null | grep -q Sources; then result "panic key mutes the microphone" PASS; else result "panic key mutes the microphone" FAIL "$(as_user wpctl get-volume @DEFAULT_AUDIO_SOURCE@ 2>&1)"; fi
+mic=$(as_user wpctl get-volume @DEFAULT_AUDIO_SOURCE@ 2>&1)
+if [[ "$mic" == *MUTED* ]]; then result "panic key mutes the microphone" PASS
+elif [[ "$mic" == *"not a valid ID"* ]]; then result "panic key mutes the microphone" PASS "this VM has no microphone"
+else result "panic key mutes the microphone" FAIL "$mic"; fi
 shot 20b-panic
 type_text "lumen"
 keys ret
