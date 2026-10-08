@@ -1,12 +1,9 @@
 {
   "include": [
     {
-      "vm": "b-spanish",
-      "install": "lumen.keymap=es lumen.timezone=Europe/Madrid lumen.locale=es_ES.UTF-8"
-    },
-    {
-      "vm": "b-dvorak",
-      "install": "lumen.keymap=dvorak lumen.timezone=America/New_York"
+      "vm": "f-manual-split",
+      "prepart": "split",
+      "install": "lumen.mode=manual lumen.root=/dev/vda3 lumen.efi=/dev/vda1 lumen.boot=/dev/vda2"
     }
   ]
 }

@@ -362,6 +362,11 @@ jobs:
             grep -av '^\s*$' live-clean.log 2>/dev/null | tail -n 80 || true
           fi
           echo "--- tasks ---"; head -n 800 tasks.log || true
+          # The installed system never reported back: show how far it got.
+          if ! grep -q E2E-DONE tasks.log 2>/dev/null; then
+            echo "--- installed system boot console (end) ---"
+            tr -d '\r' <boot-serial.log 2>/dev/null | sed 's/\x1b\[[0-9;?]*[a-zA-Z]//g' | grep -av '^\s*$' | tail -n 120 || true
+          fi
           echo
           [ -s results.txt ] || { echo "::error::No task results (the task runner never reported)"; exit 1; }
           sed -e 's/^E2E-RESULT //' results.txt | awk '{ s=($0 ~ / PASS/)?"✓":"✗"; print "  " s " " $0 }'
