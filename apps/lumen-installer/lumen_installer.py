@@ -42,6 +42,16 @@ TERMINALS = [("ghostty", "Ghostty", "Fast and modern (recommended)"), ("alacritt
              ("kitty", "Kitty", "Feature-rich")]
 EDITORS = [("code", "VS Code", "Code - OSS, with extensions"), ("zed", "Zed", "Fast, collaborative"),
            ("nvim", "Neovim", "In the terminal")]
+KERNELS = [("linux", "Latest", "The newest kernel: best hardware support (recommended)"),
+           ("lts", "Long-term support", "Changes least: steady on older computers"),
+           ("zen", "Zen", "Tuned for desktops and gaming"),
+           ("hardened", "Hardened", "Extra security; some apps (Steam, some sandboxes) may not run")]
+SHELLS = [("zsh", "Zsh", "Suggestions as you type, colours (recommended)"),
+          ("bash", "Bash", "The classic, on every Linux"),
+          ("fish", "Fish", "The friendliest, with smart suggestions")]
+EDITIONS = [("desktop", "Desktop", "The full an4rch desktop (recommended)"),
+            ("server", "Server", "No desktop: the system, SSH and an4rch's tools, for old computers and home servers")]
+DESKTOP_PAGES = ("look", "apps")
 LAYOUTS = [("classic", "an4rch", "Top bar, title bars and a taskbar along the bottom", "yes", "yes"),
            ("modern", "Top bar only", "No taskbar: tap the Windows key for Start and your apps", "no", "yes"),
            ("minimal", "Minimal", "Edge-to-edge tiling windows, no title bars", "no", "no")]
@@ -107,6 +117,40 @@ def disks() -> list[dict]:
         found = [{"path": "/dev/demo", "label": "Demo disk", "size": "500 GB", "contents": "Windows · 4 partitions",
                   "detail": "nothing will be written · has Windows · 4 partitions"}]
     return found
+
+
+def partitions() -> list[dict]:
+    """Every partition on the computer's disks (not the USB stick), for
+    installing on partitions made beforehand."""
+    try:
+        data = json.loads(run("lsblk", "-J", "-b", "-o", "PATH,NAME,SIZE,FSTYPE,PARTLABEL,LABEL,TYPE,PKNAME") or "{}")
+    except json.JSONDecodeError:
+        return []
+    skip = boot_disk()
+    found = []
+
+    def walk(devs: list[dict]) -> None:
+        for d in devs:
+            if d.get("type") == "part" and d.get("pkname") != skip:
+                size = int(d.get("size") or 0)
+                name = d.get("partlabel") or d.get("label") or ""
+                found.append({"path": d["path"], "size_mb": size // 1048576, "fstype": d.get("fstype") or "",
+                              "label": f"{d['path']} · {size / 1000**3:.1f} GB" + (f" · {d['fstype']}" if d.get("fstype") else "")
+                              + (f" · {name}" if name else "")})
+            walk(d.get("children") or [])
+    walk(data.get("blockdevices", []))
+    if DEMO:
+        found = [{"path": "/dev/demo1", "size_mb": 100, "fstype": "vfat", "label": "/dev/demo1 · 0.1 GB · vfat · EFI system partition"},
+                 {"path": "/dev/demo2", "size_mb": 1024, "fstype": "", "label": "/dev/demo2 · 1.1 GB"},
+                 {"path": "/dev/demo3", "size_mb": 80000, "fstype": "", "label": "/dev/demo3 · 83.9 GB"}]
+    return found
+
+
+def catalog_apps() -> list[dict]:
+    try:
+        return json.loads((LUMEN_PATH / "apps/lumen-store/catalog.json").read_text())["apps"]
+    except (OSError, ValueError, KeyError):
+        return []
 
 
 def alongside_space(path: str) -> dict[str, str]:
@@ -239,7 +283,9 @@ class Installer(Adw.ApplicationWindow):
         self.answers: dict[str, str] = {
             "theme": "an4rch", "layout": "classic", "browser": "firefox", "terminal": "ghostty", "editor": "code",
             "gaming": "0", "encrypt": "", "keymap": "us", "timezone": "UTC", "autologin": "0",
+            "kernel": "linux", "shell": "zsh", "edition": "desktop",
         }
+        self.extra_apps: set[str] = set()
         self.disk_choice: dict | None = None
         self.proc: subprocess.Popen | None = None
         self.done_steps: set[str] = set()
@@ -252,6 +298,7 @@ class Installer(Adw.ApplicationWindow):
             ("disk", self.page_disk()),
             ("account", self.page_account()),
             ("region", self.page_region()),
+            ("system", self.page_system()),
             ("look", self.page_look()),
             ("apps", self.page_apps()),
             ("review", self.page_review()),
@@ -328,14 +375,19 @@ class Installer(Adw.ApplicationWindow):
         if step > 0 and self.pages[self.index][0] == "review":
             self.confirm_install()
             return
-        self.show_index(max(0, min(len(self.pages) - 1, self.index + step)))
+        i = max(0, min(len(self.pages) - 1, self.index + step))
+        # A server has no desktop: no theme or apps to pick.
+        while self.answers["edition"] == "server" and self.pages[i][0] in DESKTOP_PAGES and 0 < i < len(self.pages) - 1:
+            i += 1 if step > 0 else -1
+        self.show_index(i)
 
     def show_index(self, i: int) -> None:
         self.index = i
         name = self.pages[i][0]
         self.stack.set_visible_child_name(name)
         self.back.set_sensitive(i > 0)
-        review_label = "Install alongside Windows" if self.alongside() else "Erase disk and install"
+        review_label = "Install alongside Windows" if self.alongside() else \
+            "Install on my partitions" if self.manual() else "Erase disk and install"
         self.next.set_label(review_label if name == "review" else "Next")
         self.next.remove_css_class("destructive-action")
         self.next.remove_css_class("suggested-action")
@@ -493,10 +545,65 @@ class Installer(Adw.ApplicationWindow):
                                                               self.crypt_pass2.set_visible(s.get_active())))
         for w in (self.encrypt, self.crypt_pass, self.crypt_pass2):
             crypt.add(w)
+        # Advanced: partitions made beforehand.
+        self.parts = partitions()
+        self.manual_group = Adw.PreferencesGroup(title="Advanced", description="Already made partitions for an4rch "
+                                                 "(for example next to another Linux)? Choose them here.")
+        self.manual_switch = Adw.SwitchRow(title="Use partitions I've made myself")
+        labels = [p["label"] for p in self.parts] or ["(no partitions found)"]
+        self.root_row = Adw.ComboRow(title="Partition for an4rch", subtitle="20 GB or more. Everything on it is erased",
+                                     model=Gtk.StringList.new(labels), visible=False)
+        self.efi_row = Adw.ComboRow(title="EFI system partition", subtitle="Its boot files (e.g. Windows') are kept",
+                                    model=Gtk.StringList.new(labels), visible=False)
+        self.efi_format = Adw.SwitchRow(title="Format the EFI partition", subtitle="Only for a new, empty one", visible=False)
+        self.boot_row = Adw.ComboRow(title="Boot partition (about 1 GB)", subtitle="Needed when the EFI partition is "
+                                     "smaller than 900 MB. Everything on it is erased",
+                                     model=Gtk.StringList.new(["None"] + labels), visible=False)
+        self.parted_button = Gtk.Button(label="Open the partition editor", valign=Gtk.Align.CENTER, css_classes=["flat"])
+        self.parted_button.connect("clicked", lambda *_: self.open_partition_editor())
+        self.parted_row = Adw.ActionRow(title="Make or change partitions", subtitle="cfdisk, in a terminal. Restart the "
+                                        "installer afterwards to see the changes", visible=False)
+        self.parted_row.add_suffix(self.parted_button)
+        self.manual_switch.connect("notify::active", lambda *_: self.update_manual())
+        for w in (self.manual_switch, self.parted_row, self.root_row, self.efi_row, self.efi_format, self.boot_row):
+            self.manual_group.add(w)
+        # Sensible first guesses: the biggest partition for an4rch, a FAT one for EFI.
+        if self.parts:
+            biggest = max(range(len(self.parts)), key=lambda i: self.parts[i]["size_mb"])
+            self.root_row.set_selected(biggest)
+            fat = next((i for i, p in enumerate(self.parts) if p["fstype"] == "vfat"), 0)
+            self.efi_row.set_selected(fat)
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=18)
         box.append(self.how)
         box.append(crypt)
+        box.append(self.manual_group)
         return self.page("Where should an4rch go?", "", group, box)
+
+    def manual(self) -> bool:
+        sw = getattr(self, "manual_switch", None)
+        return bool(sw and sw.get_active())
+
+    def update_manual(self) -> None:
+        on = self.manual()
+        for w in (self.parted_row, self.root_row, self.efi_row, self.efi_format, self.boot_row):
+            w.set_visible(on)
+
+    def open_partition_editor(self) -> None:
+        disk = self.disk_choice["path"] if self.disk_choice else ""
+        if DEMO or not disk:
+            self.toast_msg("Choose a disk above first" if not disk else "Demo mode: nothing to edit")
+            return
+        lumen("anarch-term", "--float", "--title", "Partitions", "--", "sudo", "cfdisk", disk)
+
+    def manual_parts(self) -> dict[str, str]:
+        """The chosen partitions (root, efi, boot) as paths."""
+        if not self.parts:
+            return {}
+        root = self.parts[self.root_row.get_selected()]["path"]
+        efi = self.parts[self.efi_row.get_selected()]["path"]
+        b = self.boot_row.get_selected()
+        boot = self.parts[b - 1]["path"] if b > 0 else ""
+        return {"root": root, "efi": efi, "boot": boot}
 
     def pick_disk(self, d: dict) -> None:
         self.disk_choice = d
@@ -509,7 +616,8 @@ class Installer(Adw.ApplicationWindow):
     def alongside(self) -> bool:
         """Installing next to Windows on the chosen disk?"""
         how = getattr(self, "how", None)
-        return bool(getattr(self, "disk_choice", None) and how and how.get_visible() and self.how_mode.get_selected() == 0)
+        return bool(getattr(self, "disk_choice", None) and how and how.get_visible() and self.how_mode.get_selected() == 0
+                    and not self.manual())
 
     def update_how(self) -> None:
         if not self.how.get_visible():
@@ -570,7 +678,16 @@ class Installer(Adw.ApplicationWindow):
         group.add(tz)
         return self.page("Where are you?", "", group)
 
-    # --- 6. look (CachyOS-style theme picker) ------------------------------------------------------
+    # --- 6. system: desktop or server, kernel, shell ------------------------------------------
+    def page_system(self) -> Gtk.Widget:
+        edition = self.choice_group("What kind of install?", "edition", EDITIONS)
+        kernel = self.choice_group("Kernel", "kernel", KERNELS)
+        kernel.set_description("A second kernel is always in the boot menu, in case one won't start. Add more later: anarch tune.")
+        shell = self.choice_group("Shell", "shell", SHELLS)
+        shell.set_description("The language of the terminal.")
+        return self.page("The system", "Most people can keep the recommended choices.", edition, kernel, shell)
+
+    # --- 7. look (CachyOS-style theme picker) ------------------------------------------------------
     def page_look(self) -> Gtk.Widget:
         flow = Gtk.FlowBox(selection_mode=Gtk.SelectionMode.NONE, max_children_per_line=4, min_children_per_line=2,
                            row_spacing=14, column_spacing=14, homogeneous=True)
@@ -647,11 +764,28 @@ class Installer(Adw.ApplicationWindow):
         gaming = Adw.PreferencesGroup(title="Gaming")
         self.gaming = Adw.SwitchRow(title="Set up gaming", subtitle="Steam with Proton, GameMode, MangoHud, gamescope and 32-bit drivers")
         gaming.add(self.gaming)
+        # Extra apps from the App Store's list, by category.
+        extras = Adw.PreferencesGroup(title="Extra apps", description="Installed with an4rch. Tick as many as you like; "
+                                      "everything else is in the App Store later.")
+        try:
+            cats = {c["id"]: c["name"] for c in json.loads((LUMEN_PATH / "apps/lumen-store/catalog.json").read_text())["categories"]}
+        except (OSError, ValueError, KeyError, TypeError):
+            cats = {}
+        apps = catalog_apps()
+        for cat in dict.fromkeys(a.get("category", "") for a in apps):
+            exp = Adw.ExpanderRow(title=cats.get(cat, cat.title() or "Other"))
+            for a in [a for a in apps if a.get("category", "") == cat]:
+                check = Gtk.CheckButton(valign=Gtk.Align.CENTER)
+                row = Adw.ActionRow(title=a["name"], subtitle=a.get("summary", ""), activatable_widget=check)
+                row.add_prefix(check)
+                check.connect("toggled", lambda c, i=a["id"]: (self.extra_apps.add if c.get_active() else self.extra_apps.discard)(i))
+                exp.add_row(row)
+            extras.add(exp)
         return self.page("Your apps", "Everything else (files, images, video, PDFs, the App Store) is included. "
                          "Add more later from the App Store.",
                          self.choice_group("Web browser", "browser", BROWSERS),
                          self.choice_group("Terminal", "terminal", TERMINALS),
-                         self.choice_group("Code editor", "editor", EDITORS), gaming)
+                         self.choice_group("Code editor", "editor", EDITORS), gaming, extras)
 
     # --- 8. review -----------------------------------------------------------------------------
     def page_review(self) -> Gtk.Widget:
@@ -665,17 +799,34 @@ class Installer(Adw.ApplicationWindow):
         a = self.collect()
         layout = next(l for l in LAYOUTS if l[0] == a["layout"])
         theme = dict(themes()).get(a["theme"], {}).get("name", a["theme"])
+        server = a["edition"] == "server"
+        if self.manual():
+            m = self.manual_parts()
+            disk_text = (f"Your partitions: an4rch on {m.get('root')} (erased), EFI {m.get('efi')}"
+                         + (" (formatted)" if a.get("formatefi") == "1" else " (kept)")
+                         + (f", boot {m['boot']} (erased)" if m.get("boot") else ""))
+        elif self.disk_choice:
+            disk_text = (f"{self.disk_choice['label']} · {self.disk_choice['size']} ({a['disk']}) — "
+                         + (f"alongside Windows, {int(self.how_size.get_value())} GB for an4rch" if self.alongside() else "will be erased"))
+        else:
+            disk_text = "none"
+        kernel_name = next(k[1] for k in KERNELS if k[0] == a["kernel"])
         rows = [
-            ("drive-harddisk-symbolic", "Disk", (f"{self.disk_choice['label']} · {self.disk_choice['size']} ({a['disk']}) — "
-                                                 + (f"alongside Windows, {int(self.how_size.get_value())} GB for an4rch" if self.alongside() else "will be erased"))
-             if self.disk_choice else "none"),
+            ("computer-symbolic", "Install", "Server (no desktop)" if server else "Desktop"),
+            ("drive-harddisk-symbolic", "Disk", disk_text),
             ("channel-secure-symbolic", "Encryption", "On" if a["encrypt"] else "Off"),
             ("avatar-default-symbolic", "Account", f"{a['fullname']} ({a['user']}) on “{a['hostname']}”" + (", logs in automatically" if a["autologin"] == "1" else "")),
             ("preferences-system-time-symbolic", "Time zone", a["timezone"]),
             ("input-keyboard-symbolic", "Keyboard", a["keymap"]),
-            ("applications-graphics-symbolic", "Look", f"{theme} theme, {layout[1]} layout"),
-            ("applications-internet-symbolic", "Apps", f"{a['browser']}, {a['terminal']}, {a['editor']}" + (", gaming" if a["gaming"] == "1" else "")),
+            ("system-run-symbolic", "System", f"{kernel_name} kernel, {a['shell']} shell"),
         ]
+        if not server:
+            rows += [
+                ("applications-graphics-symbolic", "Look", f"{theme} theme, {layout[1]} layout"),
+                ("applications-internet-symbolic", "Apps", f"{a['browser']}, {a['terminal']}, {a['editor']}"
+                 + (", gaming" if a["gaming"] == "1" else "")
+                 + (f", and {len(self.extra_apps)} more" if self.extra_apps else "")),
+            ]
         for icon, title, sub in rows:
             row = Adw.ActionRow(title=title, subtitle=sub)
             row.add_prefix(Gtk.Image(icon_name=icon))
@@ -691,13 +842,29 @@ class Installer(Adw.ApplicationWindow):
             if not online():
                 self.toast_msg("Connect to the internet first")
                 return False
-        if page == "disk":
+        if page == "disk" and self.manual():
+            m = self.manual_parts()
+            if not m:
+                self.toast_msg("No partitions found: make them first (Open the partition editor)")
+                return False
+            sizes = {p["path"]: p["size_mb"] for p in self.parts}
+            if len({m["root"], m["efi"], m["boot"] or "-"}) < 3:
+                self.toast_msg("The partitions for an4rch, EFI and boot must be different")
+                return False
+            if sizes.get(m["root"], 0) < 20 * 1024:
+                self.toast_msg("The partition for an4rch needs 20 GB or more")
+                return False
+            if sizes.get(m["efi"], 0) < 900 and not m["boot"]:
+                self.toast_msg("The EFI partition is small: choose a boot partition (about 1 GB) too")
+                return False
+        if page == "disk" and not self.manual():
             if not self.disk_choice:
                 self.toast_msg("No disk to install on")
                 return False
             if self.alongside() and self.how_status.get_visible():
                 self.toast_msg("an4rch can't go alongside Windows on this disk yet (see the message)")
                 return False
+        if page == "disk":
             if self.encrypt.get_active():
                 p1, p2 = self.crypt_pass.get_text(), self.crypt_pass2.get_text()
                 if len(p1) < 4:
@@ -729,7 +896,7 @@ class Installer(Adw.ApplicationWindow):
         layout = next(l for l in LAYOUTS if l[0] == a["layout"])
         a.update({
             "disk": self.disk_choice["path"] if self.disk_choice else "",
-            "mode": "alongside" if self.alongside() else "erase",
+            "mode": "manual" if self.manual() else "alongside" if self.alongside() else "erase",
             "size": str(int(self.how_size.get_value())) if self.alongside() else "",
             "encrypt": self.crypt_pass.get_text() if self.encrypt.get_active() else "",
             "fullname": self.fullname.get_text().strip(),
@@ -740,12 +907,31 @@ class Installer(Adw.ApplicationWindow):
             "gaming": "1" if self.gaming.get_active() else "0",
             "taskbar": "1" if layout[3] == "yes" else "0",
             "titlebars": "1" if layout[4] == "yes" else "0",
+            "apps": ",".join(sorted(self.extra_apps)) if a["edition"] == "desktop" else "",
         })
+        if self.manual():
+            m = self.manual_parts()
+            a.update({"root": m.get("root", ""), "efi": m.get("efi", ""), "boot": m.get("boot", ""),
+                      "formatefi": "1" if self.efi_format.get_active() else "0"})
+            a["disk"] = ""
         return a
 
     # --- install ---------------------------------------------------------------------------------
     def confirm_install(self) -> None:
         d = self.disk_choice
+        if self.manual():
+            m = self.manual_parts()
+            erased = [m["root"]] + ([m["boot"]] if m["boot"] else []) + ([m["efi"]] if self.efi_format.get_active() else [])
+            dialog = Adw.AlertDialog(heading="Install on your partitions?",
+                                     body="Everything on " + " and ".join(erased) + " will be permanently erased. "
+                                          "Other partitions are not touched.")
+            dialog.add_response("cancel", "Cancel")
+            dialog.add_response("install", "Erase and install")
+            dialog.set_response_appearance("install", Adw.ResponseAppearance.DESTRUCTIVE)
+            dialog.set_default_response("cancel")
+            dialog.connect("response", lambda _d, r: r == "install" and self.start_install())
+            dialog.present(self)
+            return
         if self.alongside():
             gb = int(self.how_size.get_value())
             dialog = Adw.AlertDialog(heading="Install alongside Windows?",

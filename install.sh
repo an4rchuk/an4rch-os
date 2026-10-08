@@ -11,6 +11,9 @@
 #   --editor NAME      code (default), zed, nvim
 #   --theme NAME       starting theme (default: an4rch)
 #   --gaming           also install the gaming stack (Steam, Proton tools, …)
+#   --shell NAME       zsh (default), bash or fish
+#   --apps ID,ID…      extra apps from the App Store's list (apps/lumen-store/catalog.json)
+#   --server           no desktop: the system, SSH, the firewall and an4rch's tools
 #   --distro           apply the an4rch OS system layer (branding, snapshots,
 #                      boot splash, zram) — used by the an4rch OS ISO installer
 #   --no-reboot        don't offer to restart at the end
@@ -32,7 +35,7 @@ chmod +x "$LUMEN_PATH"/bin/* "$LUMEN_PATH"/install.sh "$LUMEN_PATH"/boot.sh 2>/d
 source "$LUMEN_PATH/install/lib.sh"
 source "$LUMEN_PATH/install/packages.sh"
 
-BROWSER="" TERMINAL_APP="" EDITOR_APP="" THEME="an4rch"
+BROWSER="" TERMINAL_APP="" EDITOR_APP="" THEME="an4rch" SHELL_CHOICE=zsh EXTRA_APPS="" SERVER=0
 GREETER=1 AUTOLOGIN=0 CONFIGS_ONLY=0 GAMING=0 DISTRO=0 REBOOT=1 TASKBAR=no TITLEBARS=yes
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -46,15 +49,26 @@ while [[ $# -gt 0 ]]; do
     --taskbar) TASKBAR=yes ;;
     --no-titlebars) TITLEBARS=no ;;
     --gaming) GAMING=1 ;;
+    --shell) SHELL_CHOICE="$2"; shift ;;
+    --apps) EXTRA_APPS="$2"; shift ;;
+    --server) SERVER=1 GREETER=0 ;;
     --distro) DISTRO=1 ;;
     --no-reboot) REBOOT=0 ;;
     --configs-only) CONFIGS_ONLY=1 ;;
     --verbose) export LUMEN_VERBOSE=1 ;;
-    -h | --help) sed -n '2,22s/^# \{0,1\}//p' "$0"; exit 0 ;;
+    -h | --help) sed -n '2,25s/^# \{0,1\}//p' "$0"; exit 0 ;;
     *) echo "Unknown option: $1 (see --help)"; exit 1 ;;
   esac
   shift
 done
+
+# The login shell's own packages (bash itself is always there).
+case "$SHELL_CHOICE" in
+  zsh) SHELL_PKGS=() ;;
+  bash) SHELL_PKGS=(bash-completion) ;;
+  fish) SHELL_PKGS=(fish) ;;
+  *) echo "Unknown shell: $SHELL_CHOICE (zsh, bash or fish)"; exit 1 ;;
+esac
 
 FIRST_INSTALL=1
 [[ -f "$HOME/.config/lumen/.installed" ]] && FIRST_INSTALL=0
@@ -109,10 +123,15 @@ preflight() {
 # --- 2. Choices -------------------------------------------------------------------
 choose_apps() {
   step "Choosing your apps"
+  if ((SERVER)); then
+    BROWSER="${BROWSER:-firefox}" TERMINAL_APP="${TERMINAL_APP:-ghostty}" EDITOR_APP="${EDITOR_APP:-nvim}"
+    ok "Server: no desktop apps · shell: $SHELL_CHOICE"
+    return 0
+  fi
   [[ -n "$BROWSER" ]] || ask_choice BROWSER "Web browser" firefox firefox chromium brave zen-browser
   [[ -n "$TERMINAL_APP" ]] || ask_choice TERMINAL_APP "Terminal" ghostty ghostty alacritty kitty
   [[ -n "$EDITOR_APP" ]] || ask_choice EDITOR_APP "Code editor" code code zed nvim
-  ok "Browser: $BROWSER · Terminal: $TERMINAL_APP · Editor: $EDITOR_APP"
+  ok "Browser: $BROWSER · Terminal: $TERMINAL_APP · Editor: $EDITOR_APP · Shell: $SHELL_CHOICE"
   [[ "$THEME" == lumen ]] && THEME=an4rch  # renamed in 1.1.0
   [[ -d "$LUMEN_PATH/themes/$THEME" ]] || fail "Unknown theme '$THEME'"
 }
@@ -159,10 +178,12 @@ detect_gpu() {
   ((HAS_INTEL)) && GPU_PKGS+=("${PKGS_GPU_INTEL[@]}")
   ((HAS_AMD)) && GPU_PKGS+=("${PKGS_GPU_AMD[@]}")
   if ((HAS_NVIDIA)); then
-    GPU_PKGS+=("${PKGS_GPU_NVIDIA[@]}" linux-headers)
+    GPU_PKGS+=("${PKGS_GPU_NVIDIA[@]}")
     # DKMS needs headers for whichever kernels are installed.
-    pacman -Qq linux-lts >/dev/null 2>&1 && GPU_PKGS+=(linux-lts-headers)
-    pacman -Qq linux-zen >/dev/null 2>&1 && GPU_PKGS+=(linux-zen-headers)
+    local k
+    for k in linux linux-lts linux-zen linux-hardened; do
+      pacman -Qq "$k" >/dev/null 2>&1 && GPU_PKGS+=("$k-headers")
+    done
   fi
   # NVIDIA drives the screen itself only when it's the only GPU; on hybrid
   # laptops (Intel/AMD + NVIDIA) the other GPU does, and NVIDIA-only
@@ -173,7 +194,58 @@ detect_gpu() {
   return 0
 }
 
+# install_extra_apps — the apps ticked in the installer, by their App Store
+# ids: from the Arch repositories when possible, then the AUR, then Flathub
+# (the order the App Store prefers). Never fatal.
+install_extra_apps() {
+  local id kind pkg done_ids=() skipped=()
+  # attempt CMD… — quietly, the output to the log; true when it worked.
+  attempt() { printf 'TRY: %s\n' "$*" >>"$LOG"; "$@" >>"$LOG" 2>&1; }
+  while IFS=$'\t' read -r id kind pkg; do
+    [[ -n "$id" ]] || continue
+    info "App: $id"
+    case "$kind" in
+      pacman) attempt sudo pacman -S --needed --noconfirm "$pkg" ;;
+      aur) [[ "${LUMEN_OFFLINE:-0}" != 1 ]] && attempt yay -S --needed --noconfirm --answerdiff None --answerclean None --removemake "$pkg" ;;
+      flatpak)
+        [[ "${LUMEN_OFFLINE:-0}" != 1 ]] && command -v flatpak >/dev/null &&
+          attempt sudo flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo &&
+          attempt sudo flatpak install -y --noninteractive flathub "$pkg" ;;
+      *) false ;;
+    esac && done_ids+=("$id") || skipped+=("$id")
+  done < <(python3 - "$LUMEN_PATH/apps/lumen-store/catalog.json" "$EXTRA_APPS" <<'PY'
+import json, subprocess, sys
+apps = {a["id"]: a for a in json.load(open(sys.argv[1]))["apps"]}
+for want in filter(None, sys.argv[2].split(",")):
+    app = apps.get(want)
+    if not app:
+        print(f"{want}\tunknown\t")
+        continue
+    chosen = None
+    for src in app.get("sources", []):  # repositories first, then the AUR, then Flathub
+        if src["type"] == "pacman" and subprocess.run(["pacman", "-Si", src["id"]], capture_output=True).returncode == 0:
+            chosen = src
+            break
+    if not chosen:
+        chosen = next((s for s in app.get("sources", []) if s["type"] == "aur"), None) or \
+                 next((s for s in app.get("sources", []) if s["type"] == "flatpak"), None)
+    print(f"{want}\t{chosen['type'] if chosen else 'none'}\t{chosen['id'] if chosen else ''}")
+PY
+)
+  ((${#done_ids[@]})) && ok "Extra apps: ${done_ids[*]}"
+  ((${#skipped[@]})) && warn "Not installed now (add them from the App Store later): ${skipped[*]}"
+  return 0
+}
+
 install_packages() {
+  if ((SERVER)); then
+    step "Installing the system tools"
+    pkg_install REQUIRED "${PKGS_SERVER[@]}" "${SHELL_PKGS[@]}"
+    pkg_install OPTIONAL "${PKGS_SERVER_OPTIONAL[@]}"
+    step "Installing your apps and tools"
+    ok "Server: nothing else to install"
+    return 0
+  fi
   step "Installing the desktop"
   # Audio first: media libraries depend on "jack", and if PipeWire's JACK
   # isn't installed yet pacman picks jack2, which later conflicts with
@@ -191,7 +263,8 @@ install_packages() {
 
   step "Installing your apps and tools"
   pkg_install OPTIONAL "${PKG_FOR[$BROWSER]:-$BROWSER}" "${PKG_FOR[$TERMINAL_APP]:-$TERMINAL_APP}" "${PKG_FOR[$EDITOR_APP]:-$EDITOR_APP}"
-  pkg_install OPTIONAL "${PKGS_OPTIONAL[@]}"
+  pkg_install OPTIONAL "${PKGS_OPTIONAL[@]}" "${SHELL_PKGS[@]}"
+  [[ -n "$EXTRA_APPS" ]] && install_extra_apps
 
   # Waybar releases up to 0.15.0 speak Hyprland's old IPC, so clicking a
   # workspace does nothing under the Lua config. Use the git build until a
@@ -241,9 +314,21 @@ install_configs() {
     case "$rel" in
       zsh/zshrc) place "$f" "$HOME/.zshrc" ;;
       zsh/zprofile) place "$f" "$HOME/.zprofile" ;;
-      *) place "$f" "$HOME/.config/$rel" ;;
+      # bash and fish settings only for those who chose them.
+      bash/bashrc) if [[ $SHELL_CHOICE == bash ]]; then place "$f" "$HOME/.bashrc"; fi ;;
+      bash/bash_profile) if [[ $SHELL_CHOICE == bash ]]; then place "$f" "$HOME/.bash_profile"; fi ;;
+      fish/*) if [[ $SHELL_CHOICE == fish ]]; then place "$f" "$HOME/.config/$rel"; fi ;;
+      # A server has no desktop to configure.
+      *) if ((!SERVER)); then place "$f" "$HOME/.config/$rel"; fi ;;
     esac
   done < <(find "$LUMEN_PATH/config" -type f -print0)
+  mkdir -p "$HOME/.config/lumen"
+  if ((SERVER)); then echo server; else echo desktop; fi >"$HOME/.config/lumen/edition"
+  if ((SERVER)); then
+    ok "Shell settings ($SHELL_CHOICE)"
+    cat "$LUMEN_PATH/VERSION" >"$HOME/.config/lumen/.installed" 2>/dev/null || date >"$HOME/.config/lumen/.installed"
+    return 0
+  fi
   ok "Configs in ~/.config (hypr, waybar, fuzzel, mako, ghostty, …)"
 
   # Launchers and icons for an4rch's own apps (Start, App Store, Welcome, …).
@@ -319,6 +404,23 @@ setup_system() {
       try "Handing networking over from $s to NetworkManager" sudo systemctl disable "$s"
     fi
   done
+  if ((SERVER)); then
+    run "Enabling NetworkManager, SSH and time sync" sudo systemctl enable NetworkManager sshd systemd-timesyncd fstrim.timer
+    # Reachable over SSH; everything else stays closed.
+    if command -v ufw >/dev/null; then
+      try "Turning on the firewall (SSH allowed)" bash -c '
+        sudo sed -i -e "s/^DEFAULT_INPUT_POLICY=.*/DEFAULT_INPUT_POLICY=\"DROP\"/" -e "s/^DEFAULT_OUTPUT_POLICY=.*/DEFAULT_OUTPUT_POLICY=\"ACCEPT\"/" /etc/default/ufw &&
+        sudo sed -i "s/^ENABLED=.*/ENABLED=yes/" /etc/ufw/ufw.conf &&
+        printf "\n### tuple ### allow tcp 22 0.0.0.0/0 any 0.0.0.0/0 in\n-A ufw-user-input -p tcp --dport 22 -j ACCEPT\n" | sudo tee -a /etc/ufw/user.rules >/dev/null &&
+        printf "\n### tuple ### allow tcp 22 ::/0 any ::/0 in\n-A ufw6-user-input -p tcp --dport 22 -j ACCEPT\n" | sudo tee -a /etc/ufw/user6.rules >/dev/null &&
+        sudo systemctl enable ufw'
+    fi
+    set_login_shell
+    if [[ $DISTRO -eq 1 ]]; then
+      run "Applying the an4rch OS system layer (branding, snapshots, zram)" sudo LUMEN_PATH="$LUMEN_PATH" bash "$LUMEN_PATH/install/distro.sh"
+    fi
+    return 0
+  fi
   run "Enabling NetworkManager, Bluetooth, power profiles and time sync" \
     sudo systemctl enable NetworkManager bluetooth power-profiles-daemon systemd-timesyncd fstrim.timer
   # Without a running user manager (the ISO installer's chroot), enable them
@@ -353,9 +455,7 @@ setup_system() {
   systemctl --user enable hyprpolkitagent.service >/dev/null 2>&1 ||
     sudo systemctl --global enable hyprpolkitagent.service >/dev/null 2>&1 || true
 
-  if [[ "$(getent passwd "$USER" | cut -d: -f7)" != */zsh ]]; then
-    run "Making zsh your shell" sudo chsh -s /usr/bin/zsh "$USER"
-  fi
+  set_login_shell
 
   if [[ $DISTRO -eq 1 ]]; then
     run "Applying the an4rch OS system layer (branding, snapshots, boot splash, zram)" sudo LUMEN_PATH="$LUMEN_PATH" bash "$LUMEN_PATH/install/distro.sh"
@@ -375,6 +475,14 @@ setup_system() {
     setup_greeter
   else
     info "No login screen: logging in on the first console starts an4rch (see ~/.zprofile)."
+  fi
+}
+
+set_login_shell() {
+  local want="/usr/bin/$SHELL_CHOICE"
+  [[ -x "$want" ]] || want="/bin/$SHELL_CHOICE"
+  if [[ "$(getent passwd "$USER" | cut -d: -f7)" != "$want" ]]; then
+    run "Making $SHELL_CHOICE your shell" sudo chsh -s "$want" "$USER"
   fi
 }
 
@@ -409,6 +517,11 @@ setup_greeter() {
 
 # --- 7. Look and feel --------------------------------------------------------------
 setup_look() {
+  if ((SERVER)); then
+    step "Styling"
+    ok "Server: nothing to style"
+    return 0
+  fi
   if [[ "$TITLEBARS" == yes ]]; then
     # shellcheck disable=SC2024  # the log is the user's
     try "Window title bars (the hyprbars plugin)" "$LUMEN_PATH/bin/anarch-titlebars" setup </dev/null
@@ -471,6 +584,19 @@ finish() {
     printf '  %sNotes:%s\n' "$YELLOW" "$RESET"
     printf '    • %s\n' "${WARNINGS[@]}"
     printf '\n'
+  fi
+  if ((SERVER)); then
+    cat <<EOF
+  ${BOLD}First steps${RESET}
+    ${ACCENT}anarch help${RESET}      every command
+    ${ACCENT}anarch update${RESET}    update the system (with a snapshot first)
+    ${ACCENT}anarch doctor${RESET}    check everything is healthy
+    SSH is on (the firewall allows it): ssh $USER@$(cat /etc/hostname 2>/dev/null || hostname)
+
+  Log: ${DIM}$LOG${RESET}
+
+EOF
+    return 0
   fi
   cat <<EOF
   ${BOLD}First steps${RESET}

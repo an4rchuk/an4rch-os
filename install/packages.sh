@@ -57,6 +57,19 @@ PKGS_LOOK=(
   adw-gtk-theme papirus-icon-theme
 )
 
+# The server edition (anarch-os-install --server): no desktop; the system,
+# remote access and the command-line tools an4rch's commands use.
+PKGS_SERVER=(
+  openssh ufw networkmanager
+  zsh zsh-autosuggestions zsh-syntax-highlighting starship
+  fzf ripgrep fd bat eza zoxide jq
+  btop fastfetch git curl python
+)
+PKGS_SERVER_OPTIONAL=(
+  man-db less unzip zip 7zip wget rsync tmux neovim fail2ban smartmontools
+  pacman-contrib fwupd lm_sensors
+)
+
 # Best-effort extras: nice to have, never fatal.
 PKGS_OPTIONAL=(
   man-db less unzip zip 7zip wget rsync

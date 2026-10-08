@@ -23,6 +23,9 @@ exec 3>&1 # the real terminal, for gum while output goes to the log
 # Unattended mode, for automated testing: boot the ISO with
 #   lumen.auto=1 lumen.disk=/dev/vda lumen.user=NAME lumen.pass=PASS
 #   [lumen.autologin=1] [lumen.gaming=1] [lumen.encrypt=PASSWORD] [lumen.poweroff=1]
+#   [lumen.kernel=linux|lts|zen|hardened] [lumen.shell=zsh|bash|fish]
+#   [lumen.edition=desktop|server] [lumen.apps=ID,ID…] (App Store ids)
+#   [lumen.mode=manual lumen.root=PART lumen.efi=PART [lumen.boot=PART] [lumen.formatefi=1]]
 # on the kernel command line. Progress is mirrored to the serial console.
 #
 # The graphical installer (anarch-installer) runs
@@ -47,12 +50,12 @@ fi
 title() {
   clear 2>/dev/null || true
   gum style --foreground "$ACCENT" --bold --margin "1 2" \
-    '██╗     ██╗   ██╗███╗   ███╗███████╗███╗   ██╗' \
-    '██║     ██║   ██║████╗ ████║██╔════╝████╗  ██║' \
-    '██║     ██║   ██║██╔████╔██║█████╗  ██╔██╗ ██║' \
-    '██║     ██║   ██║██║╚██╔╝██║██╔══╝  ██║╚██╗██║' \
-    '███████╗╚██████╔╝██║ ╚═╝ ██║███████╗██║ ╚████║' \
-    '╚══════╝ ╚═════╝ ╚═╝     ╚═╝╚══════╝╚═╝  ╚═══╝'
+    ' █████╗ ███╗   ██╗██╗  ██╗██████╗  ██████╗██╗  ██╗' \
+    '██╔══██╗████╗  ██║██║  ██║██╔══██╗██╔════╝██║  ██║' \
+    '███████║██╔██╗ ██║███████║██████╔╝██║     ███████║' \
+    '██╔══██║██║╚██╗██║╚════██║██╔══██╗██║     ██╔══██║' \
+    '██║  ██║██║ ╚████║     ██║██║  ██║╚██████╗██║  ██║' \
+    '╚═╝  ╚═╝╚═╝  ╚═══╝     ╚═╝╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝'
   [[ -n "${1:-}" ]] && gum style --foreground "$DIM" --margin "0 2 1" "$1"
   return 0
 }
@@ -115,6 +118,71 @@ spin() {
   gum style --foreground "#9fdc9b" "  ✓ $t"
 }
 
+# part_mb PART — a partition's size in MiB.
+part_mb() { echo $(($(lsblk -bdno SIZE "$1" 2>/dev/null || echo 0) / 1048576)); }
+
+# manual_partitions — "use partitions I've made myself": pick the partition
+# for an4rch (erased), the EFI system partition (kept unless asked), and when
+# the EFI partition is too small for the kernels (Windows' is often 100 MB),
+# a separate boot partition for them (erased).
+manual_partitions() {
+  [[ -d /sys/firmware/efi ]] || fail "Manual partitioning needs the computer started in UEFI mode."
+  local live_src live_disk parts=() line pick dev size fs root_mb efi_mb has_files
+  live_src=$(findmnt -nvo SOURCE /run/archiso/bootmnt 2>/dev/null || true)
+  live_disk=$( [[ -n "$live_src" ]] && lsblk -npo PKNAME "$live_src" 2>/dev/null | head -n1)
+  note "Make your partitions first with the partition editor (cfdisk), or with another tool before starting." \
+    "an4rch needs: one partition of 20 GB or more for itself, and an EFI system partition."
+  if gum confirm --default=false "Open the partition editor (cfdisk) now?"; then
+    mapfile -t ds < <(lsblk -dpno NAME,SIZE,MODEL,TYPE -e 7,11 | awk -v skip="${live_disk:-none}" '$NF == "disk" && $1 != skip {$NF=""; print}')
+    pick=$(printf '%s\n' "${ds[@]}" | gum choose --header "Disk to edit") || true
+    [[ -n "$pick" ]] && { cfdisk "${pick%% *}" || true; partprobe "${pick%% *}" 2>/dev/null; udevadm settle; }
+  fi
+  while IFS= read -r line; do
+    dev=${line%% *}
+    [[ -n "$live_disk" && "/dev/$(lsblk -no PKNAME "$dev" | head -n1)" == "$live_disk" ]] && continue
+    parts+=("$line")
+  done < <(lsblk -lnpo NAME,SIZE,FSTYPE,PARTLABEL,TYPE -e 7,11 | awk '$NF == "part" {$NF=""; print}' | sed 's/ *$//')
+  [[ ${#parts[@]} -ge 2 ]] || fail "Not enough partitions: an4rch needs one for itself and an EFI system partition. Make them first (cfdisk), then try again."
+
+  title "The partition for an4rch"
+  pick=$(printf '%s\n' "${parts[@]}" | gum choose --header "Choose the partition for an4rch. EVERYTHING on it will be erased.") || exit 0
+  ROOT_PART=${pick%% *}
+  root_mb=$(part_mb "$ROOT_PART")
+  ((root_mb >= 20 * 1024)) || fail "$ROOT_PART is only $((root_mb / 1024)) GB; an4rch needs at least 20 GB."
+
+  title "The EFI system partition"
+  pick=$(printf '%s\n' "${parts[@]}" | grep -v "^$ROOT_PART " | gum choose --header "Choose the EFI system partition (FAT32; Windows' one is fine)") || exit 0
+  EFI_PART=${pick%% *}
+  fs=$(lsblk -no FSTYPE "$EFI_PART" | head -n1)
+  efi_mb=$(part_mb "$EFI_PART")
+  has_files=0
+  if [[ "$fs" == vfat ]]; then
+    mkdir -p /tmp/lumen-esp && mount -o ro "$EFI_PART" /tmp/lumen-esp 2>/dev/null &&
+      { [[ -n "$(ls -A /tmp/lumen-esp/EFI 2>/dev/null)" ]] && has_files=1; umount /tmp/lumen-esp; }
+  fi
+  FORMAT_EFI=0
+  if [[ "$fs" != vfat ]]; then
+    note "$EFI_PART isn't formatted as an EFI partition yet."
+    gum confirm --default=true "Format $EFI_PART as an EFI system partition (FAT32)?" || exit 0
+    FORMAT_EFI=1
+  elif ((has_files == 0)); then
+    gum confirm --default=true "$EFI_PART is empty. Format it (FAT32)?" && FORMAT_EFI=1
+  else
+    note "$EFI_PART already has boot files (perhaps Windows'): they're kept, and an4rch's boot menu is added next to them."
+  fi
+  BOOT_PART=""
+  if ((efi_mb < 900)); then
+    title "A boot partition for an4rch"
+    note "$EFI_PART is only ${efi_mb} MB: too small for an4rch's kernels." \
+      "Choose a partition of about 1 GB for them (it will be erased), or make one first."
+    pick=$(printf '%s\n' "${parts[@]}" | grep -v -e "^$ROOT_PART " -e "^$EFI_PART " | gum choose --header "Boot partition (about 1 GB; will be erased)") || exit 0
+    BOOT_PART=${pick%% *}
+    (($(part_mb "$BOOT_PART") >= 500)) || fail "$BOOT_PART is too small for the kernels; use about 1 GB."
+  fi
+  DISK="/dev/$(lsblk -no PKNAME "$ROOT_PART" | head -n1)"
+  disk_line="$ROOT_PART (manual)"
+}
+
 # --- checks -----------------------------------------------------------------------
 [[ $EUID -eq 0 ]] || { echo "Run as root."; exit 1; }
 # Both UEFI and legacy BIOS computers are supported (see "boot loader" below).
@@ -127,13 +195,20 @@ if [[ $AUTO -eq 1 ]]; then
     curl -fsS --max-time 6 -o /dev/null https://geo.mirror.pkgbuild.com && break
     sleep 3
   done
-  DISK="${K[disk]:?lumen.disk= is required}"
+  # lumen.mode=alongside lumen.size=GB: keep Windows and put an4rch next to it.
+  # lumen.mode=manual: partitions made beforehand (root, EFI, optional boot).
+  MODE="${K[mode]:-erase}"
+  ROOT_PART="${K[root]:-}" EFI_PART="${K[efi]:-}" BOOT_PART="${K[boot]:-}" FORMAT_EFI="${K[formatefi]:-0}"
+  if [[ $MODE == manual ]]; then
+    [[ -b "$ROOT_PART" && -b "$EFI_PART" ]] || fail "Manual install: lumen.root= and lumen.efi= must be partitions."
+    DISK="${K[disk]:-/dev/$(lsblk -no PKNAME "$ROOT_PART" | head -n1)}"
+  else
+    DISK="${K[disk]:?lumen.disk= is required}"
+  fi
   disk_line="$DISK"
   keymap="${K[keymap]:-us}"
   ENCRYPT=0
   [[ -n "${K[encrypt]:-}" ]] && { ENCRYPT=1; LUKS_PASS="${K[encrypt]}"; }
-  # lumen.mode=alongside lumen.size=GB: keep Windows and put an4rch next to it.
-  MODE="${K[mode]:-erase}"
   ALONG_GB="${K[size]:-}"
   FULLNAME="${K[fullname]:-an4rch Tester}"
   USERNAME="${K[user]:-lumen}"
@@ -146,6 +221,10 @@ if [[ $AUTO -eq 1 ]]; then
   EDITOR_APP="${K[editor]:-code}"
   GAMING="${K[gaming]:-0}"
   THEME="${K[theme]:-an4rch}"
+  KERNEL="${K[kernel]:-linux}"
+  SHELL_CHOICE="${K[shell]:-zsh}"
+  EDITION="${K[edition]:-desktop}"
+  EXTRA_APPS="${K[apps]:-}"
 else
 title "Welcome! This installs an4rch OS on this computer. It only takes a few minutes."
 gum confirm --affirmative "Let's go" --negative "Not now" "Ready to begin?" || exit 0
@@ -224,8 +303,23 @@ title "Keyboard"
 keymap=$( { echo us; localectl list-keymaps | grep -vx us; } | gum filter --height 12 --placeholder "Type to search (us, uk, de, fr…)" --header "Keyboard layout") || keymap=us
 loadkeys "$keymap" 2>/dev/null || true
 
+# --- edition --------------------------------------------------------------------------
+title "What kind of install?"
+EDITION=$(gum choose --header "Choose one" \
+  "Desktop: the full an4rch desktop (recommended)" \
+  "Server: no desktop, just the system, SSH and an4rch's tools (old computers, home servers)") || exit 0
+if [[ "$EDITION" == Server* ]]; then EDITION=server; else EDITION=desktop; fi
+
 # --- disk -----------------------------------------------------------------------------
 title "Where should an4rch OS go?"
+MODE=erase ALONG_GB="" ROOT_PART="" EFI_PART="" BOOT_PART="" FORMAT_EFI=0
+how_part=$(gum choose --header "How should the disk be set up?" \
+  "Automatically: erase a disk, or go alongside Windows (recommended)" \
+  "Manually: use partitions I've made myself (advanced)") || exit 0
+if [[ "$how_part" == Manually* ]]; then
+  MODE=manual
+  manual_partitions
+else
 # The USB stick an4rch is running from isn't offered.
 live_src=$(findmnt -nvo SOURCE /run/archiso/bootmnt 2>/dev/null || true)
 live_disk=$( [[ -n "$live_src" ]] && lsblk -npo PKNAME "$live_src" 2>/dev/null | head -n1)
@@ -242,7 +336,6 @@ size_gb=$(( $(lsblk -bdno SIZE "$DISK") / 1024 / 1024 / 1024 ))
 (( size_gb >= 20 )) || fail "$DISK is only ${size_gb} GB; an4rch OS needs at least 20 GB."
 
 # A disk with Windows on it: an4rch can go alongside, keeping Windows and its files.
-MODE=erase ALONG_GB=""
 if [[ "$(anarch-disk-info "$DISK" 2>/dev/null)" == *Windows* ]]; then
   title "Windows is on this disk"
   how=$(gum choose --header "How should an4rch be installed?" \
@@ -262,6 +355,8 @@ if [[ "$(anarch-disk-info "$DISK" 2>/dev/null)" == *Windows* ]]; then
     done
     note "Back up anything important first: resizing a disk is safe, but power cuts happen."
   fi
+fi
+
 fi
 
 title "Encryption"
@@ -321,27 +416,67 @@ LOCALE=$( { echo en_US.UTF-8; grep -oE '^[a-z]{2,3}_[A-Z]{2}\.UTF-8' /usr/share/
   gum filter --height 10 --header "Language and formats" --placeholder "en_GB, de_DE, fr_FR…") || LOCALE=en_US.UTF-8
 
 # --- software ----------------------------------------------------------------------------
-title "Apps"
-BROWSER=$(gum choose --header "Web browser" firefox chromium brave zen-browser) || BROWSER=firefox
-TERMINAL_APP=$(gum choose --header "Terminal" ghostty alacritty kitty) || TERMINAL_APP=ghostty
-EDITOR_APP=$(gum choose --header "Code editor" code zed nvim) || EDITOR_APP=code
-GAMING=0
-gum confirm --default=false "Set up gaming? (Steam, Proton, GameMode, MangoHud — about 1.5 GB)" && GAMING=1
-THEME=$(ls "$LUMEN_SRC/themes" | gum choose --header "Theme (change any time later)" --selected an4rch) || THEME=an4rch
+title "The system"
+case "$(gum choose --header "Kernel (you can add others later with: anarch tune)" \
+  "linux: the latest kernel (recommended)" \
+  "lts: long-term support, changes least" \
+  "zen: tuned for desktops and gaming" \
+  "hardened: extra security (some apps, like Steam, may not run)")" in
+  lts*) KERNEL=lts ;; zen*) KERNEL=zen ;; hardened*) KERNEL=hardened ;; *) KERNEL=linux ;;
+esac
+case "$(gum choose --header "Shell (the language of the terminal)" \
+  "zsh: suggestions as you type, colours (recommended)" \
+  "bash: the classic, on every Linux" \
+  "fish: the friendliest, smart suggestions")" in
+  bash*) SHELL_CHOICE=bash ;; fish*) SHELL_CHOICE=fish ;; *) SHELL_CHOICE=zsh ;;
+esac
+BROWSER=firefox TERMINAL_APP=ghostty EDITOR_APP=code GAMING=0 THEME=an4rch EXTRA_APPS=""
+if [[ $EDITION == desktop ]]; then
+  title "Apps"
+  BROWSER=$(gum choose --header "Web browser" firefox chromium brave zen-browser) || BROWSER=firefox
+  TERMINAL_APP=$(gum choose --header "Terminal" ghostty alacritty kitty) || TERMINAL_APP=ghostty
+  EDITOR_APP=$(gum choose --header "Code editor" code zed nvim) || EDITOR_APP=code
+  gum confirm --default=false "Set up gaming? (Steam, Proton, GameMode, MangoHud — about 1.5 GB)" && GAMING=1
+  # Extra apps from the App Store's list (the same names it shows).
+  mapfile -t catalog < <(python3 -c '
+import json, sys
+for a in json.load(open(sys.argv[1]))["apps"]:
+    print(f"{a[\"name\"]}: {a[\"summary\"]}\t{a[\"id\"]}")' "$LUMEN_SRC/apps/lumen-store/catalog.json" 2>/dev/null)
+  if [[ ${#catalog[@]} -gt 0 ]]; then
+    picked=$(printf '%s\n' "${catalog[@]%%$'\t'*}" | gum choose --no-limit --height 16 \
+      --header "Extra apps (Space to tick, Enter when done; nothing ticked is fine)") || picked=""
+    while IFS= read -r line; do
+      [[ -n "$line" ]] || continue
+      for entry in "${catalog[@]}"; do
+        [[ "${entry%%$'\t'*}" == "$line" ]] && EXTRA_APPS+="${EXTRA_APPS:+,}${entry##*$'\t'}"
+      done
+    done <<<"$picked"
+  fi
+  THEME=$(ls "$LUMEN_SRC/themes" | gum choose --header "Theme (change any time later)" --selected an4rch) || THEME=an4rch
+fi
 
 # --- review ---------------------------------------------------------------------------------
 title "Ready to install"
 gum style --border rounded --border-foreground "$ACCENT" --padding "1 3" --margin "0 2" \
+  "Install:     $([[ $EDITION == server ]] && echo "Server (no desktop)" || echo Desktop)" \
   "Disk:        $disk_line$([[ $MODE == alongside ]] && echo "  ·  alongside Windows, ${ALONG_GB} GB for an4rch")" \
   "Encryption:  $([[ $ENCRYPT -eq 1 ]] && echo on || echo off)" \
   "User:        $USERNAME${FULLNAME:+ ($FULLNAME)}" \
   "Computer:    $HOSTNAME_" \
   "Time zone:   $TIMEZONE" \
   "Language:    $LOCALE · keyboard $keymap" \
-  "Apps:        $BROWSER, $TERMINAL_APP, $EDITOR_APP$([[ $GAMING -eq 1 ]] && echo ', gaming')" \
-  "Theme:       $THEME"
+  "System:      $KERNEL kernel, $SHELL_CHOICE shell" \
+  "Apps:        $([[ $EDITION == server ]] && echo "SSH, firewall, an4rch's tools" || echo "$BROWSER, $TERMINAL_APP, $EDITOR_APP$([[ $GAMING -eq 1 ]] && echo ', gaming')${EXTRA_APPS:+, }${EXTRA_APPS//,/, }")" \
+  "Theme:       $([[ $EDITION == server ]] && echo "-" || echo "$THEME")"
+if [[ $MODE == manual ]]; then
+  gum style --margin "0 2" --foreground "$DIM" \
+    "an4rch: $ROOT_PART (erased) · EFI: $EFI_PART ($([[ $FORMAT_EFI == 1 ]] && echo formatted || echo "kept, boot menu added"))${BOOT_PART:+ · boot: $BOOT_PART (erased)}"
+fi
 echo
-if [[ $MODE == alongside ]]; then
+if [[ $MODE == manual ]]; then
+  gum style --foreground "#f2777a" --bold --margin "0 2" "Everything on $ROOT_PART${BOOT_PART:+ and $BOOT_PART}$([[ $FORMAT_EFI == 1 ]] && echo " and $EFI_PART") will be permanently erased."
+  gum confirm --default=false --affirmative "Erase and install" --negative "Cancel" "Continue?" || exit 0
+elif [[ $MODE == alongside ]]; then
   gum style --foreground "#f1d38b" --bold --margin "0 2" "Windows will be shrunk to make ${ALONG_GB} GB of room. Windows and its files are kept."
   gum confirm --default=false --affirmative "Install alongside Windows" --negative "Cancel" "Continue?" || exit 0
 else
@@ -361,6 +496,13 @@ gum confirm --default=false --affirmative "Erase and install" --negative "Cancel
 fi
 
 fi
+
+# Answers from any source (questions, the graphical installer, the kernel
+# command line) end up in the same, checked form.
+case "${KERNEL:-linux}" in linux | lts | zen | hardened) ;; *) KERNEL=linux ;; esac
+case "${SHELL_CHOICE:-zsh}" in zsh | bash | fish) ;; *) SHELL_CHOICE=zsh ;; esac
+[[ "${EDITION:-desktop}" == server ]] || EDITION=desktop
+[[ "${EXTRA_APPS:-}" =~ ^[a-z0-9.,_-]*$ ]] || EXTRA_APPS=""
 
 # --- install -----------------------------------------------------------------------------------
 title "Installing an4rch OS"
@@ -419,8 +561,28 @@ offline_off() {
   rm -f "$MNT/var/lib/pacman/sync/lumen-offline.db"
   umount "$MNT/var/cache/lumen-repo" 2>/dev/null && rmdir "$MNT/var/cache/lumen-repo"
   # Keep the installed kernels' packages, for rolling back to the first snapshot.
-  cp -n "$OFFLINE"/linux-[0-9]*.pkg.tar.zst "$OFFLINE"/linux-lts-[0-9]*.pkg.tar.zst "$MNT/var/cache/pacman/pkg/" 2>/dev/null || true
+  cp -n "$OFFLINE/$KPKG"-[0-9]*.pkg.tar.zst "$OFFLINE/$FBPKG"-[0-9]*.pkg.tar.zst "$MNT/var/cache/pacman/pkg/" 2>/dev/null || true
 }
+
+# The kernels: the chosen one boots by default, and a second one (LTS, or
+# the latest when LTS was chosen) is in the boot menu in case it won't start.
+case "$KERNEL" in
+  lts) KPKG=linux-lts FBPKG=linux ;;
+  zen) KPKG=linux-zen FBPKG=linux-lts ;;
+  hardened) KPKG=linux-hardened FBPKG=linux-lts ;;
+  *) KPKG=linux FBPKG=linux-lts ;;
+esac
+if ((!NET)) && [[ ${#pac_opts[@]} -gt 0 ]] && ! compgen -G "$OFFLINE/$KPKG-[0-9]*.pkg.tar.zst" >/dev/null; then
+  note "The $KERNEL kernel needs the internet; installing the standard one (add $KERNEL later with: anarch tune)."
+  step "The $KERNEL kernel isn't on the USB stick and there's no internet: installing the standard kernel"
+  KERNEL=linux KPKG=linux FBPKG=linux-lts
+fi
+kernel_label() { case "$1" in linux-lts) echo "LTS kernel" ;; linux) echo "standard kernel" ;; *) echo "${1#linux-} kernel" ;; esac; }
+FB_ENTRY=lumen-lts.conf
+[[ $FBPKG == linux-lts ]] || FB_ENTRY=lumen-fallback.conf
+BASE_PKGS=()
+for p in "${PKGS_BASE[@]}"; do [[ $p == linux || $p == linux-lts ]] || BASE_PKGS+=("$p"); done
+BASE_PKGS+=("$KPKG" "$FBPKG")
 
 # Ranking mirrors is a nicety: if Arch's mirror status can't be reached
 # (it times out now and then), keep the mirror list the USB already has.
@@ -511,10 +673,38 @@ alongside_partition() {
   gum style --foreground "#9fdc9b" "  ✓ Added an4rch's partitions next to Windows"
 }
 
+# Manual: the partitions chosen are used as they are; the one for an4rch
+# (and the boot partition, if any) is wiped, the EFI one only if asked.
+manual_partition() {
+  local num pdisk
+  [[ $UEFI -eq 1 ]] || fail "Manual partitioning needs the computer started in UEFI mode."
+  for p in "$ROOT_PART" "$EFI_PART" ${BOOT_PART:+"$BOOT_PART"}; do
+    [[ -b "$p" ]] || fail "$p isn't a partition on this computer."
+    umount "$p" 2>/dev/null || true
+  done
+  [[ "$ROOT_PART" != "$EFI_PART" && "$ROOT_PART" != "${BOOT_PART:-none}" && "$EFI_PART" != "${BOOT_PART:-none}" ]] ||
+    fail "The partitions for an4rch, EFI and boot must be different."
+  SYS="$ROOT_PART" EFI="$EFI_PART" BOOTP="$EFI_PART"
+  wipefs -af "$ROOT_PART" >>"$LOG" 2>&1 || fail "Couldn't clear $ROOT_PART (is it in use?)."
+  if [[ -n "$BOOT_PART" ]]; then
+    BOOTP="$BOOT_PART"
+    wipefs -af "$BOOT_PART" >>"$LOG" 2>&1 || fail "Couldn't clear $BOOT_PART."
+    # Mark it as an extended boot partition, where systemd-boot looks for kernels.
+    num=$(cat "/sys/class/block/${BOOT_PART##*/}/partition" 2>/dev/null || true)
+    pdisk="/dev/$(lsblk -no PKNAME "$BOOT_PART" | head -n1)"
+    [[ -n "$num" ]] && sgdisk -t "$num:ea00" "$pdisk" >>"$LOG" 2>&1 && partprobe "$pdisk" 2>/dev/null && udevadm settle
+  fi
+  [[ "$FORMAT_EFI" == 1 ]] && { wipefs -af "$EFI_PART" >>"$LOG" 2>&1 || fail "Couldn't clear $EFI_PART."; }
+  gum style --foreground "#9fdc9b" "  ✓ Using your partitions: $ROOT_PART for an4rch"
+}
+
 if [[ $MODE == alongside ]]; then
   [[ $UEFI -eq 1 ]] || fail "Installing alongside Windows needs the computer started in UEFI mode."
   step "Installing alongside Windows"
   alongside_partition
+elif [[ $MODE == manual ]]; then
+  step "Installing on your own partitions"
+  manual_partition
 else
 spin "Partitioning $DISK" bash -c "wipefs -af '$DISK' && sgdisk -Z '$DISK' && sgdisk -n1:0:+1G -t1:ef00 -c1:EFI -n3:0:+1M -t3:ef02 -c3:BIOS -n2:0:0 -t2:8300 -c2:lumen '$DISK' && partprobe '$DISK' && udevadm settle"
 fi
@@ -529,10 +719,24 @@ if [[ $ENCRYPT -eq 1 ]]; then
 fi
 
 # Alongside Windows only an4rch's own boot partition is formatted, never
-# Windows' EFI partition.
-BOOTLABEL=EFI
-[[ $MODE == alongside ]] && BOOTLABEL=LUMENBOOT
-spin "Formatting" bash -c "mkfs.fat -F32 -n '$BOOTLABEL' '$BOOTP' && mkfs.btrfs -f -L lumen '$ROOTDEV'"
+# Windows' EFI partition. With partitions of your own, the EFI partition is
+# formatted only when you asked for it.
+BOOTLABEL=EFI SPLIT_ESP=0 FORMAT_BOOT=1
+[[ $MODE == alongside || ( $MODE == manual && -n "$BOOT_PART" ) ]] && SPLIT_ESP=1
+((SPLIT_ESP)) && BOOTLABEL=LUMENBOOT
+[[ $MODE == manual && -z "$BOOT_PART" && "$FORMAT_EFI" != 1 ]] && FORMAT_BOOT=0
+if ((FORMAT_BOOT)); then
+  spin "Formatting" bash -c "mkfs.fat -F32 -n '$BOOTLABEL' '$BOOTP' && mkfs.btrfs -f -L lumen '$ROOTDEV'"
+else
+  spin "Formatting" mkfs.btrfs -f -L lumen "$ROOTDEV"
+fi
+if [[ $MODE == manual && -n "$BOOT_PART" && "$FORMAT_EFI" == 1 ]]; then
+  spin "Formatting the EFI partition" mkfs.fat -F32 -n EFI "$EFI_PART"
+fi
+# Windows keeps the hardware clock in local time: so does an4rch next to it.
+WIN_CLOCK=0
+[[ $MODE == alongside ]] && WIN_CLOCK=1
+[[ $MODE == manual && "$(anarch-disk-info "$DISK" 2>/dev/null)" == *Windows* ]] && WIN_CLOCK=1
 
 OPTS="noatime,compress=zstd:1,space_cache=v2"
 spin "Creating btrfs subvolumes" bash -c "
@@ -546,9 +750,9 @@ spin "Creating btrfs subvolumes" bash -c "
   mount -o '$OPTS,subvol=@pkg' '$ROOTDEV' '$MNT/var/cache/pacman/pkg' &&
   mount -o '$OPTS,subvol=@snapshots' '$ROOTDEV' '$MNT/.snapshots' &&
   mount -o umask=0077 '$BOOTP' '$MNT/boot'"
-if [[ $MODE == alongside ]]; then
+if ((SPLIT_ESP)); then
   mkdir -p "$MNT/efi"
-  mount -o umask=0077 "$EFI" "$MNT/efi" || fail "Couldn't mount Windows' EFI partition."
+  mount -o umask=0077 "$EFI" "$MNT/efi" || fail "Couldn't mount the EFI partition ($EFI)."
 fi
 
 UCODE=""
@@ -564,7 +768,7 @@ printf 'KEYMAP=%s\n' "$keymap" >"$MNT/etc/vconsole.conf"
 
 BOOT_PKGS=()
 [[ $UEFI -eq 0 ]] && BOOT_PKGS=(grub)
-spin "Installing the base system" pacstrap -K "${pac_opts[@]}" "$MNT" "${PKGS_BASE[@]}" $UCODE "${BOOT_PKGS[@]}"
+spin "Installing the base system" pacstrap -K "${pac_opts[@]}" "$MNT" "${BASE_PKGS[@]}" $UCODE "${BOOT_PKGS[@]}"
 ensure_mirrors "$MNT/etc/pacman.d/mirrorlist"
 
 genfstab -U "$MNT" >>"$MNT/etc/fstab"
@@ -584,7 +788,7 @@ ESP_UUID=$(blkid -s UUID -o value "$EFI")
 step "Configuring the system"
 arch-chroot "$MNT" /bin/bash -e >>"$LOG" 2>&1 <<CHROOT || fail "System configuration failed"
 ln -sf "/usr/share/zoneinfo/$TIMEZONE" /etc/localtime
-if [[ $MODE == alongside ]]; then
+if [[ $WIN_CLOCK == 1 ]]; then
   # Windows keeps the hardware clock in local time; so does an4rch next to it,
   # or the clock would be off by hours after switching.
   printf '0.0 0 0.0\n0\nLOCAL\n' >/etc/adjtime
@@ -608,7 +812,7 @@ chmod 440 /etc/sudoers.d/10-wheel
 passwd -l root
 
 if [[ $UEFI -eq 1 ]]; then
-if [[ $MODE == alongside ]]; then
+if [[ $SPLIT_ESP == 1 ]]; then
   # Boot menu on Windows' EFI partition, kernels on an4rch's own; systemd-boot
   # lists Windows by itself.
   bootctl install --esp-path=/efi --boot-path=/boot
@@ -627,14 +831,14 @@ editor no
 LOADER
 cat >/boot/loader/entries/lumen.conf <<ENTRY
 title   an4rch OS
-linux   /vmlinuz-linux
-initrd  /initramfs-linux.img
+linux   /vmlinuz-$KPKG
+initrd  /initramfs-$KPKG.img
 options $CMDLINE
 ENTRY
-cat >/boot/loader/entries/lumen-lts.conf <<ENTRY
-title   an4rch OS (LTS kernel)
-linux   /vmlinuz-linux-lts
-initrd  /initramfs-linux-lts.img
+cat >/boot/loader/entries/$FB_ENTRY <<ENTRY
+title   an4rch OS ($(kernel_label "$FBPKG"))
+linux   /vmlinuz-$FBPKG
+initrd  /initramfs-$FBPKG.img
 options $CMDLINE
 ENTRY
 systemctl enable systemd-boot-update.service
@@ -647,12 +851,12 @@ search --no-floppy --fs-uuid --set=root $ESP_UUID
 set timeout=3
 set default=0
 menuentry "an4rch OS" {
-  linux /vmlinuz-linux $CMDLINE
-  initrd /initramfs-linux.img
+  linux /vmlinuz-$KPKG $CMDLINE
+  initrd /initramfs-$KPKG.img
 }
-menuentry "an4rch OS (LTS kernel)" {
-  linux /vmlinuz-linux-lts $CMDLINE
-  initrd /initramfs-linux-lts.img
+menuentry "an4rch OS ($(kernel_label "$FBPKG"))" {
+  linux /vmlinuz-$FBPKG $CMDLINE
+  initrd /initramfs-$FBPKG.img
 }
 GRUB
 fi
@@ -660,6 +864,10 @@ systemctl enable NetworkManager
 mkinitcpio -P
 CHROOT
 gum style --foreground "#9fdc9b" "  ✓ Configured the system and boot loader"
+# What was chosen, for later (anarch doctor, support, tests). No passwords.
+install -d "$MNT/etc/lumen"
+printf 'edition=%s\nkernel=%s\nshell=%s\nmode=%s\napps=%s\nversion=%s\n' "$EDITION" "$KERNEL" "$SHELL_CHOICE" "$MODE" "$EXTRA_APPS" \
+  "$(cat "$LUMEN_SRC/VERSION" 2>/dev/null || echo dev)" >"$MNT/etc/lumen/install.conf"
 
 # Passwords never go through the log.
 printf '%s:%s\n' "$USERNAME" "$USER_PASS" | arch-chroot "$MNT" chpasswd
@@ -689,7 +897,9 @@ spin "Copying an4rch" bash -c "mkdir -p '$MNT/home/$USERNAME/.local/share' && cp
 printf 'Defaults:%s verifypw=any, listpw=any\n%s ALL=(ALL) NOPASSWD: ALL\n' "$USERNAME" "$USERNAME" >"$MNT/etc/sudoers.d/99-lumen-install"
 chmod 440 "$MNT/etc/sudoers.d/99-lumen-install"
 
-lumen_args=(--yes --distro --no-reboot --browser "$BROWSER" --terminal "$TERMINAL_APP" --editor "$EDITOR_APP" --theme "$THEME")
+lumen_args=(--yes --distro --no-reboot --browser "$BROWSER" --terminal "$TERMINAL_APP" --editor "$EDITOR_APP" --theme "$THEME" --shell "$SHELL_CHOICE")
+[[ $EDITION == server ]] && lumen_args+=(--server)
+[[ -n "$EXTRA_APPS" ]] && lumen_args+=(--apps "$EXTRA_APPS")
 [[ $GAMING -eq 1 ]] && lumen_args+=(--gaming)
 [[ "${K[autologin]:-0}" == 1 ]] && lumen_args+=(--autologin)
 [[ "${K[taskbar]:-1}" == 1 ]] && lumen_args+=(--taskbar)
@@ -712,7 +922,7 @@ fi
 rm -f "$MNT/etc/sudoers.d/99-lumen-install"
 offline_off
 cp "$LOG" "$MNT/var/log/lumen-os-install.log" 2>/dev/null || true
-gum style --foreground "#9fdc9b" "  ✓ Installed the an4rch desktop"
+gum style --foreground "#9fdc9b" "  ✓ Installed $([[ $EDITION == server ]] && echo "an4rch (server)" || echo "the an4rch desktop")"
 
 # The keyboard layout chosen above, for the desktop and the login screen too
 # (not only the console): console keymap names → XKB layout (+ variant).
@@ -748,7 +958,7 @@ if [[ "${K[serial]:-0}" == 1 ]]; then
   # lumen.bootlts=1: start the LTS kernel by default (tests both kernels).
   if [[ "${K[bootlts]:-0}" == 1 ]]; then
     for f in "$MNT/boot/loader/loader.conf" "$MNT/efi/loader/loader.conf"; do
-      [[ -f "$f" ]] && sed -i 's/^default .*/default lumen-lts.conf/' "$f"
+      [[ -f "$f" && $FBPKG == linux-lts ]] && sed -i 's/^default .*/default lumen-lts.conf/' "$f"
     done
   fi
   sed -i '/^  linux / s/$/ console=tty0 console=ttyS0,115200/' "$MNT"/boot/grub/grub.cfg 2>/dev/null || true

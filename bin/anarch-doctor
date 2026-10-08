@@ -64,6 +64,29 @@ need() { # need CMD [package] [optional]
 
 printf '\e[1;35man4rch doctor\e[0m  %s\n' "$(cat "$LUMEN_PATH/VERSION" 2>/dev/null || echo dev)"
 
+# an4rch Server: no desktop; the system, remote access and the tools.
+if is_server; then
+  section "Server"
+  pass "an4rch Server (no desktop) · kernel $(uname -r)"
+  for c in git curl jq fzf btop "${SHELL##*/}"; do need "$c"; done
+  for s in NetworkManager sshd systemd-timesyncd; do
+    if systemctl is-active -q "$s" 2>/dev/null; then pass "$s"; else note "$s not active — sudo systemctl enable --now $s"; fi
+  done
+  if systemctl is-active -q ufw 2>/dev/null; then pass "firewall active"; else note "firewall off — sudo systemctl enable --now ufw"; fi
+  if [[ "$(findmnt -no FSTYPE / 2>/dev/null)" == btrfs ]] && has snapper && snapper -c root list >/dev/null 2>&1; then
+    pass "system snapshots (snapper)"
+  else
+    note "no system snapshots"
+  fi
+  failed=$(systemctl --failed --no-legend 2>/dev/null | awk '{print $2}' | tr '\n' ' ')
+  if [[ -z "${failed// /}" ]]; then pass "no failed services"; else note "failed services: $failed"; fi
+  used=$(df -P / | awk 'NR==2 {print int($5)}')
+  if ((used < 90)); then pass "disk ${used}% full"; else note "disk ${used}% full — free some space (anarch snapshot list, paccache -r)"; fi
+  printf '\n%s passed, %s notes, %s problems\n' "$ok" "$warn" "$bad"
+  [[ $bad -eq 0 ]]
+  exit
+fi
+
 section "Core"
 need hyprctl hyprland
 if has hyprctl && hyprctl version -j >/dev/null 2>&1; then

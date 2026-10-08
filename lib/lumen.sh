@@ -38,6 +38,9 @@ LUMEN_TASKBAR=no      # taskbar along the bottom of the screen
 # --- small helpers -------------------------------------------------------------
 has() { command -v "$1" >/dev/null 2>&1; }
 
+# is_server — installed as an4rch Server (no desktop).
+is_server() { [[ "$(cat "$LUMEN_CONFIG/edition" 2>/dev/null)" == server ]]; }
+
 die() {
   printf '\e[31m✗\e[0m %s\n' "$*" >&2
   exit 1

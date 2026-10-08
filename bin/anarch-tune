@@ -4,7 +4,8 @@
 #   anarch-tune                       pick a tweak from a menu
 #   anarch-tune status                show kernel, CPU scheduler, I/O, memory and gaming tweaks
 #   anarch-tune scheduler NAME        sched-ext CPU scheduler: bpfland, lavd, rusty, flash, off
-#   anarch-tune kernel zen|remove-zen add (or remove) the linux-zen desktop kernel as a boot entry
+#   anarch-tune kernel NAME           add a kernel to the boot menu: zen, hardened, lts or linux
+#   anarch-tune kernel remove-NAME    take it away again
 #   anarch-tune mirrors               rank Arch mirrors by speed now (and weekly from now on)
 #
 # an4rch OS already ships the low-risk tweaks (see install/distro.sh): tuned
@@ -114,39 +115,50 @@ scheduler() {
 }
 
 # --- Kernels ---------------------------------------------------------------------------
+# kernel NAME — add the zen, hardened, lts or latest kernel as a boot entry;
+# kernel remove-NAME — take it away again.
 kernel() {
-  local entries=/boot/loader/entries loader=/boot/loader/loader.conf
+  local entries=/boot/loader/entries loader=/boot/loader/loader.conf arg="${1:-}" name pkg main label
   # Installed alongside Windows, the boot menu's settings are on Windows' EFI partition.
   [[ -f /efi/loader/loader.conf ]] && loader=/efi/loader/loader.conf
-  case "${1:-}" in
-    zen)
-      add "${PKGS_TUNE_ZEN[@]}"
-      if [[ -f $entries/lumen.conf ]]; then
-        sudo sed -e 's/^title .*/title   an4rch OS (zen kernel)/' \
-          -e 's#/vmlinuz-linux$#/vmlinuz-linux-zen#' \
-          -e 's#/initramfs-linux\.img$#/initramfs-linux-zen.img#' \
-          "$entries/lumen.conf" | sudo tee "$entries/lumen-zen.conf" >/dev/null
-        say "Added \"an4rch OS (zen kernel)\" to the boot menu"
-        printf '  Make it the default? [y/N] '
-        read -r yn
-        if [[ "$yn" == [yY]* ]]; then
-          sudo sed -i 's/^default .*/default lumen-zen.conf/' "$loader"
-          echo "  Done. The regular and LTS kernels stay in the boot menu as fallbacks."
-        fi
-      else
-        say "linux-zen installed"
-        echo "  Add a boot entry for /vmlinuz-linux-zen in your boot loader to use it."
-      fi
-      ;;
-    remove-zen)
-      [[ "$(uname -r)" == *zen* ]] && die "You're running the zen kernel right now. Restart into another kernel first."
-      sudo sed -i 's/^default lumen-zen.conf/default lumen.conf/' "$loader" 2>/dev/null || true
-      sudo rm -f "$entries/lumen-zen.conf"
-      sudo pacman -Rns --noconfirm "${PKGS_TUNE_ZEN[@]}"
-      say "zen kernel removed"
-      ;;
-    *) die "usage: anarch-tune kernel zen|remove-zen" ;;
+  name=${arg#remove-}
+  case "$name" in
+    zen | hardened | lts) pkg="linux-$name" ;;
+    linux | latest) name=linux pkg=linux ;;
+    *) die "usage: anarch-tune kernel zen|hardened|lts|linux  (or remove-zen, remove-hardened, …)" ;;
   esac
+  case "$name" in lts) label="LTS kernel" ;; linux) label="standard kernel" ;; *) label="$name kernel" ;; esac
+  main=$(sed -n 's#^linux[[:space:]]*/vmlinuz-##p' "$entries/lumen.conf" 2>/dev/null)
+  if [[ "$arg" == remove-* ]]; then
+    [[ "$main" == "$pkg" ]] && die "The $label is the main one in the boot menu; it can't be removed."
+    [[ "$(uname -r)" == *"-$name"* || ( $name == linux && "$(uname -r)" == *-arch* ) ]] &&
+      die "You're running the $label right now. Restart into another kernel first."
+    sudo sed -i "s/^default lumen-$name.conf/default lumen.conf/" "$loader" 2>/dev/null || true
+    sudo rm -f "$entries/lumen-$name.conf"
+    sudo pacman -Rns --noconfirm "$pkg" "$pkg-headers" 2>/dev/null || sudo pacman -Rns --noconfirm "$pkg"
+    say "$label removed"
+    return
+  fi
+  [[ "$main" == "$pkg" ]] && { say "The $label is already the main one in the boot menu."; return; }
+  add "$pkg"
+  # NVIDIA's driver is built for each kernel: it needs the kernel's headers.
+  pacman -Qq nvidia-open-dkms >/dev/null 2>&1 && add "$pkg-headers"
+  if [[ -f $entries/lumen.conf && -n "$main" ]]; then
+    sudo sed -e "s/^title .*/title   an4rch OS ($label)/" \
+      -e "s#/vmlinuz-$main\$#/vmlinuz-$pkg#" \
+      -e "s#/initramfs-$main\\.img\$#/initramfs-$pkg.img#" \
+      "$entries/lumen.conf" | sudo tee "$entries/lumen-$name.conf" >/dev/null
+    say "Added \"an4rch OS ($label)\" to the boot menu"
+    printf '  Make it the default? [y/N] '
+    read -r yn
+    if [[ "$yn" == [yY]* ]]; then
+      sudo sed -i "s/^default .*/default lumen-$name.conf/" "$loader"
+      echo "  Done. The other kernels stay in the boot menu as fallbacks."
+    fi
+  else
+    say "$pkg installed"
+    echo "  Add a boot entry for /vmlinuz-$pkg in your boot loader to use it."
+  fi
 }
 
 # --- Mirrors ---------------------------------------------------------------------------
@@ -192,6 +204,6 @@ case "${1:-pick}" in
   scheduler) scheduler "${2:-}" ;;
   kernel) kernel "${2:-}" ;;
   mirrors) mirrors ;;
-  -h | --help | help) sed -n '2,12s/^# \{0,1\}//p' "$0" ;;
+  -h | --help | help) sed -n '2,13s/^# \{0,1\}//p' "$0" ;;
   *) die "Unknown command '$1'. See: anarch-tune --help" ;;
 esac

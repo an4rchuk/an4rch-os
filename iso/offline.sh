@@ -39,7 +39,7 @@ want=(
   "${PKGS_TOOLS[@]}" "${PKGS_FONTS[@]}" "${PKGS_LOOK[@]}" "${PKGS_OPTIONAL[@]}"
   "${PKGS_GPU_INTEL[@]}" "${PKGS_GPU_AMD[@]}" "${PKGS_GPU_NVIDIA[@]}" linux-headers linux-lts-headers
   "${PKG_FOR[firefox]}" "${PKG_FOR[ghostty]}" "${PKG_FOR[code]}"
-  "${PKGS_TITLEBARS[@]}"
+  "${PKGS_TITLEBARS[@]}" "${PKGS_SERVER[@]}" "${PKGS_SERVER_OPTIONAL[@]}" fish bash-completion
   plymouth zram-generator pacman-contrib arch-install-scripts snapper snap-pac
 )
 pacman --dbpath "$dbpath" --logfile /dev/null -Sy >/dev/null

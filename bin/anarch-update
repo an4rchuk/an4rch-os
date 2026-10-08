@@ -56,7 +56,7 @@ update_lumen() {
   echo "  Updated to $latest:"
   "${g[@]}" log --oneline --no-decorate "$before..$target" 2>/dev/null | head -n 30 | sed 's/^/  /'
   bash "$LUMEN_PATH/install/migrate.sh"
-  "$LUMEN_PATH/bin/anarch-theme" render >/dev/null || true
+  is_server || "$LUMEN_PATH/bin/anarch-theme" render >/dev/null || true
 }
 
 update_system() {

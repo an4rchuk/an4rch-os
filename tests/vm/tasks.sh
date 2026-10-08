@@ -87,6 +87,64 @@ wait_window() {
 }
 
 say "=== LUMEN-E2E-TASKS (user $u, display $wl) ==="
+
+# --- The choices made when installing (kernel, shell, edition, extra apps) --------------
+choice() { sed -n "s/^$1=//p" /etc/lumen/install.conf 2>/dev/null | head -n1; }
+k=$(choice kernel)
+case "${k:-linux}" in
+  lts) want='-lts$' ;; zen) want='-zen' ;; hardened) want='-hardened' ;; *) want='-arch[0-9]' ;;
+esac
+# Offline installs fall back to the standard kernel when the chosen one isn't on the stick.
+if uname -r | grep -qE -- "$want"; then
+  result "kernel ($k) is running" PASS "$(uname -r)"
+elif grep -q "needs the internet; installing the standard one" /var/log/lumen-os-install.log 2>/dev/null; then
+  result "kernel ($k) is running" PASS "offline: standard kernel instead ($(uname -r))"
+else
+  result "kernel ($k) is running" FAIL "$(uname -r)"
+fi
+sh_want=$(choice shell)
+sh_now=$(getent passwd "$u" | cut -d: -f7)
+if [[ "${sh_now##*/}" == "${sh_want:-zsh}" ]]; then result "login shell is ${sh_want:-zsh}" PASS; else result "login shell is ${sh_want:-zsh}" FAIL "$sh_now"; fi
+if [[ "${sh_want:-zsh}" == fish ]]; then
+  task "fish starts with an4rch's settings" runuser -u "$u" -- env HOME="$home" fish -l -c 'type -q anarch; and set -q LUMEN_PATH'
+elif [[ "${sh_want:-zsh}" == bash ]]; then
+  task "bash starts with an4rch's settings" runuser -u "$u" -- env HOME="$home" bash -ic 'type anarch >/dev/null && alias ll >/dev/null'
+fi
+apps=$(choice apps)
+if [[ -n "$apps" ]]; then
+  missing=""
+  for a in ${apps//,/ }; do
+    src=$(python3 -c '
+import json, sys
+app = next((x for x in json.load(open(sys.argv[1]))["apps"] if x["id"] == sys.argv[2]), {})
+print(" ".join(s["id"] for s in app.get("sources", [])))' "$lumen/apps/lumen-store/catalog.json" "$a")
+    found=0
+    for id in $src; do pacman -Q "$id" >/dev/null 2>&1 && found=1; flatpak info "$id" >/dev/null 2>&1 && found=1; done
+    ((found)) || missing+="$a "
+  done
+  if [[ -z "$missing" ]]; then result "extra apps installed ($apps)" PASS; else result "extra apps installed ($apps)" FAIL "missing: $missing"; fi
+fi
+if [[ "$(choice mode)" == manual ]]; then
+  task "installed on the chosen partitions" bash -c 'findmnt -no SOURCE / | grep -q "^/dev/vda[0-9]" ; lsblk -no FSTYPE "$(findmnt -no SOURCE / | sed "s/\[.*//")" | grep -q btrfs'
+fi
+
+# --- an4rch Server: no desktop; check the system, remote access and the tools -----------
+if [[ "$(choice edition)" == server ]]; then
+  say "Server install: no desktop to test"
+  if systemctl is-active -q sshd; then result "SSH server running" PASS; else result "SSH server running" FAIL; fi
+  if systemctl is-active -q ufw && grep -q 'dport 22' /etc/ufw/user.rules; then result "firewall on, SSH allowed" PASS; else result "firewall on, SSH allowed" FAIL; fi
+  if systemctl is-active -q NetworkManager; then result "NetworkManager running" PASS; else result "NetworkManager running" FAIL; fi
+  if ! systemctl is-enabled -q greetd 2>/dev/null && ! pacman -Q hyprland >/dev/null 2>&1; then result "no desktop installed" PASS; else result "no desktop installed" FAIL; fi
+  cli "anarch doctor (server)" anarch-doctor
+  cli "anarch help" anarch help
+  cli "anarch snapshot list" anarch snapshot
+  task "anarch update can reach GitHub without a login" as_user env GIT_TERMINAL_PROMPT=0 timeout 60 bash -c 'cd "$LUMEN_PATH" && for r in https://github.com/an4rchuk/an4rch-os.git https://github.com/an4rchuk/lumen-os.git; do git remote set-url origin "$r" && git fetch --quiet --tags origin 2>/dev/null && break; done && git tag -l "v*" | tail -n 3'
+  if swapon --show | grep -q zram; then result "zram swap" PASS; else result "zram swap" FAIL; fi
+  shot 30-server-console
+  say "E2E-SUMMARY $pass passed, $fail failed"
+  say "E2E-DONE"
+  exit 0
+fi
 pkill -f lumen_welcome.py
 pkill -f lumen_store.py
 sleep 2
