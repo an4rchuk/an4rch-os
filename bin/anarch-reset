@@ -1,0 +1,94 @@
+#!/usr/bin/env bash
+# anarch-reset — put the desktop back how it was after installing (like ChromeOS's Powerwash), keeping your files and apps.
+#
+#   anarch-reset            reset key bindings, look and feel, top bar, launcher,
+#                           notifications, terminals, theme, accessibility and
+#                           automatic light/dark (your default apps stay)
+#   anarch-reset --dry-run  list what would be reset
+#
+# Everything replaced is copied first to ~/.local/state/lumen/before-reset-DATE
+# (bring it back with `anarch carry` or by copying). Documents, apps, Wi-Fi,
+# accounts and vaults are not touched.
+set -euo pipefail
+source "${LUMEN_PATH:-$HOME/.local/share/lumen}/lib/lumen.sh"
+
+dry=0
+case "${1:-}" in
+  --dry-run | -n) dry=1 ;;
+  -h | --help | help) sed -n '2,11s/^# \{0,1\}//p' "$0"; exit 0 ;;
+  "") ;;
+  *) die "Unknown option '$1'. See: anarch-reset --help" ;;
+esac
+is_server && die "The server edition has no desktop to reset"
+
+cfg="${XDG_CONFIG_HOME:-$HOME/.config}"
+shell=$(basename "$(getent passwd "$USER" | cut -d: -f7)")
+
+# Pairs of "shipped file<TAB>where it lives", like the installer places them.
+targets() {
+  local f rel
+  while IFS= read -r -d '' f; do
+    rel="${f#"$LUMEN_PATH/config/"}"
+    case "$rel" in
+      # Your screens and keyboard layout (set when installing) stay.
+      hypr/monitors.lua | hypr/input.lua) ;;
+      zsh/zshrc) [[ "$shell" == zsh ]] && printf '%s\t%s\n' "$f" "$HOME/.zshrc" ;;
+      zsh/zprofile) [[ "$shell" == zsh ]] && printf '%s\t%s\n' "$f" "$HOME/.zprofile" ;;
+      bash/bashrc) [[ "$shell" == bash ]] && printf '%s\t%s\n' "$f" "$HOME/.bashrc" ;;
+      bash/bash_profile) [[ "$shell" == bash ]] && printf '%s\t%s\n' "$f" "$HOME/.bash_profile" ;;
+      fish/*) [[ "$shell" == fish ]] && printf '%s\t%s\n' "$f" "$cfg/$rel" ;;
+      *) printf '%s\t%s\n' "$f" "$cfg/$rel" ;;
+    esac
+  done < <(find "$LUMEN_PATH/config" -type f -print0 | sort -z)
+  return 0
+}
+# an4rch's own settings files, removed so the defaults apply. (settings.conf,
+# with your default apps, stays.)
+settings=("$LUMEN_CONFIG/a11y.conf" "$LUMEN_CONFIG/auto.conf")
+
+changed=()
+while IFS=$'\t' read -r src dst; do
+  cmp -s "$src" "$dst" 2>/dev/null || changed+=("$dst")
+done < <(targets)
+for f in "${settings[@]}"; do [[ -f "$f" ]] && changed+=("$f"); done
+
+if ((${#changed[@]} == 0)) && [[ "$(theme_current)" == "$DEFAULT_THEME" ]]; then
+  echo "Everything is already as it was after installing."
+  exit 0
+fi
+
+echo "These go back to how they were after installing:"
+printf '  %s\n' "${changed[@]/#$HOME/\~}"
+[[ "$(theme_current)" == "$DEFAULT_THEME" ]] || echo "  the theme ($(theme_current) → $DEFAULT_THEME)"
+((dry)) && exit 0
+
+[[ -t 0 ]] || { term --float --hold --title "Reset the desktop" -- "$0"; exit 0; }
+echo
+read -rp "Type reset to go ahead: " answer
+[[ "$answer" == reset ]] || { echo "Nothing changed."; exit 0; }
+
+backup="$LUMEN_STATE/before-reset-$(date +%Y%m%d-%H%M%S)"
+for f in "${changed[@]}"; do
+  [[ -f "$f" ]] || continue
+  mkdir -p "$backup/$(dirname "${f#"$HOME/"}")"
+  cp -p "$f" "$backup/${f#"$HOME/"}"
+done
+while IFS=$'\t' read -r src dst; do
+  mkdir -p "$(dirname "$dst")"
+  cp "$src" "$dst"
+done < <(targets)
+for a in "text reset" "cursor normal" "motion normal"; do
+  # shellcheck disable=SC2086
+  "$LUMEN_PATH/bin/anarch-a11y" $a >/dev/null 2>&1 || true
+done
+rm -f "${settings[@]}"
+# The look comes back with the default theme; a11y and auto return to their defaults.
+"$LUMEN_PATH/bin/anarch-theme" set "$DEFAULT_THEME" >/dev/null 2>&1 || true
+pkill -f 'anarch-auto daemon' 2>/dev/null || true
+if [[ -n "${HYPRLAND_INSTANCE_SIGNATURE:-}" ]]; then
+  hyprctl reload >/dev/null 2>&1 || true
+  "$LUMEN_PATH/bin/anarch-session" restart bar >/dev/null 2>&1 || true
+  "$LUMEN_PATH/bin/anarch-session" restart notifications >/dev/null 2>&1 || true
+fi
+echo
+echo "✓ Reset. What was there before is in ${backup/#$HOME/\~}"

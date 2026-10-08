@@ -391,6 +391,29 @@ if nmcli -t -f STATE general 2>/dev/null | grep -q '^connected'; then
   fi
 fi
 
+# --- Tools borrowed from other systems ------------------------------------------------------
+cli "anarch note (add a line)" anarch note "from the VM test"
+task "notes file has the line" grep -q 'from the VM test' "$home/Notes/notes.md"
+as_user anarch-note
+sleep 4
+if as_user hyprctl clients -j | jq -e '.[] | select(.class == "lumen.notes")' >/dev/null; then result "quick notes window (SUPER + ALT + K)" PASS; else result "quick notes window (SUPER + ALT + K)" FAIL "windows: $(windows | tr '\n' ' ')"; fi
+shot 19c-notes
+as_user anarch-note # hide again
+sleep 2
+if pgrep -f 'anarch-screentime daemon' >/dev/null; then result "screen time is counting" PASS; else result "screen time is counting" FAIL; fi
+sleep 35
+cli "anarch screentime" anarch screentime
+task "screen time has counted something" bash -c "ls '$home/.local/state/lumen/screentime/'*.tsv"
+cli "anarch tidy --dry-run" anarch tidy --dry-run
+cli "anarch share text (QR code)" anarch share text "https://github.com/an4rchuk/an4rch-os"
+cli "anarch auto (sunrise and sunset)" anarch auto on
+if [[ -f "$home/.config/lumen/auto.conf" ]] && pgrep -f 'anarch-auto daemon' >/dev/null; then result "light/dark follows the sun" PASS "$(as_user anarch auto | tr '\n' ' ')"; else result "light/dark follows the sun" FAIL; fi
+cli "anarch auto off" anarch auto off
+as_user anarch-theme set an4rch >/dev/null 2>&1
+as_user anarch-toggle nightlight off >/dev/null 2>&1
+cli "anarch reset --dry-run" anarch reset --dry-run
+if [[ -d /sys/class/power_supply/BAT0 || -d /sys/class/power_supply/BAT1 ]]; then cli "anarch battery limit (show)" anarch battery limit; fi
+
 # --- NVIDIA driver (installed with lumen.gpu=nvidia; this VM has no NVIDIA card) ----------
 # Without an NVIDIA card, NVIDIA's libraries must not have been pulled in.
 if ! pacman -Q nvidia-open-dkms >/dev/null 2>&1; then

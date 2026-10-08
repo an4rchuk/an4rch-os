@@ -138,6 +138,8 @@ The modifiers follow one pattern: <kbd>SUPER</kbd> alone for apps and windows, <
 | <kbd>SUPER</kbd> + <kbd>ALT</kbd> + <kbd>U</kbd> | Update the system |
 | <kbd>SUPER</kbd> + <kbd>ALT</kbd> + <kbd>R</kbd> | Screen reader on / off |
 | <kbd>SUPER</kbd> + <kbd>ALT</kbd> + <kbd>P</kbd> | Privacy (hidden MAC, encrypted DNS, tracker blocking) |
+| <kbd>SUPER</kbd> + <kbd>ALT</kbd> + <kbd>S</kbd> | Read the selected text aloud (again to stop) |
+| <kbd>SUPER</kbd> + <kbd>ALT</kbd> + <kbd>K</kbd> | Quick notes (show / hide) |
 
 ## Hardware keys (work on the lock screen too)
 

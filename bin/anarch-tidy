@@ -1,0 +1,129 @@
+#!/usr/bin/env bash
+# anarch-tidy — free up disk space safely, like Windows Storage Sense.
+#
+#   anarch-tidy             show what can go, then clean it (asks first)
+#   anarch-tidy --dry-run   only show what can go
+#   anarch-tidy --yes       clean without asking
+#   anarch-tidy auto on|off empty old Trash and stale thumbnails every month
+#
+# What goes: old package downloads (the newest copy of each is kept, so
+# rollbacks still work), the AUR build cache, packages nothing needs any
+# more, logs beyond 200 MB, crash dumps, Trash older than 30 days,
+# thumbnails not used for 90 days and unused Flatpak runtimes. Your own
+# files are never touched.
+set -uo pipefail
+source "${LUMEN_PATH:-$HOME/.local/share/lumen}/lib/lumen.sh"
+
+dry=0 yes=0 user_only=0
+for a in "$@"; do
+  case "$a" in
+    --dry-run | -n) dry=1 ;;
+    --yes | -y) yes=1 ;;
+    --user) user_only=1 ;;
+    auto) ;;
+    on | off) ;;
+    -h | --help | help) sed -n '2,13s/^# \{0,1\}//p' "$0"; exit 0 ;;
+    *) die "Unknown option '$a'. See: anarch-tidy --help" ;;
+  esac
+done
+
+data="${XDG_DATA_HOME:-$HOME/.local/share}"
+cache="${XDG_CACHE_HOME:-$HOME/.cache}"
+
+if [[ "${1:-}" == auto ]]; then
+  units="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user"
+  case "${2:-}" in
+    on)
+      mkdir -p "$units"
+      printf '[Unit]\nDescription=an4rch monthly tidy (Trash, thumbnails)\n\n[Service]\nType=oneshot\nExecStart=%s --user --yes\n' "$LUMEN_PATH/bin/anarch-tidy" >"$units/lumen-tidy.service"
+      printf '[Unit]\nDescription=an4rch monthly tidy\n\n[Timer]\nOnCalendar=monthly\nPersistent=true\nRandomizedDelaySec=1h\n\n[Install]\nWantedBy=timers.target\n' >"$units/lumen-tidy.timer"
+      systemctl --user daemon-reload && systemctl --user enable --now lumen-tidy.timer >/dev/null 2>&1
+      echo "✓ Old Trash and thumbnails are cleared every month (system caches: paccache does that already)"
+      ;;
+    off)
+      systemctl --user disable --now lumen-tidy.timer >/dev/null 2>&1
+      rm -f "$units/lumen-tidy.service" "$units/lumen-tidy.timer"
+      echo "✓ Monthly tidy off"
+      ;;
+    *) die "usage: anarch-tidy auto on|off" ;;
+  esac
+  exit 0
+fi
+
+[[ -t 0 || $yes -eq 1 || $dry -eq 1 ]] || { term --float --hold --title "Tidy up" -- "$0" "$@"; exit 0; }
+
+# saved — bytes from paccache's "(disk space saved: 120.50 MiB)".
+saved() { sed -n 's/.*disk space saved: \([0-9.]*\) \([KMGT]\)iB).*/\1\2/p; s/.*disk space saved: \([0-9.]*\) B).*/\1/p' | numfmt --from=iec 2>/dev/null | head -n1; }
+human() { numfmt --to=iec --suffix=B "${1:-0}" 2>/dev/null || echo "${1:-0} bytes"; }
+size_of() { du -sb "$@" 2>/dev/null | awk '{s += $1} END {print s+0}'; }
+
+# --- What can go --------------------------------------------------------------------
+old_trash() { # files in the Trash deleted more than 30 days ago
+  local info f when
+  for info in "$data"/Trash/info/*.trashinfo; do
+    [[ -f "$info" ]] || continue
+    when=$(sed -n 's/^DeletionDate=//p' "$info")
+    [[ -n "$when" ]] && (($(date -d "$when" +%s 2>/dev/null || echo 0) < $(date -d '-30 days' +%s))) || continue
+    f="$data/Trash/files/$(basename "$info" .trashinfo)"
+    printf '%s\0%s\0' "$info" "$f"
+  done
+}
+
+declare -A size=()
+size[trash]=$(old_trash | xargs -0r du -sbc 2>/dev/null | tail -n1 | awk '{print $1+0}')
+size[thumbs]=$(find "$cache/thumbnails" -type f -atime +90 -printf '%s\n' 2>/dev/null | awk '{s += $1} END {print s+0}')
+size[aur]=$(size_of "$cache/yay" "$cache/paru")
+orphans=()
+if ((!user_only)); then
+  mapfile -t orphans < <(pacman -Qdtq 2>/dev/null)
+  size[orphans]=0
+  ((${#orphans[@]})) && size[orphans]=$(pacman -Qi "${orphans[@]}" 2>/dev/null | awk -F': ' '/^Installed Size/ {split($2, a, " "); m = (a[2] ~ /^Ki/) ? 1024 : (a[2] ~ /^Mi/) ? 1048576 : (a[2] ~ /^Gi/) ? 1073741824 : 1; s += a[1] * m} END {printf "%d", s}')
+  size[pkgcache]=0
+  if has paccache; then
+    keep=$(paccache -dk1 2>/dev/null | saved)
+    uninst=$(paccache -duk0 2>/dev/null | saved)
+    size[pkgcache]=$((${keep:-0} + ${uninst:-0}))
+  fi
+  size[journal]=$(journalctl --disk-usage 2>/dev/null | grep -oE '[0-9.]+[KMGT]' | numfmt --from=iec 2>/dev/null || echo 0)
+  ((size[journal] > 200 * 1024 * 1024)) && size[journal]=$((size[journal] - 200 * 1024 * 1024)) || size[journal]=0
+  size[dumps]=$(size_of /var/lib/systemd/coredump)
+fi
+
+total=0
+for k in "${!size[@]}"; do total=$((total + ${size[$k]:-0})); done
+
+printf '\e[1mTidy up\e[0m  (free now: %s)\n\n' "$(df -h --output=avail / | tail -n1 | tr -d ' ')"
+row() { printf '  %-44s %10s\n' "$1" "$(human "${2:-0}")"; }
+((user_only)) || row "Old package downloads (newest kept)" "${size[pkgcache]}"
+row "AUR build cache" "${size[aur]}"
+((user_only)) || row "Packages nothing needs (${#orphans[@]})" "${size[orphans]}"
+((user_only)) || row "Logs beyond 200 MB" "${size[journal]}"
+((user_only)) || row "Crash dumps" "${size[dumps]}"
+row "Trash older than 30 days" "${size[trash]}"
+row "Thumbnails unused for 90 days" "${size[thumbs]}"
+printf '  %-44s \e[1m%10s\e[0m\n\n' "In all, about" "$(human "$total")"
+
+((dry)) && exit 0
+if ((total == 0)); then echo "Nothing to tidy."; exit 0; fi
+if ((!yes)); then
+  read -rp "Clean these up? [Y/n] " a
+  [[ "${a,,}" == n* ]] && exit 0
+fi
+
+before=$(df -B1 --output=avail / | tail -n1)
+old_trash | xargs -0r rm -rf
+find "$cache/thumbnails" -type f -atime +90 -delete 2>/dev/null
+rm -rf "$cache/yay" "$cache/paru"
+if ((!user_only)); then
+  if has paccache; then sudo paccache -qrk1; sudo paccache -qruk0; fi
+  ((${#orphans[@]})) && sudo pacman -Rns --noconfirm "${orphans[@]}" >/dev/null
+  sudo journalctl --vacuum-size=200M >/dev/null 2>&1
+  sudo find /var/lib/systemd/coredump -type f -delete 2>/dev/null
+  has flatpak && flatpak uninstall --unused -y --noninteractive >/dev/null 2>&1
+fi
+after=$(df -B1 --output=avail / | tail -n1)
+freed=$((after - before))
+((freed < 0)) && freed=0
+echo "✓ Freed $(human "$freed")"
+[[ -t 1 ]] || notify "Tidied up" "Freed $(human "$freed")" -i edit-clear -t 4000
+exit 0

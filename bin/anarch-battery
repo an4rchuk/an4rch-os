@@ -3,6 +3,9 @@
 #
 #   anarch-battery            print the charge, e.g. "84% Discharging"
 #   anarch-battery watch      warn at 20% and 10%, then suspend at 4% (started with the session)
+#   anarch-battery limit [N|off]  stop charging at N% (e.g. 80) so the battery lasts
+#                             years longer, like macOS's optimised charging; kept
+#                             across restarts. No N: show the current limit.
 #
 # Thresholds can be changed in ~/.config/lumen/settings.conf:
 #   LUMEN_BATTERY_LOW=20  LUMEN_BATTERY_CRITICAL=10  LUMEN_BATTERY_SUSPEND=4  (0 turns suspend off)
@@ -51,9 +54,46 @@ watch() {
   done
 }
 
+RULE=/etc/udev/rules.d/90-lumen-charge-limit.rules
+
+limit() {
+  local b want="${1:-}" now
+  b=$(battery) || die "No battery"
+  if [[ ! -e "$b/charge_control_end_threshold" ]]; then
+    die "This laptop's battery doesn't support a charge limit (or its driver doesn't offer it yet)"
+  fi
+  now=$(cat "$b/charge_control_end_threshold")
+  if [[ -z "$want" ]]; then
+    if [[ -f "$RULE" ]]; then echo "Charges up to $now%"; else echo "No limit (charges to $now%)"; fi
+    return
+  fi
+  [[ -t 0 ]] || { term --float --hold --title "Battery" -- "$0" limit "$want"; exit 0; }
+  if [[ "$want" == off || "$want" == 100 ]]; then
+    sudo rm -f "$RULE"
+    echo 100 | sudo tee "$b/charge_control_end_threshold" >/dev/null
+    echo "✓ No charge limit: charges to 100%"
+    return
+  fi
+  if ! [[ "$want" =~ ^[0-9]+$ ]] || ((want < 50 || want > 99)); then die "The limit is 50 to 99 (or off)"; fi
+  local name="${b##*/}" start=""
+  # Some laptops (ThinkPads) also have a start threshold that must stay below the end.
+  if [[ -e "$b/charge_control_start_threshold" ]]; then start=$((want - 5)); fi
+  {
+    echo "# an4rch: stop charging at $want% (anarch battery limit off to remove)."
+    printf 'SUBSYSTEM=="power_supply", KERNEL=="%s", ATTR{charge_control_end_threshold}="%s"' "$name" "$want"
+    [[ -n "$start" ]] && printf ', ATTR{charge_control_start_threshold}="%s"' "$start"
+    echo
+  } | sudo install -D -m644 /dev/stdin "$RULE"
+  [[ -n "$start" ]] && { echo "$start" | sudo tee "$b/charge_control_start_threshold" >/dev/null || true; }
+  echo "$want" | sudo tee "$b/charge_control_end_threshold" >/dev/null
+  echo "✓ Charging stops at $want%$([[ -n "$start" ]] && echo " and starts again below $start%")"
+  echo "  Before a trip: anarch battery limit off"
+}
+
 case "${1:-level}" in
   level) level ;;
   watch) watch ;;
-  -h | --help | help) sed -n '2,8s/^# \{0,1\}//p' "$0" ;;
+  limit) limit "${2:-}" ;;
+  -h | --help | help) sed -n '2,11s/^# \{0,1\}//p' "$0" ;;
   *) die "Unknown command '$1'. See: anarch-battery --help" ;;
 esac

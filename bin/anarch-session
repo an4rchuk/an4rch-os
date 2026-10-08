@@ -50,6 +50,11 @@ start() {
   "$LUMEN_PATH/bin/anarch-wallpaper" restore
   # Accessibility choices (text and cursor size, screen reader…).
   "$LUMEN_PATH/bin/anarch-a11y" apply &
+  # Screen time, and light/dark following the sun when that's on.
+  pgrep -f 'anarch-screentime daemon' >/dev/null || launch "$LUMEN_PATH/bin/anarch-screentime" daemon
+  if grep -qx 'ENABLED=yes' "$LUMEN_CONFIG/auto.conf" 2>/dev/null; then
+    pgrep -f 'anarch-auto daemon' >/dev/null || launch "$LUMEN_PATH/bin/anarch-auto" daemon
+  fi
   "$LUMEN_PATH/bin/anarch-login" sync >/dev/null 2>&1 &
   pgrep -fx '(/usr/bin/)?waybar' >/dev/null || launch waybar
   "$LUMEN_PATH/bin/anarch-taskbar" start

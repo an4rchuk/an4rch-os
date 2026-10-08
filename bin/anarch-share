@@ -1,0 +1,97 @@
+#!/usr/bin/env bash
+# anarch-share — get things onto a phone with its camera: scan a QR code (like Android's Quick Share and Wi-Fi sharing).
+#
+#   anarch-share FILE...    a QR code that downloads the files on any phone on
+#                           the same network (no app needed); stops when you close it
+#   anarch-share wifi       a QR code that joins this Wi-Fi network
+#   anarch-share text TEXT  a QR code of some text or a link
+#   anarch-share clipboard  a QR code of what you've copied
+#
+# Files are offered for 15 minutes at most, only on the local network, at an
+# address with a random code in it.
+set -euo pipefail
+source "${LUMEN_PATH:-$HOME/.local/share/lumen}/lib/lumen.sh"
+
+qr() {
+  if ! has qrencode; then need qrencode; fi
+  qrencode -t ANSIUTF8 -m 2 -- "$1"
+}
+
+case "${1:-}" in
+  "" | -h | --help | help) sed -n '2,11s/^# \{0,1\}//p' "$0"; exit 0 ;;
+  *) [[ -t 1 ]] || { term --float --hold --title "Share" -- "$0" "$@"; exit 0; } ;;
+esac
+
+case "$1" in
+  wifi)
+    has nmcli || die "NetworkManager isn't running"
+    ssid=$(nmcli -t -f active,ssid dev wifi 2>/dev/null | sed -n 's/^yes://p' | head -n1)
+    [[ -n "$ssid" ]] || die "Not connected to Wi-Fi"
+    # nmcli prints the QR code itself (it reads the saved password).
+    nmcli dev wifi show-password
+    exit 0
+    ;;
+  text)
+    shift
+    [[ $# -gt 0 ]] || die "usage: anarch-share text TEXT"
+    qr "$*"
+    exit 0
+    ;;
+  clipboard)
+    t=$(wl-paste --no-newline 2>/dev/null) || die "The clipboard is empty"
+    [[ -n "$t" ]] || die "The clipboard is empty"
+    ((${#t} <= 2000)) || die "That's too long for a QR code (2000 characters at most)"
+    qr "$t"
+    exit 0
+    ;;
+esac
+
+# --- Files ---------------------------------------------------------------------------
+for f in "$@"; do [[ -f "$f" ]] || die "Not a file: $f"; done
+dir=$(mktemp -d)
+code=$(head -c 12 /dev/urandom | base64 | tr -dc 'A-Za-z0-9' | head -c 12)
+mkdir -p "$dir/$code"
+: >"$dir/index.html" # nothing to see without the code
+for f in "$@"; do ln -s "$(realpath "$f")" "$dir/$code/$(basename "$f")"; done
+port=$((49152 + RANDOM % 16000))
+ip=$(ip -4 route get 1.1.1.1 2>/dev/null | sed -n 's/.* src \([0-9.]*\).*/\1/p')
+[[ -n "$ip" ]] || die "Not connected to a network"
+# This network, e.g. 192.168.1.0/24, from the address's prefix.
+cidr=$(ip -o -4 addr show 2>/dev/null | awk -v ip="$ip" '{split($4, a, "/"); if (a[1] == ip) print $4}' | head -n1)
+net=$(python3 -c 'import ipaddress, sys; print(ipaddress.ip_interface(sys.argv[1]).network)' "${cidr:-$ip/24}")
+
+opened=0
+cleanup() {
+  [[ -n "${server:-}" ]] && kill "$server" 2>/dev/null
+  ((opened)) && sudo ufw delete allow from "$net" to any port "$port" proto tcp >/dev/null 2>&1
+  rm -rf "$dir"
+}
+trap cleanup EXIT
+trap 'exit 130' INT TERM HUP
+
+# The firewall lets only this network in, only to this port, only while sharing.
+if has ufw && systemctl is-active -q ufw 2>/dev/null; then
+  echo "Opening port $port for your local network while sharing (asks for your password):"
+  sudo ufw allow from "$net" to any port "$port" proto tcp >/dev/null && opened=1
+fi
+
+# One file: link straight to it. Several: a page listing them.
+if [[ $# -eq 1 ]]; then
+  name=$(basename "$1")
+  url="http://$ip:$port/$code/$(python3 -c 'import sys, urllib.parse; print(urllib.parse.quote(sys.argv[1]))' "$name")"
+else
+  url="http://$ip:$port/$code/"
+fi
+(cd "$dir" && exec timeout 15m python3 -m http.server "$port" --bind "$ip" >/dev/null 2>&1) &
+server=$!
+sleep 0.5
+kill -0 "$server" 2>/dev/null || die "Couldn't start sharing (port $port busy?); try again"
+
+clear
+qr "$url"
+echo
+echo "Scan with your phone's camera (same Wi-Fi), or open:"
+echo "  $url"
+echo
+echo "Sharing $# file(s) for up to 15 minutes. Close this window or press Ctrl+C to stop."
+wait "$server" 2>/dev/null || true

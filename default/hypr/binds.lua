@@ -183,6 +183,8 @@ bind("SUPER + ALT + I", exec(cmd("pkg", "install")), "Install apps")
 bind("SUPER + ALT + U", exec(cmd("update")),     "Update the system")
 bind("SUPER + ALT + R", exec(cmd("a11y", "reader")), "Screen reader on / off")
 bind("SUPER + ALT + P", exec(cmd("privacy")),    "Privacy (hidden MAC, encrypted DNS, tracker blocking)")
+bind("SUPER + ALT + S", exec(cmd("say")),        "Read the selected text aloud (again to stop)")
+bind("SUPER + ALT + K", exec(cmd("note")),       "Quick notes (show / hide)")
 
 ---------------------------------------------------------------------------
 -- Hardware keys (work on the lock screen too)

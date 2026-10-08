@@ -71,7 +71,7 @@ check_space() {
   while read -r target used avail; do
     [[ -n "$target" ]] || continue
     used=${used%\%}
-    if ((used >= 95)); then warn "Space $target" "$used% full ($avail free): clean up (anarch pkg clean, empty Trash)"
+    if ((used >= 95)); then warn "Space $target" "$used% full ($avail free): clean up: anarch tidy"
     elif ((used >= 85)); then warn "Space $target" "$used% full ($avail free)"
     else good "Space $target" "$used% used, $avail free"; fi
   done < <(df -h --output=target,pcent,avail / /home 2>/dev/null | tail -n +2 | sort -u)

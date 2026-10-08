@@ -84,7 +84,7 @@ PKGS_OPTIONAL=(
   loupe mpv evince gnome-calculator gnome-disk-utility gnome-system-monitor gnome-text-editor snapshot
   flatpak fwupd pacman-contrib pciutils
   gtk4-layer-shell
-  gocryptfs mat2 smartmontools lm_sensors
+  gocryptfs mat2 smartmontools lm_sensors qrencode espeak-ng
   bibata-cursor-theme-bin
 )
 

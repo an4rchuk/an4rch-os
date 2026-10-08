@@ -2,7 +2,7 @@
 # anarch-menu — everything in one place (SUPER + ALT + SPACE).
 #
 #   anarch-menu [section]   open the menu, optionally straight at a section:
-#                          capture, toggle, style, setup, install, privacy, system, learn
+#                          capture, toggle, style, setup, install, privacy, tools, system, learn
 set -euo pipefail
 source "${LUMEN_PATH:-$HOME/.local/share/lumen}/lib/lumen.sh"
 
@@ -26,6 +26,7 @@ main_menu() {
     "󰒓  Setup" \
     "󰏗  Install" \
     "󰒃  Privacy and safety" \
+    "󰦬  Tools" \
     "󰆴  Remove" \
     "󰚰  Update" \
     "󰋗  Learn" \
@@ -39,6 +40,7 @@ main_menu() {
     *Setup) setup_menu ;;
     *Install) install_menu ;;
     *"Privacy and safety") privacy_menu ;;
+    *"  Tools") tools_menu ;;
     *Remove) "$bin/anarch-pkg" remove ;;
     *Update) "$bin/anarch-update" ;;
     *Learn) learn_menu ;;
@@ -215,6 +217,42 @@ privacy_menu() {
   esac
 }
 
+tools_menu() {
+  case $(show "Tools" \
+    "󰎚  Quick notes" \
+    "󰔊  Read selected text aloud" \
+    "󰄶  Share to a phone (QR code)" \
+    "󰖩  Share this Wi-Fi (QR code)" \
+    "󰔛  Screen time" \
+    "󰃢  Tidy up disk space" \
+    "󰂄  Battery charge limit" \
+    "󰔎  Light by day, dark at night" \
+    "󰑓  Reset the desktop") in
+    *"Quick notes") "$bin/anarch-note" ;;
+    *aloud) sleep 0.2; "$bin/anarch-say" ;;
+    *"to a phone"*)
+      f=$(ask "File to share" "$HOME/Pictures/photo.jpg") || exit 0
+      [[ -n "$f" ]] && "$bin/anarch-share" "${f/#\~/$HOME}"
+      ;;
+    *Wi-Fi*) "$bin/anarch-share" wifi ;;
+    *"Screen time") "$bin/anarch-screentime" ;;
+    *Tidy*) "$bin/anarch-tidy" ;;
+    *"charge limit")
+      n=$(printf '80%%\n90%%\nNo limit\n' | menu "Stop charging at" --lines 3 --width 30) || exit 0
+      [[ "$n" == "No limit" ]] && n=off
+      "$bin/anarch-battery" limit "${n%\%}"
+      ;;
+    *"dark at night")
+      if grep -qx 'ENABLED=yes' "$LUMEN_CONFIG/auto.conf" 2>/dev/null; then
+        "$bin/anarch-auto" off >/dev/null && notify "Light/dark: manual" "" -t 2000
+      else
+        "$bin/anarch-auto" on >/dev/null && notify "Light by day, dark at night" "$("$bin/anarch-auto" | sed -n 's/^  //p' | tr '\n' ' ')" -t 5000
+      fi
+      ;;
+    *Reset*) "$bin/anarch-reset" ;;
+  esac
+}
+
 carry_menu() {
   case $(show "Move my setup" \
     "󰁯  Save my setup to a file" \
@@ -262,6 +300,7 @@ case "${1:-}" in
   setup) setup_menu ;;
   install) install_menu ;;
   privacy) privacy_menu ;;
+  tools) tools_menu ;;
   learn) learn_menu ;;
   system) "$bin/anarch-power" ;;
   -h | --help) sed -n '2,6s/^# \{0,1\}//p' "$0" ;;

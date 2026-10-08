@@ -160,7 +160,7 @@ confirm() {
 }
 
 # --- terminal ------------------------------------------------------------------
-# term [--float] [--title TITLE] [--hold] [-- CMD...]
+# term [--float] [--class CLASS] [--title TITLE] [--hold] [-- CMD...]
 # Opens the configured terminal. --float uses the `lumen.floating` class, which
 # Hyprland centres and sizes like a dialog.
 term() {
@@ -168,6 +168,7 @@ term() {
   while [[ $# -gt 0 ]]; do
     case "$1" in
       --float) class="lumen.floating" ;;
+      --class) class="$2"; shift ;;
       --title) title="$2"; shift ;;
       --hold) hold=1 ;;
       --) shift; break ;;

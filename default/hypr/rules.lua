@@ -90,6 +90,16 @@ hl.window_rule({
     move  = { "monitor_w*0.74", "monitor_h*0.72" },
 })
 
+-- Quick notes (anarch note, SUPER + ALT + K) live on their own hidden workspace.
+hl.window_rule({
+    name  = "anarch-notes",
+    match = { class = "^(lumen\\.notes)$" },
+    workspace = "special:notes",
+    float  = true,
+    center = true,
+    size   = { "monitor_w*0.42", "monitor_h*0.6" },
+})
+
 -- Do not let the screen go to sleep while something is fullscreen.
 hl.window_rule({ name = "lumen-idle-fullscreen", match = { class = ".*" }, idle_inhibit = "fullscreen" })
 

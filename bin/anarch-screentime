@@ -1,0 +1,136 @@
+#!/usr/bin/env bash
+# anarch-screentime — how long you spend in each app, with optional daily limits (like Screen Time / Digital Wellbeing).
+#
+#   anarch-screentime              today
+#   anarch-screentime week         the last 7 days
+#   anarch-screentime limit APP MINUTES   a reminder when APP passes MINUTES a day
+#   anarch-screentime limit APP off       remove it;  `limit` alone lists them
+#   anarch-screentime off | on     stop / start counting (on by default)
+#   anarch-screentime forget       delete everything counted so far
+#
+# Counted on this computer only (~/.local/state/lumen/screentime), never
+# sent anywhere. Time with the screen locked doesn't count.
+set -uo pipefail
+source "${LUMEN_PATH:-$HOME/.local/share/lumen}/lib/lumen.sh"
+
+dir="$LUMEN_STATE/screentime"
+limits="$LUMEN_CONFIG/screentime-limits"
+mkdir -p "$dir"
+STEP=30
+
+# The friendly name of a window class (from its .desktop file when there is one).
+nice_name() {
+  local class="$1" f name
+  for f in "${XDG_DATA_HOME:-$HOME/.local/share}/applications/$class.desktop" /usr/share/applications/"$class".desktop \
+    /var/lib/flatpak/exports/share/applications/"$class".desktop; do
+    if [[ -f "$f" ]]; then
+      name=$(sed -n 's/^Name=//p' "$f" | head -n1)
+      [[ -n "$name" ]] && { echo "$name"; return; }
+    fi
+  done
+  name=${class##*.}
+  echo "${name^}"
+}
+
+daemon() {
+  exec 9>"$dir/.lock"
+  flock -n 9 || exit 0
+  local class day f warned_file
+  while sleep "$STEP"; do
+    [[ -f "$dir/.off" ]] && continue
+    pgrep -x hyprlock >/dev/null && continue
+    class=$(hyprctl activewindow -j 2>/dev/null | jq -r '.class // empty' 2>/dev/null)
+    [[ -n "$class" ]] || continue
+    day=$(date +%F)
+    f="$dir/$day.tsv"
+    printf '%s\t%s\n' "$class" "$STEP" >>"$f"
+    # Daily limits: one reminder per app per day.
+    [[ -f "$limits" ]] || continue
+    local app min used
+    while read -r app min; do
+      [[ -n "$app" && "$app" != \#* ]] || continue
+      [[ "${class,,}" == *"${app,,}"* ]] || continue
+      warned_file="$dir/.warned-$day-${app//\//_}"
+      [[ -f "$warned_file" ]] && continue
+      used=$(awk -F'\t' -v a="${app,,}" 'index(tolower($1), a) {s += $2} END {print int(s / 60)}' "$f")
+      if ((used >= min)); then
+        touch "$warned_file"
+        notify "Time limit: $(nice_name "$class")" "You've used it for $used minutes today (your limit is $min)." -u critical -i appointment-soon
+      fi
+    done <"$limits"
+  done
+}
+
+fmt() { # minutes → "1h 05m"
+  local m=$1
+  if ((m >= 60)); then printf '%dh %02dm' $((m / 60)) $((m % 60)); else printf '%dm' "$m"; fi
+}
+
+report() {
+  local days="$1" files=() i total
+  for ((i = 0; i < days; i++)); do
+    local f
+    f="$dir/$(date -d "-$i day" +%F).tsv"
+    [[ -f "$f" ]] && files+=("$f")
+  done
+  if [[ ${#files[@]} -eq 0 ]]; then
+    echo "Nothing counted yet$([[ -f "$dir/.off" ]] && echo " (counting is off: anarch screentime on)")."
+    return
+  fi
+  total=$(cat "${files[@]}" | awk -F'\t' '{s += $2} END {print int(s / 60)}')
+  printf '\e[1m%s\e[0m  %s\n\n' "$([[ $days == 1 ]] && echo Today || echo "Last $days days")" "$(fmt "$total")"
+  local max=0 class secs min bar width=28
+  while IFS=$'\t' read -r class secs; do
+    min=$((secs / 60))
+    ((max == 0)) && max=$((min > 0 ? min : 1))
+    bar=$((min * width / max))
+    ((bar == 0 && min > 0)) && bar=1
+    printf '  %-22.22s %8s  \e[35m%s\e[0m\n' "$(nice_name "$class")" "$(fmt "$min")" "$(printf '█%.0s' $(seq "$bar") 2>/dev/null)"
+  done < <(cat "${files[@]}" | awk -F'\t' '{s[$1] += $2} END {for (c in s) print c "\t" s[c]}' | sort -t$'\t' -k2,2nr | head -n 12)
+  if ((days > 1)); then
+    echo
+    printf '  Daily average: %s\n' "$(fmt $((total / ${#files[@]})))"
+  fi
+  # Keep 60 days.
+  find "$dir" -name '*.tsv' -mtime +60 -delete 2>/dev/null
+  find "$dir" -name '.warned-*' -mtime +2 -delete 2>/dev/null
+}
+
+limit() {
+  local app="${1:-}" min="${2:-}"
+  if [[ -z "$app" ]]; then
+    if [[ -s "$limits" ]]; then grep -v '^#' "$limits" | awk '{printf "  %-20s %s min a day\n", $1, $2}'; else echo "No limits set. Example: anarch screentime limit steam 120"; fi
+    return
+  fi
+  [[ "$app" =~ ^[A-Za-z0-9._-]+$ ]] || die "Give the app's name as one word, e.g. firefox"
+  mkdir -p "$LUMEN_CONFIG"
+  touch "$limits"
+  local rest
+  rest=$(awk -v a="${app,,}" 'tolower($1) != a' "$limits")
+  if [[ "$min" == off ]]; then
+    printf '%s\n' "$rest" | sed '/^$/d' >"$limits"
+    echo "✓ No limit for $app"
+    return
+  fi
+  [[ "$min" =~ ^[0-9]+$ ]] && ((min > 0)) || die "usage: anarch-screentime limit APP MINUTES|off"
+  { printf '%s\n' "$rest" | sed '/^$/d'; echo "$app $min"; } >"$limits"
+  echo "✓ A reminder when $app passes $(fmt "$min") a day"
+}
+
+case "${1:-}" in
+  "" | today)
+    [[ -t 1 ]] || { term --float --hold --title "Screen time" -- "$0"; exit 0; }
+    report 1
+    ;;
+  week)
+    [[ -t 1 ]] || { term --float --hold --title "Screen time" -- "$0" week; exit 0; }
+    report 7
+    ;;
+  daemon) daemon ;;
+  limit) limit "${2:-}" "${3:-}" ;;
+  off) touch "$dir/.off"; echo "✓ Screen time isn't counting (anarch screentime on to start again)" ;;
+  on) rm -f "$dir/.off"; echo "✓ Screen time is counting" ;;
+  forget) find "$dir" -mindepth 1 -not -name .off -not -name .lock -delete; echo "✓ Everything counted so far is deleted" ;;
+  -h | --help | help) sed -n '2,13s/^# \{0,1\}//p' "$0" ;;
+  *) die "Unknown option '$1'. See: anarch-screentime --help" ;;
+esac

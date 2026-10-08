@@ -268,12 +268,55 @@ for m in camera focus; do
   if "$root/bin/anarch-status" "$m" | jq -e 'has("text") and has("class")' >/dev/null 2>&1; then ok "anarch-status $m"; else bad "anarch-status $m: not JSON"; fi
 done
 # Every new command has --help.
-for c in privacy panic vault sandbox scrub focus health carry a11y; do
+for c in privacy panic vault sandbox scrub focus health carry a11y auto note say screentime tidy reset share; do
   if [[ -n "$("$root/bin/anarch-$c" --help 2>/dev/null | head -n1)" ]]; then :; else bad "anarch-$c --help"; fi
 done
-ok "--help for privacy, panic, vault, sandbox, scrub, focus, health, carry, a11y"
+ok "--help for privacy, panic, vault, sandbox, scrub, focus, health, carry, a11y, auto, note, say, screentime, tidy, reset, share"
 # Vault names can't escape ~/.vaults.
 if ! "$root/bin/anarch-vault" open ../../etc >/dev/null 2>&1; then ok "anarch vault rejects odd names"; else bad "anarch vault accepted '../../etc'"; fi
+
+# anarch auto: sunrise and sunset from the time zone (London in early October: ~07:10 and ~18:25).
+sun=$(sed -n "/python3 - \"\$tz\" <<'PY'/,/^PY\$/p" "$root/bin/anarch-auto" | sed '1d;$d')
+if [[ "$(TZ=Europe/London python3 - Europe/London <<<"$sun" 2>/dev/null | wc -w)" == 2 ]] &&
+  TZ=Europe/London python3 - Europe/London <<<"$sun" | grep -qE '^0[4-9]:[0-5][0-9] 1[5-9]:[0-5][0-9]$|^0[4-9]:[0-5][0-9] 2[0-2]:[0-5][0-9]$'; then
+  ok "anarch auto: sunrise $(TZ=Europe/London python3 - Europe/London <<<"$sun" | tr ' ' '/') in London today"
+else
+  bad "anarch auto: sunrise/sunset calculation"
+fi
+if "$root/bin/anarch-auto" times 07:00 19:30 >/dev/null && grep -qx 'MODE=fixed' "$HOME/.config/lumen/auto.conf" &&
+  ! "$root/bin/anarch-auto" times 25:00 19:30 >/dev/null 2>&1; then
+  ok "anarch auto: fixed times, bad times refused"
+else
+  bad "anarch auto times"
+fi
+rm -f "$HOME/.config/lumen/auto.conf"
+
+# anarch note: a line added from the command line.
+if LUMEN_NOTES="$tmp/notes.md" "$root/bin/anarch-note" buy milk >/dev/null && grep -q -- '- buy milk' "$tmp/notes.md"; then
+  ok "anarch note adds a line"
+else
+  bad "anarch note"
+fi
+
+# anarch screentime: a report from counted time, and limits.
+mkdir -p "$HOME/.local/state/lumen/screentime"
+printf 'firefox\t1800\nfirefox\t1800\ncom.mitchellh.ghostty\t600\n' >"$HOME/.local/state/lumen/screentime/$(date +%F).tsv"
+if out=$(script -qefc "$root/bin/anarch-screentime" /dev/null </dev/null) && grep -q '1h 10m' <<<"$out" && grep -qi 'firefox.*1h 00m' <<<"$out" &&
+  "$root/bin/anarch-screentime" limit firefox 60 >/dev/null && grep -qx 'firefox 60' "$HOME/.config/lumen/screentime-limits" &&
+  "$root/bin/anarch-screentime" limit firefox off >/dev/null && ! grep -q firefox "$HOME/.config/lumen/screentime-limits"; then
+  ok "anarch screentime: report and limits"
+else
+  bad "anarch screentime: $out"
+fi
+
+# anarch reset: lists changed files and changes nothing on --dry-run.
+mkdir -p "$HOME/.config/hypr" && echo '-- mine' >"$HOME/.config/hypr/bindings.lua"
+if "$root/bin/anarch-reset" --dry-run 2>/dev/null | grep -q 'hypr/bindings.lua' && grep -q mine "$HOME/.config/hypr/bindings.lua" &&
+  ! "$root/bin/anarch-reset" --dry-run 2>/dev/null | grep -q 'monitors.lua'; then
+  ok "anarch reset --dry-run (screens and keyboard kept)"
+else
+  bad "anarch reset --dry-run"
+fi
 
 printf '\n'
 if [[ $failures -eq 0 ]]; then
