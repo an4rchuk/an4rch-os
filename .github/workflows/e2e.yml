@@ -1,6 +1,6 @@
 name: e2e
 
-# End-to-end test of Lumen OS in a real virtual machine:
+# End-to-end test of an4rch OS in a real virtual machine:
 #   1. build the ISO
 #   2. boot it in QEMU (UEFI, KVM) and run the installer unattended
 #   3. boot the installed system, log in automatically and screenshot the
@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
     inputs:
       set:
-        description: "VM set: standard (5), scenarios (14) or retest (scenarios being re-checked)"
+        description: "VM set: standard (5), scenarios (14), brutal (20), features (installer choices) or retest"
         default: standard
 
 jobs:
@@ -26,6 +26,8 @@ jobs:
   e2e:
     name: e2e (${{ matrix.vm }})
     runs-on: ubuntu-24.04
+    # A known issue being investigated still runs and reports, without turning the whole run red.
+    continue-on-error: ${{ matrix.known_issue || false }}
     timeout-minutes: 300
     needs: plan
     strategy:
@@ -45,6 +47,8 @@ jobs:
       INSTALL_NIC: ${{ matrix.nonet && 'none' || 'user,model=virtio-net-pci' }}
       # Disk encryption: the password typed at the boot prompt.
       BOOT_PASS: ${{ matrix.bootpass || '' }}
+      # Partitions made before installing (manual partitioning): simple or split.
+      PREPART: ${{ matrix.prepart || '' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -76,7 +80,7 @@ jobs:
       - name: Boot the live USB (desktop with the graphical installer)
         continue-on-error: true
         run: |
-          iso=$(ls out/lumen-*.iso | head -n1)
+          iso=$(ls out/an4rch-os-*.iso | head -n1)
           label=$(blkid -o value -s LABEL "$iso")
           bsdtar -xf "$iso" arch/boot/x86_64/vmlinuz-linux arch/boot/x86_64/initramfs-linux.img
           cp /usr/share/OVMF/OVMF_VARS_4M.fd live-vars.fd
@@ -94,7 +98,7 @@ jobs:
           shot() { mon "screendump $PWD/$1.ppm"; sleep 2; python3 -c "from PIL import Image; Image.open('$1.ppm').save('$1.png')" && rm -f "$1.ppm" || true; }
           mkdir -p shots
           sleep 90;  shot shots/00a-live-installer
-          # lumen-live-check reports on the live desktop over serial (~100 s after boot).
+          # anarch-live-check reports on the live desktop over serial (~100 s after boot).
           for _ in $(seq 60); do grep -aq LUMEN-LIVE-CHECK-END live-serial.log && break; sleep 3; done
           shot shots/00b-live-installer-later
           # Make sure this VM is gone before the install VM starts (memory).
@@ -108,9 +112,9 @@ jobs:
           [ -s live-results.txt ] || echo "E2E-RESULT live: report received FAIL (no LUMEN-LIVE-CHECK on serial)" >live-results.txt
           cat live-check.log
 
-      - name: Install Lumen OS in a VM (unattended)
+      - name: Install an4rch OS in a VM (unattended)
         run: |
-          iso=$(ls out/lumen-*.iso | head -n1)
+          iso=$(ls out/an4rch-os-*.iso | head -n1)
           label=$(blkid -o value -s LABEL "$iso")
           bsdtar -xf "$iso" arch/boot/x86_64/vmlinuz-linux arch/boot/x86_64/initramfs-linux.img
           cp /usr/share/OVMF/OVMF_VARS_4M.fd vars.fd
@@ -143,6 +147,29 @@ jobs:
             sudo losetup -d "$loop"
             echo "Windows-style disk: $(wc -l <win-files.sha256) files"
             qemu-img convert -O qcow2 win.raw disk.qcow2 && rm -f win.raw
+          elif [ -n "$PREPART" ]; then
+            # Partitions made beforehand, as for "use partitions I've made myself":
+            # simple: a 1 GB EFI partition and one for an4rch; split: a small
+            # EFI partition that already holds another system's boot files, a
+            # 1 GB boot partition and one for an4rch.
+            sudo apt-get install -y -q gdisk dosfstools >/dev/null
+            truncate -s 40G man.raw
+            if [ "$PREPART" = split ]; then
+              sgdisk -n1:0:+300M -t1:ef00 -c1:"EFI system partition" -n2:0:+1G -t2:8300 -c2:boot -n3:0:0 -t3:8300 -c3:linux man.raw
+              # Formatted on the partition itself, like a real disk: written
+              # into the image file at an offset, firmware didn't recognise it.
+              loop=$(sudo losetup -fP --show man.raw)
+              sudo mkfs.fat -F32 -n SYSTEM "${loop}p1" >/dev/null
+              sudo mkdir -p /mnt/esp && sudo mount "${loop}p1" /mnt/esp
+              sudo mkdir -p /mnt/esp/EFI/Other
+              echo other-boot-loader | sudo tee /mnt/esp/EFI/Other/other.efi >/dev/null
+              sudo umount /mnt/esp
+              sudo losetup -d "$loop"
+            else
+              sgdisk -n1:0:+1G -t1:ef00 -c1:"EFI system partition" -n2:0:0 -t2:8300 -c2:linux man.raw
+            fi
+            sgdisk -p man.raw
+            qemu-img convert -O qcow2 man.raw disk.qcow2 && rm -f man.raw
           else
             qemu-img create -f qcow2 disk.qcow2 40G
           fi
@@ -184,8 +211,24 @@ jobs:
           sudo mount -o ro /dev/nbd0p1 /mnt/esp
           ls -R /mnt/esp | head -n 40
           if [ -f /mnt/esp/EFI/Microsoft/Boot/bootmgfw.efi ]; then r "Windows boot manager still there" PASS; else r "Windows boot manager still there" FAIL; fi
-          if [ -f /mnt/esp/EFI/systemd/systemd-bootx64.efi ]; then r "Lumen boot menu on the EFI partition" PASS; else r "Lumen boot menu on the EFI partition" FAIL; fi
+          if [ -f /mnt/esp/EFI/systemd/systemd-bootx64.efi ]; then r "an4rch boot menu on the EFI partition" PASS; else r "an4rch boot menu on the EFI partition" FAIL; fi
           sudo umount /mnt/esp
+          sudo qemu-nbd -d /dev/nbd0
+
+      - name: Check the partitions made beforehand (manual partitioning)
+        if: env.PREPART == 'split'
+        run: |
+          sudo modprobe nbd max_part=16
+          sudo qemu-nbd --read-only -c /dev/nbd0 disk.qcow2 && sleep 2
+          sudo sgdisk -p /dev/nbd0
+          r() { echo "E2E-RESULT manual: $1 $2 ${3:-}" | tee -a manual-results.txt; }
+          sudo mkdir -p /mnt/esp /mnt/xboot
+          sudo mount -o ro /dev/nbd0p1 /mnt/esp && sudo mount -o ro /dev/nbd0p2 /mnt/xboot
+          ls -R /mnt/esp | head -n 30
+          if [ -f /mnt/esp/EFI/Other/other.efi ]; then r "other system's boot files kept" PASS; else r "other system's boot files kept" FAIL; fi
+          if [ -f /mnt/esp/EFI/systemd/systemd-bootx64.efi ]; then r "boot menu on the EFI partition" PASS; else r "boot menu on the EFI partition" FAIL; fi
+          if ls /mnt/xboot/vmlinuz-* >/dev/null 2>&1; then r "kernels on the boot partition" PASS "$(ls /mnt/xboot | tr '\n' ' ')"; else r "kernels on the boot partition" FAIL; fi
+          sudo umount /mnt/esp /mnt/xboot
           sudo qemu-nbd -d /dev/nbd0
 
       - name: Boot the installed system and take screenshots
@@ -256,13 +299,14 @@ jobs:
           strip | grep -a -o 'E2E-RESULT.*' > results.txt || true
           cat live-results.txt >> results.txt 2>/dev/null || true
           cat dualboot-results.txt >> results.txt 2>/dev/null || true
+          cat manual-results.txt >> results.txt 2>/dev/null || true
 
       # Older computers, and USB sticks started in legacy/CSM mode, boot with
       # BIOS (SeaBIOS here): install, then start the installed disk.
       - name: Install and boot with legacy BIOS
         if: always() && matrix.bios
         run: |
-          iso=$(ls out/lumen-*.iso | head -n1)
+          iso=$(ls out/an4rch-os-*.iso | head -n1)
           [ -f "$iso" ] || exit 0
           label=$(blkid -o value -s LABEL "$iso")
           qemu-img create -f qcow2 bios.qcow2 40G
@@ -321,6 +365,14 @@ jobs:
             grep -av '^\s*$' live-clean.log 2>/dev/null | tail -n 80 || true
           fi
           echo "--- tasks ---"; head -n 800 tasks.log || true
+          # The installed system never reported back: show how far it got.
+          if ! grep -q E2E-DONE tasks.log 2>/dev/null; then
+            echo "--- installed system boot console (end) ---"
+            tr -d '\r' <boot-serial.log 2>/dev/null | sed 's/\x1b\[[0-9;?]*[a-zA-Z]//g' | grep -av '^\s*$' | tail -n 120 || true
+          fi
+          # Live USB and partition checks passing isn't enough: the installed
+          # system has to boot and run its tasks.
+          grep -q E2E-DONE tasks.log 2>/dev/null || echo "E2E-RESULT installed system booted and ran its tasks FAIL" >>results.txt
           echo
           [ -s results.txt ] || { echo "::error::No task results (the task runner never reported)"; exit 1; }
           sed -e 's/^E2E-RESULT //' results.txt | awk '{ s=($0 ~ / PASS/)?"✓":"✗"; print "  " s " " $0 }'

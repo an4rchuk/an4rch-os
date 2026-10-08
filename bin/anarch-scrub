@@ -1,0 +1,75 @@
+#!/usr/bin/env bash
+# anarch-scrub — remove hidden data (GPS location, camera, author, edit history) from photos and documents.
+#
+#   anarch-scrub FILE...           clean copies next to them (photo.cleaned.jpg)
+#   anarch-scrub --inplace FILE... clean the files themselves
+#   anarch-scrub --show FILE...    show the hidden data without changing anything
+#   anarch-scrub setup             add "Remove hidden data" to the file manager's
+#                                  right-click Scripts menu
+#
+# Works on images, PDFs, office documents, audio and video (mat2). Clean a
+# photo before you post or send it: phones store where it was taken.
+set -euo pipefail
+source "${LUMEN_PATH:-$HOME/.local/share/lumen}/lib/lumen.sh"
+
+scripts="${XDG_DATA_HOME:-$HOME/.local/share}/nautilus/scripts"
+
+setup() {
+  mkdir -p "$scripts"
+  cat >"$scripts/Remove hidden data" <<'EOF'
+#!/usr/bin/env bash
+# an4rch: clean the selected files (see `anarch scrub --help`).
+mapfile -t files <<<"$NAUTILUS_SCRIPT_SELECTED_FILE_PATHS"
+exec "${LUMEN_PATH:-$HOME/.local/share/lumen}/bin/anarch-scrub" --inplace --notify "${files[@]}"
+EOF
+  chmod +x "$scripts/Remove hidden data"
+  echo "✓ Right-click files in Files → Scripts → Remove hidden data"
+}
+
+mode=copy notify_done=0
+files=()
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    setup) setup; exit 0 ;;
+    --inplace) mode=inplace ;;
+    --show) mode=show ;;
+    --notify) notify_done=1 ;;
+    -h | --help) sed -n '2,11s/^# \{0,1\}//p' "$0"; exit 0 ;;
+    --) shift; files+=("$@"); break ;;
+    *) [[ -n "$1" ]] && files+=("$1") ;;
+  esac
+  shift
+done
+[[ ${#files[@]} -gt 0 ]] || die "usage: anarch-scrub [--inplace|--show] FILE..."
+
+if ! has mat2; then
+  [[ -t 0 ]] || { notify "Can't remove hidden data" "Install mat2 first: anarch pkg add mat2" -u critical; exit 1; }
+  need mat2
+fi
+
+case "$mode" in
+  show) exec mat2 --show "${files[@]}" ;;
+  copy) args=() ;;
+  inplace) args=(--inplace) ;;
+esac
+
+ok=0 failed=()
+for f in "${files[@]}"; do
+  [[ -f "$f" ]] || { failed+=("${f##*/} (not a file)"); continue; }
+  if mat2 "${args[@]}" "$f" >/dev/null 2>&1; then
+    ok=$((ok + 1))
+    [[ -t 1 ]] && echo "✓ ${f##*/}"
+  else
+    failed+=("${f##*/}")
+    [[ -t 1 ]] && echo "✗ ${f##*/} (this kind of file isn't supported, or it's damaged)"
+  fi
+done
+
+if ((notify_done)); then
+  if ((${#failed[@]})); then
+    notify "Hidden data removed from $ok file(s)" "Couldn't clean: ${failed[*]}" -i edit-clear
+  else
+    notify "Hidden data removed" "$ok file(s) cleaned" -i edit-clear -t 3000
+  fi
+fi
+((${#failed[@]} == 0))

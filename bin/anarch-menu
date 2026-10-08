@@ -1,0 +1,308 @@
+#!/usr/bin/env bash
+# anarch-menu — everything in one place (SUPER + ALT + SPACE).
+#
+#   anarch-menu [section]   open the menu, optionally straight at a section:
+#                          capture, toggle, style, setup, install, privacy, tools, system, learn
+set -euo pipefail
+source "${LUMEN_PATH:-$HOME/.local/share/lumen}/lib/lumen.sh"
+
+bin="$LUMEN_PATH/bin"
+
+# show TITLE ITEM... — one level of the menu; prints the chosen item.
+show() {
+  local title="$1"
+  shift
+  printf '%s\n' "$@" | menu "$title" --width 34 --lines "$#"
+}
+
+main_menu() {
+  case $(show "an4rch" \
+    "󰀻  Apps" \
+    "󰒓  Settings" \
+    "󰏓  App Store" \
+    "󰄀  Capture" \
+    "󰔡  Toggle" \
+    "󰏘  Style" \
+    "󰒓  Setup" \
+    "󰏗  Install" \
+    "󰒃  Privacy and safety" \
+    "󰦬  Tools" \
+    "󰆴  Remove" \
+    "󰚰  Update" \
+    "󰋗  Learn" \
+    "󰐥  System") in
+    *Apps) "$bin/anarch-start" ;;
+    *"  Settings") "$bin/anarch-settings" ;;
+    *"App Store") "$bin/anarch-store" ;;
+    *Capture) capture_menu ;;
+    *Toggle) toggle_menu ;;
+    *Style) style_menu ;;
+    *Setup) setup_menu ;;
+    *Install) install_menu ;;
+    *"Privacy and safety") privacy_menu ;;
+    *"  Tools") tools_menu ;;
+    *Remove) "$bin/anarch-pkg" remove ;;
+    *Update) "$bin/anarch-update" ;;
+    *Learn) learn_menu ;;
+    *System) "$bin/anarch-power" ;;
+  esac
+}
+
+capture_menu() {
+  case $(show "Capture" \
+    "󰹑  Screenshot a region" \
+    "󰖯  Screenshot the window" \
+    "󰍹  Screenshot the screen" \
+    "󰏫  Screenshot and annotate" \
+    "󰑋  Record a region" \
+    "󰕧  Record the screen" \
+    "󰕧  Record the screen with audio" \
+    "󰈋  Pick a colour" \
+    "󰊄  Copy text from screen (OCR)") in
+    *"Screenshot a region") sleep 0.2; "$bin/anarch-screenshot" region ;;
+    *"Screenshot the window") sleep 0.2; "$bin/anarch-screenshot" window ;;
+    *"Screenshot the screen") sleep 0.2; "$bin/anarch-screenshot" screen ;;
+    *"Screenshot and annotate") sleep 0.2; "$bin/anarch-screenshot" edit ;;
+    *"Record a region") "$bin/anarch-record" region ;;
+    *"Record the screen") "$bin/anarch-record" screen ;;
+    *"Record the screen with audio") "$bin/anarch-record" screen --audio ;;
+    *"Pick a colour") "$bin/anarch-pick-color" ;;
+    *OCR*) "$bin/anarch-ocr" ;;
+  esac
+}
+
+toggle_menu() {
+  case $(show "Toggle" \
+    "󰅶  Keep awake" \
+    "󰖔  Night light" \
+    "󰂛  Do Not Disturb" \
+    "󰕮  Gaps and rounding" \
+    "󰕰  Tiling / scrolling layout" \
+    "󰍜  Top bar" \
+    "󰍝  Taskbar at the bottom" \
+    "󰖯  Window title bars and buttons" \
+    "󰖰  Restore a minimised window" \
+    "󰀘  Focus session (25 min)") in
+    *awake) "$bin/anarch-toggle" idle ;;
+    *Night*) "$bin/anarch-toggle" nightlight ;;
+    *Disturb) "$bin/anarch-toggle" dnd ;;
+    *Gaps*) "$bin/anarch-toggle" gaps ;;
+    *layout) "$bin/anarch-toggle" layout ;;
+    *"Top bar") "$bin/anarch-toggle" bar ;;
+    *Taskbar*) "$bin/anarch-taskbar" toggle ;;
+    *"title bars"*) "$bin/anarch-titlebars" toggle ;;
+    *minimised*) "$bin/anarch-window" restore-menu ;;
+    *"Focus session"*) "$bin/anarch-focus" ;;
+  esac
+}
+
+style_menu() {
+  case $(show "Style" \
+    "󰏘  Theme" \
+    "󰸉  Wallpaper" \
+    "󰸉  Next wallpaper" \
+    "󰏫  Edit look and feel" \
+    "󰙵  Edit top bar" \
+    "󰈙  Make my own theme" \
+    "󰇚  Install a theme from git") in
+    *"  Theme") "$bin/anarch-theme" ;;
+    *"Next wallpaper") "$bin/anarch-wallpaper" next ;;
+    *"  Wallpaper") "$bin/anarch-wallpaper" pick ;;
+    *"look and feel") edit "$HOME/.config/hypr/looks.lua" ;;
+    *"top bar") edit "$HOME/.config/waybar/config.jsonc" "$HOME/.config/waybar/style.css" ;;
+    *"from git")
+      url=$(ask "Theme git URL" "https://github.com/someone/anarch-theme") || exit 0
+      [[ -n "$url" ]] && term --float --hold --title "Install theme" -- "$bin/anarch-theme" install "$url"
+      ;;
+    *"own theme")
+      name=$(ask "Theme name" "my-theme") || exit 0
+      [[ -n "$name" ]] || exit 0
+      slug=$(tr '[:upper:] ' '[:lower:]-' <<<"$name" | tr -cd 'a-z0-9-')
+      "$bin/anarch-theme" new "$slug" >/dev/null
+      edit "$LUMEN_CONFIG/themes/$slug/theme.conf"
+      notify "Theme '$slug' created" "Edit the colours, save, then: anarch-theme set $slug" -i preferences-desktop-theme
+      ;;
+  esac
+}
+
+setup_menu() {
+  case $(show "Setup" \
+    "󰖩  Wi-Fi" \
+    "󰂯  Bluetooth" \
+    "󰕾  Audio mixer" \
+    "󰓃  Audio output" \
+    "󰍹  Displays" \
+    "󰾅  Power profile" \
+    "󰌌  Keyboard layout" \
+    "󰥔  Time zone" \
+    "󰊴  Gaming" \
+    "󰐱  Extras (streaming, RGB, Android, VMs…)" \
+    "󰓅  Performance tuning" \
+    "󰁯  Snapshots and rollback" \
+    "󰈷  Fingerprint login" \
+    "󰐪  Printers" \
+    "󰏘  Default apps" \
+    "󰒓  an4rch settings" \
+    "󰈙  Edit key bindings" \
+    "󰗅  Accessibility" \
+    "󰁯  Move my setup elsewhere" \
+    "󰩟  Health check" \
+    "󰓙  Computer health" \
+    "󰍹  Hardware report") in
+    *Wi-Fi) "$bin/anarch-wifi" ;;
+    *Bluetooth) "$bin/anarch-bluetooth" ;;
+    *"Audio mixer") "$bin/anarch-audio" mixer ;;
+    *"Audio output") "$bin/anarch-audio" output ;;
+    *Displays) "$bin/anarch-display" ;;
+    *"Power profile") "$bin/anarch-power-profile" ;;
+    *Keyboard*) "$bin/anarch-setup" keyboard ;;
+    *"Time zone") "$bin/anarch-setup" timezone ;;
+    *Gaming) "$bin/anarch-gaming" ;;
+    *Extras*) "$bin/anarch-extras" ;;
+    *Performance*) "$bin/anarch-tune" ;;
+    *Snapshots*) "$bin/anarch-snapshot" menu ;;
+    *Fingerprint*) term --float --hold -- "$bin/anarch-setup" fingerprint ;;
+    *Printers) term --float --hold -- "$bin/anarch-setup" printing ;;
+    *"Default apps") "$bin/anarch-setup" defaults ;;
+    *"an4rch settings") "$bin/anarch-settings" ;;
+    *"key bindings") edit "$HOME/.config/hypr/bindings.lua" ;;
+    *Accessibility) "$bin/anarch-a11y" menu ;;
+    *"setup elsewhere") carry_menu ;;
+    *"Computer health") "$bin/anarch-health" ;;
+    *"Health check") term --float --hold --title "an4rch doctor" -- "$bin/anarch-doctor" ;;
+    *"Hardware report") term --float --hold --title "Hardware report" -- "$bin/anarch-doctor" hardware ;;
+  esac
+}
+
+install_menu() {
+  case $(show "Install" \
+    "󰏓  App Store" \
+    "󰏗  Search all packages" \
+    "󰏓  Popular apps" \
+    "󰏖  Flatpak apps" \
+    "󰖟  Web app (website as an app)" \
+    "󰅩  Development environment" \
+    "󰊠  Development tools bundle" \
+    "󰊴  Gaming") in
+    *"App Store") "$bin/anarch-store" ;;
+    *"Search all"*) "$bin/anarch-pkg" install ;;
+    *Popular*) "$bin/anarch-pkg" popular ;;
+    *Flatpak*) "$bin/anarch-pkg" flatpak ;;
+    *"Web app"*) "$bin/anarch-webapp" add ;;
+    *"Development environment") "$bin/anarch-dev" ;;
+    *"Development tools"*) "$bin/anarch-pkg" bundle dev ;;
+    *"  Gaming") "$bin/anarch-gaming" ;;
+  esac
+}
+
+privacy_menu() {
+  case $(show "Privacy and safety" \
+    "󰒃  Privacy settings" \
+    "󰌾  Vaults (encrypted folders)" \
+    "󰒘  Run an app sandboxed" \
+    "󰖟  Browser that forgets" \
+    "󰃢  Remove hidden data" \
+    "󱐋  Panic: hide and lock now") in
+    *"Privacy settings") "$bin/anarch-privacy" menu ;;
+    *Vaults*) "$bin/anarch-vault" menu ;;
+    *"Run an app sandboxed") "$bin/anarch-sandbox" ;;
+    *"Browser that forgets") "$bin/anarch-sandbox" browser ;;
+    *"hidden data"*)
+      # Cleaning is a right-click in Files (the script is added if it's missing).
+      [[ -x "${XDG_DATA_HOME:-$HOME/.local/share}/nautilus/scripts/Remove hidden data" ]] || "$bin/anarch-scrub" setup >/dev/null
+      notify "Remove hidden data" "Select files, then right-click → Scripts → Remove hidden data" -i edit-clear -t 8000
+      launch "$LUMEN_FILES" "$HOME/Pictures"
+      ;;
+    *Panic*) sleep 0.2; "$bin/anarch-panic" ;;
+  esac
+}
+
+tools_menu() {
+  case $(show "Tools" \
+    "󰎚  Quick notes" \
+    "󰔊  Read selected text aloud" \
+    "󰄶  Share to a phone (QR code)" \
+    "󰖩  Share this Wi-Fi (QR code)" \
+    "󰔛  Screen time" \
+    "󰃢  Tidy up disk space" \
+    "󰂄  Battery charge limit" \
+    "󰔎  Light by day, dark at night" \
+    "󰑓  Reset the desktop") in
+    *"Quick notes") "$bin/anarch-note" ;;
+    *aloud) sleep 0.2; "$bin/anarch-say" ;;
+    *"to a phone"*)
+      f=$(ask "File to share" "$HOME/Pictures/photo.jpg") || exit 0
+      [[ -n "$f" ]] && "$bin/anarch-share" "${f/#\~/$HOME}"
+      ;;
+    *Wi-Fi*) "$bin/anarch-share" wifi ;;
+    *"Screen time") "$bin/anarch-screentime" ;;
+    *Tidy*) "$bin/anarch-tidy" ;;
+    *"charge limit")
+      n=$(printf '80%%\n90%%\nNo limit\n' | menu "Stop charging at" --lines 3 --width 30) || exit 0
+      [[ "$n" == "No limit" ]] && n=off
+      "$bin/anarch-battery" limit "${n%\%}"
+      ;;
+    *"dark at night")
+      if grep -qx 'ENABLED=yes' "$LUMEN_CONFIG/auto.conf" 2>/dev/null; then
+        "$bin/anarch-auto" off >/dev/null && notify "Light/dark: manual" "" -t 2000
+      else
+        "$bin/anarch-auto" on >/dev/null && notify "Light by day, dark at night" "$("$bin/anarch-auto" | sed -n 's/^  //p' | tr '\n' ' ')" -t 5000
+      fi
+      ;;
+    *Reset*) "$bin/anarch-reset" ;;
+  esac
+}
+
+carry_menu() {
+  case $(show "Move my setup" \
+    "󰁯  Save my setup to a file" \
+    "󰋺  Bring in a setup from a file") in
+    *Save*) term --float --hold --title "Save my setup" -- "$bin/anarch-carry" export ;;
+    *"Bring in"*)
+      f=$(ask "Setup file" "$HOME/an4rch-carry-….tar.gz") || exit 0
+      [[ -n "$f" ]] && term --float --hold --title "Bring in a setup" -- "$bin/anarch-carry" import "${f/#\~/$HOME}"
+      ;;
+  esac
+}
+
+learn_menu() {
+  case $(show "Learn" \
+    "󰌌  Key bindings" \
+    "󰈙  an4rch manual" \
+    "󰖟  Hyprland wiki" \
+    "󰣇  Arch Wiki" \
+    "󰋑  Welcome tour" \
+    "󰋼  About this computer") in
+    *"Key bindings") "$bin/anarch-keys" ;;
+    *manual) "$bin/anarch-manual" ;;
+    *Hyprland*) launch xdg-open "https://wiki.hypr.land/" ;;
+    *Arch*) launch xdg-open "https://wiki.archlinux.org/" ;;
+    *"Welcome tour") "$bin/anarch-welcome" ;;
+    *About*) term --float --hold --title "About" -- bash -c 'fastfetch; echo; printf "an4rch %s\n" "$(cat "$LUMEN_PATH/VERSION" 2>/dev/null)"' ;;
+  esac
+}
+
+# edit FILE... — open config files in the configured editor.
+edit() {
+  local f
+  for f in "$@"; do [[ -e "$f" ]] || { mkdir -p "$(dirname "$f")"; touch "$f"; }; done
+  case "$LUMEN_EDITOR" in
+    nvim | vim | hx | helix | nano) term -- "$LUMEN_EDITOR" "$@" ;;
+    *) launch "$LUMEN_EDITOR" "$@" ;;
+  esac
+}
+
+case "${1:-}" in
+  "") main_menu ;;
+  capture) capture_menu ;;
+  toggle) toggle_menu ;;
+  style) style_menu ;;
+  setup) setup_menu ;;
+  install) install_menu ;;
+  privacy) privacy_menu ;;
+  tools) tools_menu ;;
+  learn) learn_menu ;;
+  system) "$bin/anarch-power" ;;
+  -h | --help) sed -n '2,6s/^# \{0,1\}//p' "$0" ;;
+  *) die "Unknown section '$1'" ;;
+esac

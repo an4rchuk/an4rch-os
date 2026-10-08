@@ -1,0 +1,12 @@
+{
+  "include": [
+    {"vm": "f-server-bash", "install": "lumen.edition=server lumen.shell=bash"},
+    {"vm": "f-fish-zen-apps", "install": "lumen.shell=fish lumen.kernel=zen lumen.apps=vlc,keepassxc,flatseal"},
+    {"vm": "f-lts-bash-gimp", "install": "lumen.kernel=lts lumen.shell=bash lumen.apps=gimp"},
+    {"vm": "f-hardened", "install": "lumen.kernel=hardened"},
+    {"vm": "f-manual-simple", "prepart": "simple", "install": "lumen.mode=manual lumen.root=/dev/vda2 lumen.efi=/dev/vda1 lumen.formatefi=1"},
+    {"vm": "f-manual-split", "prepart": "split", "install": "lumen.mode=manual lumen.root=/dev/vda3 lumen.efi=/dev/vda1 lumen.boot=/dev/vda2"},
+    {"vm": "f-manual-encrypted", "prepart": "simple", "install": "lumen.mode=manual lumen.root=/dev/vda2 lumen.efi=/dev/vda1 lumen.formatefi=1 lumen.encrypt=lumenpass1", "bootpass": "lumenpass1"},
+    {"vm": "f-offline-server-fish-zen", "nonet": true, "install": "lumen.edition=server lumen.shell=fish lumen.kernel=zen"}
+  ]
+}

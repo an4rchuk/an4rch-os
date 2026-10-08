@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Run after `lumen-update` pulls a new version.
+# Run after `anarch-update` pulls a new version.
 #
 #   - installs config files that are new in this version (existing files are
 #     never touched — they're yours)
@@ -20,13 +20,17 @@ if [[ "${1:-}" == --mark-all ]]; then
   exit 0
 fi
 
-# New config files only.
+# New config files only. A server (no desktop) gets only shell settings;
+# bash and fish settings are set up by the installer for those who chose them.
+server=0
+[[ "$(cat "${XDG_CONFIG_HOME:-$HOME/.config}/lumen/edition" 2>/dev/null)" == server ]] && server=1
 while IFS= read -r -d '' f; do
   rel="${f#"$LUMEN_PATH/config/"}"
   case "$rel" in
     zsh/zshrc) dest="$HOME/.zshrc" ;;
     zsh/zprofile) dest="$HOME/.zprofile" ;;
-    *) dest="$HOME/.config/$rel" ;;
+    bash/* | fish/*) continue ;;
+    *) ((server)) && continue; dest="$HOME/.config/$rel" ;;
   esac
   if [[ ! -e "$dest" ]]; then
     mkdir -p "$(dirname "$dest")"
@@ -35,12 +39,14 @@ while IFS= read -r -d '' f; do
   fi
 done < <(find "$LUMEN_PATH/config" -type f -print0)
 
-# Launchers and icons for Lumen's own apps are managed by Lumen: always refresh.
+# Launchers and icons for an4rch's own apps are managed by an4rch: always refresh.
 data="${XDG_DATA_HOME:-$HOME/.local/share}"
+if ((server)); then mkdir -p "$data"; else
 mkdir -p "$data/applications" "$data/icons/hicolor/scalable/apps"
 cp "$LUMEN_PATH"/share/applications/*.desktop "$data/applications/"
 cp "$LUMEN_PATH"/share/icons/hicolor/scalable/apps/*.svg "$data/icons/hicolor/scalable/apps/"
 update-desktop-database -q "$data/applications" 2>/dev/null || true
+fi
 
 for m in "$LUMEN_PATH"/install/migrations/*.sh; do
   [[ -f "$m" ]] || continue

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Lumen Start — the app menu that opens when you tap the Windows (Super) key.
+"""an4rch Start — the app menu that opens when you tap the Windows (Super) key.
 
-Runs as a small background service so it appears instantly: `lumen-start`
+Runs as a small background service so it appears instantly: `anarch-start`
 toggles it over D-Bus. Pinned apps, recently used apps, all apps A–Z, and a
 search that also finds settings, does maths and searches the web.
 """
@@ -60,35 +60,35 @@ DEFAULT_PINS = [
 
 # Settings and actions reachable from search: (title, keywords, icon, command).
 ACTIONS = [
-    ("Settings", "settings preferences control panel customise customize options", "emblem-system-symbolic", ["lumen-settings"]),
-    ("Windows and effects", "gaps rounding corners border blur shadows animations transparency opacity", "preferences-system-windows-symbolic", ["lumen-settings", "windows"]),
-    ("Mouse and touchpad", "mouse touchpad pointer speed tap click scroll natural", "input-mouse-symbolic", ["lumen-settings", "input"]),
-    ("Default apps", "default browser terminal editor files apps", "applications-other-symbolic", ["lumen-settings", "apps"]),
-    ("About this computer", "about system info memory processor graphics storage version", "computer-symbolic", ["lumen-settings", "system"]),
-    ("Wi-Fi", "wifi wireless network internet", "network-wireless-symbolic", ["lumen-wifi"]),
-    ("Bluetooth", "bluetooth headphones pair", "bluetooth-symbolic", ["lumen-bluetooth"]),
-    ("Sound", "audio volume speaker microphone output", "audio-volume-high-symbolic", ["lumen-audio"]),
-    ("Displays", "display monitor screen resolution scale", "video-display-symbolic", ["lumen-display"]),
-    ("Theme", "theme colours colors appearance dark light", "applications-graphics-symbolic", ["lumen-theme"]),
-    ("Wallpaper", "wallpaper background", "image-x-generic-symbolic", ["lumen-wallpaper", "pick"]),
-    ("Power profile", "power battery performance saver", "battery-good-symbolic", ["lumen-power-profile"]),
-    ("Keyboard layout", "keyboard layout language input", "input-keyboard-symbolic", ["lumen-setup", "keyboard"]),
-    ("Time zone", "time zone clock date", "preferences-system-time-symbolic", ["lumen-setup", "timezone"]),
-    ("Update system", "update upgrade software", "software-update-available-symbolic", ["lumen-update"]),
-    ("App Store", "store install apps software games", "system-software-install-symbolic", ["lumen-store"]),
-    ("System snapshots", "snapshot backup restore rollback undo", "document-revert-symbolic", ["lumen-snapshot", "menu"]),
-    ("Gaming setup", "games steam gaming controller", "input-gaming-symbolic", ["lumen-gaming"]),
-    ("Extras", "extras sunshine stream moonlight decky rgb openrgb lact gpu waydroid android distrobox virtual machine vm tailscale handheld controller", "list-add-symbolic", ["lumen-extras"]),
-    ("Performance tuning", "performance tune cpu scheduler sched-ext kernel zen mirrors speed", "power-profile-performance-symbolic", ["lumen-tune"]),
-    ("Development environment", "development dev programming node python go rust ruby java docker postgres mysql redis database mise", "applications-engineering-symbolic", ["lumen-dev"]),
-    ("Key bindings", "keys shortcuts keyboard help", "preferences-desktop-keyboard-shortcuts-symbolic", ["lumen-keys"]),
-    ("Lumen manual", "help manual docs guide", "help-browser-symbolic", ["lumen-manual"]),
-    ("Taskbar", "taskbar bottom bar dock windows panel", "view-app-grid-symbolic", ["lumen-taskbar", "toggle"]),
-    ("Window title bars", "title bars window buttons close minimise minimize maximise maximize decorations", "window-new-symbolic", ["lumen-titlebars", "toggle"]),
-    ("Night light", "night light warm blue", "weather-clear-night-symbolic", ["lumen-toggle", "nightlight"]),
-    ("Do Not Disturb", "notifications dnd quiet", "notifications-disabled-symbolic", ["lumen-toggle", "dnd"]),
+    ("Settings", "settings preferences control panel customise customize options", "emblem-system-symbolic", ["anarch-settings"]),
+    ("Windows and effects", "gaps rounding corners border blur shadows animations transparency opacity", "preferences-system-windows-symbolic", ["anarch-settings", "windows"]),
+    ("Mouse and touchpad", "mouse touchpad pointer speed tap click scroll natural", "input-mouse-symbolic", ["anarch-settings", "input"]),
+    ("Default apps", "default browser terminal editor files apps", "applications-other-symbolic", ["anarch-settings", "apps"]),
+    ("About this computer", "about system info memory processor graphics storage version", "computer-symbolic", ["anarch-settings", "system"]),
+    ("Wi-Fi", "wifi wireless network internet", "network-wireless-symbolic", ["anarch-wifi"]),
+    ("Bluetooth", "bluetooth headphones pair", "bluetooth-symbolic", ["anarch-bluetooth"]),
+    ("Sound", "audio volume speaker microphone output", "audio-volume-high-symbolic", ["anarch-audio"]),
+    ("Displays", "display monitor screen resolution scale", "video-display-symbolic", ["anarch-display"]),
+    ("Theme", "theme colours colors appearance dark light", "applications-graphics-symbolic", ["anarch-theme"]),
+    ("Wallpaper", "wallpaper background", "image-x-generic-symbolic", ["anarch-wallpaper", "pick"]),
+    ("Power profile", "power battery performance saver", "battery-good-symbolic", ["anarch-power-profile"]),
+    ("Keyboard layout", "keyboard layout language input", "input-keyboard-symbolic", ["anarch-setup", "keyboard"]),
+    ("Time zone", "time zone clock date", "preferences-system-time-symbolic", ["anarch-setup", "timezone"]),
+    ("Update system", "update upgrade software", "software-update-available-symbolic", ["anarch-update"]),
+    ("App Store", "store install apps software games", "system-software-install-symbolic", ["anarch-store"]),
+    ("System snapshots", "snapshot backup restore rollback undo", "document-revert-symbolic", ["anarch-snapshot", "menu"]),
+    ("Gaming setup", "games steam gaming controller", "input-gaming-symbolic", ["anarch-gaming"]),
+    ("Extras", "extras sunshine stream moonlight decky rgb openrgb lact gpu waydroid android distrobox virtual machine vm tailscale handheld controller", "list-add-symbolic", ["anarch-extras"]),
+    ("Performance tuning", "performance tune cpu scheduler sched-ext kernel zen mirrors speed", "power-profile-performance-symbolic", ["anarch-tune"]),
+    ("Development environment", "development dev programming node python go rust ruby java docker postgres mysql redis database mise", "applications-engineering-symbolic", ["anarch-dev"]),
+    ("Key bindings", "keys shortcuts keyboard help", "preferences-desktop-keyboard-shortcuts-symbolic", ["anarch-keys"]),
+    ("an4rch manual", "help manual docs guide", "help-browser-symbolic", ["anarch-manual"]),
+    ("Taskbar", "taskbar bottom bar dock windows panel", "view-app-grid-symbolic", ["anarch-taskbar", "toggle"]),
+    ("Window title bars", "title bars window buttons close minimise minimize maximise maximize decorations", "window-new-symbolic", ["anarch-titlebars", "toggle"]),
+    ("Night light", "night light warm blue", "weather-clear-night-symbolic", ["anarch-toggle", "nightlight"]),
+    ("Do Not Disturb", "notifications dnd quiet", "notifications-disabled-symbolic", ["anarch-toggle", "dnd"]),
     ("Lock screen", "lock", "system-lock-screen-symbolic", ["loginctl", "lock-session"]),
-    ("Log out", "logout sign out exit", "system-log-out-symbolic", ["lumen-session", "logout"]),
+    ("Log out", "logout sign out exit", "system-log-out-symbolic", ["anarch-session", "logout"]),
     ("Restart", "restart reboot", "system-reboot-symbolic", ["systemctl", "reboot"]),
     ("Shut down", "shutdown power off", "system-shutdown-symbolic", ["systemctl", "poweroff"]),
     ("Suspend", "sleep suspend", "weather-clear-night-symbolic", ["systemctl", "suspend"]),
@@ -194,7 +194,7 @@ def run_detached(argv: list[str], env: dict | None = None) -> None:
         subprocess.Popen(argv, start_new_session=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                          env=env)
     except OSError as err:
-        print(f"lumen-start: cannot run {argv}: {err}", file=sys.stderr)
+        print(f"anarch-start: cannot run {argv}: {err}", file=sys.stderr)
 
 
 # --- app model ----------------------------------------------------------------
@@ -300,9 +300,9 @@ class Row(Gtk.ListBoxRow):
 
 class StartMenu(Gtk.ApplicationWindow):
     def __init__(self, app: Gtk.Application):
-        super().__init__(application=app, title="Lumen Start")
+        super().__init__(application=app, title="an4rch Start")
         self.set_decorated(False)
-        self.add_css_class("lumen-start")
+        self.add_css_class("anarch-start")
         self.apps: list[App] = []
         self.apps_dirty = True
         self.uwsm = session_managed()
@@ -316,7 +316,7 @@ class StartMenu(Gtk.ApplicationWindow):
 
         if LayerShell is not None and LayerShell.is_supported():
             LayerShell.init_for_window(self)
-            LayerShell.set_namespace(self, "lumen-start")
+            LayerShell.set_namespace(self, "anarch-start")
             LayerShell.set_layer(self, LayerShell.Layer.OVERLAY)
             for edge in (LayerShell.Edge.TOP, LayerShell.Edge.BOTTOM, LayerShell.Edge.LEFT, LayerShell.Edge.RIGHT):
                 LayerShell.set_anchor(self, edge, True)
@@ -425,9 +425,9 @@ class StartMenu(Gtk.ApplicationWindow):
             b.connect("clicked", lambda *_: (self.close_menu(), run_detached(argv)))
             footer.append(b)
 
-        tool("system-software-install-symbolic", "App Store", ["lumen-store"])
-        tool("folder-symbolic", "Files", ["lumen-launch", "files"])
-        tool("emblem-system-symbolic", "Settings", ["lumen-settings"])
+        tool("system-software-install-symbolic", "App Store", ["anarch-store"])
+        tool("folder-symbolic", "Files", ["anarch-launch", "files"])
+        tool("emblem-system-symbolic", "Settings", ["anarch-settings"])
 
         power = Gtk.MenuButton(icon_name="system-shutdown-symbolic", tooltip_text="Power", css_classes=["footer-button", "flat", "power"])
         pop = Gtk.Popover(css_classes=["power-popover"])
@@ -435,7 +435,7 @@ class StartMenu(Gtk.ApplicationWindow):
         for label, icon, argv in [
             ("Lock", "system-lock-screen-symbolic", ["loginctl", "lock-session"]),
             ("Suspend", "weather-clear-night-symbolic", ["systemctl", "suspend"]),
-            ("Log out", "system-log-out-symbolic", ["lumen-session", "logout"]),
+            ("Log out", "system-log-out-symbolic", ["anarch-session", "logout"]),
             ("Restart", "system-reboot-symbolic", ["systemctl", "reboot"]),
             ("Shut down", "system-shutdown-symbolic", ["systemctl", "poweroff"]),
         ]:
@@ -532,7 +532,7 @@ class StartMenu(Gtk.ApplicationWindow):
 
             item("Unpin from Start" if pinned else "Pin to Start", lambda: self.toggle_pin(app))
             item("Open", lambda: self.launch(app))
-            item("Uninstall…", lambda: (self.close_menu(), run_detached(["lumen-store", "--uninstall", app.id])))
+            item("Uninstall…", lambda: (self.close_menu(), run_detached(["anarch-store", "--uninstall", app.id])))
             pop.set_child(box)
             rect = Gdk.Rectangle()
             rect.x, rect.y, rect.width, rect.height = int(x), int(y), 1, 1
@@ -566,17 +566,17 @@ class StartMenu(Gtk.ApplicationWindow):
         if self.uwsm:
             # The app's own scope, like `uwsm app`, but without starting
             # Python each time: gio and systemd-run are quick.
-            # Through lumen-launch, which reports an app that can't start
+            # Through anarch-launch, which reports an app that can't start
             # instead of failing silently.
             path = app.info.get_filename() or app.id
-            run_detached(["lumen-launch", "--", "gio", "launch", path],
+            run_detached(["anarch-launch", "--", "gio", "launch", path],
                          env={**os.environ, "LUMEN_LAUNCH_NAME": app.info.get_display_name() or app.id})
         else:
             ctx = Gdk.Display.get_default().get_app_launch_context()
             try:
                 app.info.launch([], ctx)
             except GLib.Error as err:
-                print(f"lumen-start: {err.message}", file=sys.stderr)
+                print(f"anarch-start: {err.message}", file=sys.stderr)
 
     def on_search(self, entry: Gtk.SearchEntry) -> None:
         query = fold(entry.get_text().strip())
@@ -613,21 +613,21 @@ class StartMenu(Gtk.ApplicationWindow):
                                         activate=lambda a=argv: (self.close_menu(), run_detached(a))))
 
         self.results.append(Row(f"Search the web for “{raw}”", "Opens your browser", icon_name="web-browser-symbolic",
-                                activate=lambda q=raw: (self.close_menu(), run_detached(["lumen-search", "--query", q]))))
+                                activate=lambda q=raw: (self.close_menu(), run_detached(["anarch-search", "--query", q]))))
         self.results.append(Row(f"Find “{raw}” in the App Store", "Install new apps and games",
                                 icon_name="system-software-install-symbolic",
-                                activate=lambda q=raw: (self.close_menu(), run_detached(["lumen-store", "--search", q]))))
+                                activate=lambda q=raw: (self.close_menu(), run_detached(["anarch-store", "--search", q]))))
         first = shlex.split(raw)[0] if raw and not raw.startswith(("'", '"')) else ""
         if first and GLib.find_program_in_path(first):
             self.results.append(Row(f"Run “{raw}”", "In a terminal", icon_name="utilities-terminal-symbolic",
-                                    activate=lambda c=raw: (self.close_menu(), run_detached(["lumen-term", "--hold", "--", "sh", "-c", c]))))
+                                    activate=lambda c=raw: (self.close_menu(), run_detached(["anarch-term", "--hold", "--", "sh", "-c", c]))))
 
         self.results.select_row(self.results.get_row_at_index(0))
         self.stack.set_visible_child_name("search")
 
     def copy(self, text: str) -> None:
         Gdk.Display.get_default().get_clipboard().set(text)
-        run_detached(["notify-send", "-a", "Lumen", "-t", "2000", text, "Copied to the clipboard"])
+        run_detached(["notify-send", "-a", "an4rch", "-t", "2000", text, "Copied to the clipboard"])
         GLib.timeout_add(150, lambda: (self.close_menu(), False)[1])
 
     def on_enter(self, *_):

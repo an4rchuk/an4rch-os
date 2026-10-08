@@ -1,0 +1,181 @@
+#!/usr/bin/env bash
+# anarch-auto — light theme by day, dark theme and night light after sunset (like macOS's Auto appearance and Night Shift).
+#
+#   anarch-auto on [LIGHT DARK]   turn it on; themes default to catppuccin-latte
+#                                 by day and your current dark theme at night
+#   anarch-auto off               turn it off (the theme stays as it is)
+#   anarch-auto times HH:MM HH:MM use fixed times instead of sunrise and sunset
+#   anarch-auto times sun         back to sunrise and sunset
+#   anarch-auto nightlight on|off whether night light follows too (on by default)
+#   anarch-auto                   today's times and what's on
+#
+# Sunrise and sunset come from your time zone's location (no internet, no
+# location sharing). Picking a theme yourself is respected until the next
+# sunrise or sunset.
+set -uo pipefail
+source "${LUMEN_PATH:-$HOME/.local/share/lumen}/lib/lumen.sh"
+
+conf="$LUMEN_CONFIG/auto.conf"
+ENABLED=no LIGHT=catppuccin-latte DARK=an4rch MODE=sun DAY=07:00 NIGHT=19:30 NIGHTLIGHT=yes
+# shellcheck source=/dev/null
+[[ -f "$conf" ]] && source "$conf"
+
+save() {
+  mkdir -p "$LUMEN_CONFIG"
+  cat >"$conf" <<EOF
+# an4rch automatic light/dark (anarch auto).
+ENABLED=$ENABLED
+LIGHT=$LIGHT
+DARK=$DARK
+MODE=$MODE
+DAY=$DAY
+NIGHT=$NIGHT
+NIGHTLIGHT=$NIGHTLIGHT
+EOF
+}
+
+# sun_times — "HH:MM HH:MM" sunrise and sunset today, from the time zone's
+# coordinates in zone.tab (NOAA's approximation, good to a few minutes).
+sun_times() {
+  local tz
+  tz=$(timedatectl show -p Timezone --value 2>/dev/null)
+  [[ -n "$tz" ]] || tz=$(readlink /etc/localtime 2>/dev/null | sed 's|.*/zoneinfo/||')
+  python3 - "$tz" <<'PY'
+import math, sys, datetime, re
+tz = sys.argv[1]
+lat = lon = None
+# zone.tab has every country's zones (Europe/Oslo); zone1970.tab the rest.
+for tab in ("/usr/share/zoneinfo/zone.tab", "/usr/share/zoneinfo/zone1970.tab"):
+    try:
+        for line in open(tab):
+            f = line.split("\t")
+            if line.startswith("#") or len(f) < 3 or f[2].strip() != tz:
+                continue
+            m = re.match(r"([+-])(\d{2})(\d{2})(\d{2})?([+-])(\d{3})(\d{2})(\d{2})?", f[1])
+            sgn = lambda s: -1 if s == "-" else 1
+            lat = sgn(m[1]) * (int(m[2]) + int(m[3]) / 60 + int(m[4] or 0) / 3600)
+            lon = sgn(m[5]) * (int(m[6]) + int(m[7]) / 60 + int(m[8] or 0) / 3600)
+            break
+    except OSError:
+        pass
+    if lat is not None:
+        break
+if lat is None:
+    sys.exit(1)
+now = datetime.datetime.now().astimezone()
+offset = now.utcoffset().total_seconds() / 3600
+n = now.timetuple().tm_yday
+g = 2 * math.pi / 365 * (n - 1)
+eqtime = 229.18 * (0.000075 + 0.001868 * math.cos(g) - 0.032077 * math.sin(g) - 0.014615 * math.cos(2 * g) - 0.040849 * math.sin(2 * g))
+decl = 0.006918 - 0.399912 * math.cos(g) + 0.070257 * math.sin(g) - 0.006758 * math.cos(2 * g) + 0.000907 * math.sin(2 * g) - 0.002697 * math.cos(3 * g) + 0.00148 * math.sin(3 * g)
+cos_ha = (math.cos(math.radians(90.833)) / (math.cos(math.radians(lat)) * math.cos(decl))) - math.tan(math.radians(lat)) * math.tan(decl)
+cos_ha = max(-1.0, min(1.0, cos_ha))  # midnight sun / polar night: clamp
+ha = math.degrees(math.acos(cos_ha))
+def clock(minutes):
+    minutes = (minutes + offset * 60) % 1440
+    return "%02d:%02d" % (minutes // 60, minutes % 60)
+print(clock(720 - 4 * (lon + ha) - eqtime), clock(720 - 4 * (lon - ha) - eqtime))
+PY
+}
+
+times() {
+  if [[ "$MODE" == sun ]] && sun_times 2>/dev/null; then return; fi
+  echo "$DAY $NIGHT"
+}
+
+phase() { # day | night, now
+  local rise set now
+  read -r rise set < <(times)
+  now=$(date +%H:%M)
+  if [[ "$now" > "$rise" || "$now" == "$rise" ]] && [[ "$now" < "$set" ]]; then echo day; else echo night; fi
+}
+
+apply() {
+  [[ "$ENABLED" == yes ]] || return 0
+  local p last
+  p=$(phase)
+  last=$(cat "$LUMEN_STATE/auto-phase" 2>/dev/null)
+  [[ "$p" == "$last" && "${1:-}" != --force ]] && return 0
+  mkdir -p "$LUMEN_STATE"
+  echo "$p" >"$LUMEN_STATE/auto-phase"
+  if [[ "$p" == day ]]; then
+    [[ "$(theme_current)" == "$LIGHT" ]] || "$LUMEN_PATH/bin/anarch-theme" set "$LIGHT" >/dev/null 2>&1
+    [[ "$NIGHTLIGHT" == yes ]] && "$LUMEN_PATH/bin/anarch-toggle" nightlight off >/dev/null 2>&1
+  else
+    [[ "$(theme_current)" == "$DARK" ]] || "$LUMEN_PATH/bin/anarch-theme" set "$DARK" >/dev/null 2>&1
+    [[ "$NIGHTLIGHT" == yes ]] && "$LUMEN_PATH/bin/anarch-toggle" nightlight on >/dev/null 2>&1
+  fi
+  return 0
+}
+
+daemon() {
+  exec 9>"$LUMEN_STATE/auto.lock"
+  flock -n 9 || exit 0
+  apply
+  while sleep 300; do
+    # shellcheck source=/dev/null
+    [[ -f "$conf" ]] && source "$conf"
+    [[ "$ENABLED" == yes ]] || exit 0
+    apply
+  done
+}
+
+status() {
+  local rise set
+  read -r rise set < <(times)
+  if [[ "$ENABLED" != yes ]]; then echo "Automatic light/dark: off (anarch auto on)"; return; fi
+  echo "Automatic light/dark: on"
+  printf '  Day   %s  %s\n' "$rise" "$LIGHT"
+  printf '  Night %s  %s%s\n' "$set" "$DARK" "$([[ "$NIGHTLIGHT" == yes ]] && echo " + night light")"
+  [[ "$MODE" == sun ]] && echo "  (sunrise and sunset for $(timedatectl show -p Timezone --value 2>/dev/null))"
+}
+
+valid_time() { [[ "$1" =~ ^([01][0-9]|2[0-3]):[0-5][0-9]$ ]] || die "Times are HH:MM, e.g. 07:00 (got '$1')"; }
+valid_theme() { theme_dir "$1" >/dev/null || die "No theme called '$1' (anarch theme list)"; }
+
+case "${1:-}" in
+  "" | status) status ;;
+  on)
+    if [[ $# -ge 3 ]]; then
+      valid_theme "$2"; valid_theme "$3"
+      LIGHT=$2 DARK=$3
+    elif [[ "$(theme_get "$(theme_current)" mode)" == dark ]]; then
+      DARK=$(theme_current)
+    fi
+    ENABLED=yes
+    save
+    rm -f "$LUMEN_STATE/auto-phase"
+    apply --force
+    # Its own session, so closing the terminal this ran in doesn't stop it.
+    if [[ -n "${HYPRLAND_INSTANCE_SIGNATURE:-}" ]] && ! pgrep -f 'anarch-auto daemon' >/dev/null; then
+      setsid -f "$0" daemon </dev/null >/dev/null 2>&1
+    fi
+    status
+    ;;
+  off)
+    ENABLED=no
+    save
+    pkill -f 'anarch-auto daemon' 2>/dev/null
+    echo "✓ Automatic light/dark: off"
+    ;;
+  times)
+    if [[ "${2:-}" == sun ]]; then MODE=sun
+    else
+      valid_time "${2:-}"; valid_time "${3:-}"
+      MODE=fixed DAY=$2 NIGHT=$3
+    fi
+    save
+    rm -f "$LUMEN_STATE/auto-phase"
+    apply
+    status
+    ;;
+  nightlight)
+    case "${2:-}" in on) NIGHTLIGHT=yes ;; off) NIGHTLIGHT=no ;; *) die "usage: anarch-auto nightlight on|off" ;; esac
+    save
+    echo "✓ Night light $([[ $NIGHTLIGHT == yes ]] && echo follows || echo "doesn't follow") sunset"
+    ;;
+  apply) apply "${2:-}" ;;
+  daemon) daemon ;;
+  -h | --help | help) sed -n '2,15s/^# \{0,1\}//p' "$0" ;;
+  *) die "Unknown option '$1'. See: anarch-auto --help" ;;
+esac

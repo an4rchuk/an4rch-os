@@ -1,5 +1,5 @@
 -- Look and feel: gaps, borders, blur, shadows and motion.
--- Colours are set by the active theme (see `lumen-theme`).
+-- Colours are set by the active theme (see `anarch-theme`).
 
 hl.config({
     general = {

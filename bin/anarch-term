@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# anarch-term — open a terminal, optionally as a floating dialog.
+#
+#   anarch-term                         new terminal
+#   anarch-term --float                 floating, centred terminal
+#   anarch-term [--float] [--hold] [--title T] -- CMD [args]
+set -euo pipefail
+source "${LUMEN_PATH:-$HOME/.local/share/lumen}/lib/lumen.sh"
+term "$@"

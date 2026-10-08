@@ -1,0 +1,157 @@
+#!/usr/bin/env bash
+# anarch-dev — set up a development environment, Omarchy-style.
+#
+#   anarch-dev                  pick languages, Docker or databases from a menu
+#   anarch-dev lang NAME...     install languages with mise: node, python, go, rust,
+#                              ruby, java, bun, deno, zig, elixir, php, dotnet
+#   anarch-dev docker           Docker with Compose and Buildx, no sudo needed
+#   anarch-dev db NAME...       run a database in Docker: postgres, mysql, redis, mongo
+#   anarch-dev status           show installed languages, Docker and databases
+#
+# Languages come from mise (https://mise.jdx.dev), so each project can pin its
+# own versions in mise.toml or .tool-versions. Databases listen on localhost
+# only and restart with the computer.
+set -euo pipefail
+source "${LUMEN_PATH:-$HOME/.local/share/lumen}/lib/lumen.sh"
+source "$LUMEN_PATH/install/packages.sh"
+
+case "${1:-}" in
+  "" | pick | status | list | -h | --help | help) ;;
+  *) [[ -t 0 ]] || { term --float --hold --title "Development" -- "$0" "$@"; exit 0; } ;;
+esac
+
+say() { printf '\n\e[1;35m󰅩  %s\e[0m\n' "$*"; }
+add() { "$LUMEN_PATH/bin/anarch-pkg" add "$@"; }
+
+LANGS=(node python go rust ruby java bun deno zig elixir php dotnet)
+
+lang() {
+  [[ $# -gt 0 ]] || die "usage: anarch-dev lang NAME... (${LANGS[*]})"
+  has mise || add "${PKGS_DEV_BASE[@]}"
+  local l spec
+  for l in "$@"; do
+    case "$l" in
+      node) spec=node@lts ;;
+      python) spec=python@latest ;;
+      go) spec=go@latest ;;
+      rust) spec=rust@stable ;;
+      ruby) spec=ruby@latest ;;
+      java) spec=java@lts ;;
+      bun) spec=bun@latest ;;
+      deno) spec=deno@latest ;;
+      zig) spec=zig@latest ;;
+      elixir)
+        mise use -g erlang@latest
+        spec=elixir@latest ;;
+      php) spec=php@latest ;;
+      dotnet) spec=dotnet@latest ;;
+      *) die "Unknown language '$l'. Pick from: ${LANGS[*]}" ;;
+    esac
+    say "Installing $l"
+    mise use -g "$spec"
+  done
+  echo
+  echo "  Open a new terminal to use them. Per-project versions: mise use node@20 (inside the project)."
+}
+
+docker_setup() {
+  say "Docker"
+  add "${PKGS_DEV_DOCKER[@]}"
+  # Keep logs small and use the faster overlay storage.
+  sudo install -d /etc/docker
+  [[ -f /etc/docker/daemon.json ]] || sudo tee /etc/docker/daemon.json >/dev/null <<'EOF'
+{
+  "log-driver": "json-file",
+  "log-opts": { "max-size": "10m", "max-file": "5" }
+}
+EOF
+  sudo systemctl enable --now docker.socket
+  id -nG "$USER" | grep -qw docker || sudo usermod -aG docker "$USER"
+  echo "  Log out and back in once to use docker without sudo. lazydocker gives you a dashboard."
+}
+
+docker_cmd() {
+  if docker info >/dev/null 2>&1; then docker "$@"; else sudo docker "$@"; fi
+}
+
+db() {
+  [[ $# -gt 0 ]] || die "usage: anarch-dev db postgres|mysql|redis|mongo"
+  has docker || docker_setup
+  sudo systemctl start docker.service
+  local d
+  for d in "$@"; do
+    say "Starting $d"
+    docker_cmd rm -f "lumen-$d" >/dev/null 2>&1 || true
+    case "$d" in
+      postgres | postgresql)
+        docker_cmd run -d --name lumen-postgres --restart unless-stopped -p 127.0.0.1:5432:5432 \
+          -e POSTGRES_HOST_AUTH_METHOD=trust -v lumen-postgres:/var/lib/postgresql/data postgres:17
+        echo "  postgres://postgres@localhost:5432 (no password, local only)" ;;
+      mysql)
+        docker_cmd run -d --name lumen-mysql --restart unless-stopped -p 127.0.0.1:3306:3306 \
+          -e MYSQL_ALLOW_EMPTY_PASSWORD=yes -v lumen-mysql:/var/lib/mysql mysql:8.4
+        echo "  mysql://root@localhost:3306 (no password, local only)" ;;
+      redis | valkey)
+        docker_cmd run -d --name lumen-redis --restart unless-stopped -p 127.0.0.1:6379:6379 \
+          -v lumen-redis:/data redis:7
+        echo "  redis://localhost:6379" ;;
+      mongo | mongodb)
+        docker_cmd run -d --name lumen-mongo --restart unless-stopped -p 127.0.0.1:27017:27017 \
+          -v lumen-mongo:/data/db mongo:8
+        echo "  mongodb://localhost:27017" ;;
+      *) die "Databases: postgres, mysql, redis, mongo" ;;
+    esac
+  done
+  echo
+  echo "  Data lives in Docker volumes (lumen-<name>). Stop one with: docker rm -f lumen-<name>"
+}
+
+status() {
+  say "Development"
+  if has mise; then mise ls --global 2>/dev/null || true; else echo "  mise: not installed"; fi
+  if has docker; then
+    printf '\n  Docker: %s\n' "$(systemctl is-active docker.socket 2>/dev/null || echo off)"
+    docker_cmd ps --filter name=lumen- --format '  {{.Names}}  {{.Status}}  {{.Ports}}' 2>/dev/null || true
+  else
+    printf '\n  Docker: not installed\n'
+  fi
+}
+
+pick() {
+  local choice
+  choice=$(printf '%s\n' \
+    "󰎙  Node.js (LTS)" "󰌠  Python" "󰟓  Go" "󱘗  Rust" "󰴭  Ruby" "󰬷  Java" \
+    "󰛦  Bun" "󰛦  Deno" "󰛦  Zig" "󰡪  Elixir" "󰌟  PHP" "󰪮  .NET" \
+    "󰡨  Docker" "󰆼  PostgreSQL" "󰆼  MySQL" "󰆼  Redis" "󰆼  MongoDB" "󰋼  Status" |
+    menu "Development" --width 30 --lines 18) || exit 0
+  case "$choice" in
+    *Node*) exec "$0" lang node ;;
+    *Python) exec "$0" lang python ;;
+    *Go) exec "$0" lang go ;;
+    *Rust) exec "$0" lang rust ;;
+    *Ruby) exec "$0" lang ruby ;;
+    *Java) exec "$0" lang java ;;
+    *Bun) exec "$0" lang bun ;;
+    *Deno) exec "$0" lang deno ;;
+    *Zig) exec "$0" lang zig ;;
+    *Elixir) exec "$0" lang elixir ;;
+    *PHP) exec "$0" lang php ;;
+    *NET) exec "$0" lang dotnet ;;
+    *Docker) exec "$0" docker ;;
+    *PostgreSQL) exec "$0" db postgres ;;
+    *MySQL) exec "$0" db mysql ;;
+    *Redis) exec "$0" db redis ;;
+    *MongoDB) exec "$0" db mongo ;;
+    *Status) term --float --hold --title "Development" -- "$0" status ;;
+  esac
+}
+
+case "${1:-pick}" in
+  pick) pick ;;
+  lang) shift; lang "$@" ;;
+  docker) docker_setup ;;
+  db) shift; db "$@" ;;
+  status) status ;;
+  -h | --help | help) sed -n '2,13s/^# \{0,1\}//p' "$0" ;;
+  *) die "Unknown command '$1'. See: anarch-dev --help" ;;
+esac

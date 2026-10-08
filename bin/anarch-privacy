@@ -1,0 +1,215 @@
+#!/usr/bin/env bash
+# anarch-privacy — private networking in one command: hidden MAC, encrypted DNS, tracker blocking.
+#
+#   anarch-privacy               show what's on (and pick from a menu)
+#   anarch-privacy on | off      everything below at once
+#   anarch-privacy mac on|off    a different hardware address on every network
+#   anarch-privacy dns on|off [quad9|mullvad|adblock|cloudflare]
+#                                encrypted DNS (DNS-over-TLS); default quad9
+#   anarch-privacy block on|off  block ads, trackers and malware sites for every app
+#   anarch-privacy block update  fetch the newest blocklist
+#   anarch-privacy status        the same as no arguments, for scripts
+#
+# Hotel or café Wi-Fi with a sign-in page? `anarch privacy dns off` until
+# you're signed in, then on again.
+set -euo pipefail
+source "${LUMEN_PATH:-$HOME/.local/share/lumen}/lib/lumen.sh"
+
+MAC_CONF=/etc/NetworkManager/conf.d/50-lumen-privacy-mac.conf
+NM_DNS_CONF=/etc/NetworkManager/conf.d/50-lumen-resolved.conf
+DNS_CONF=/etc/systemd/resolved.conf.d/50-lumen-privacy.conf
+HOSTS=/etc/hosts
+BLOCK_URL="https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts"
+BEGIN="# >>> an4rch blocklist (anarch privacy block off removes this)"
+END="# <<< an4rch blocklist"
+
+# provider → servers (address#name for TLS)
+dns_servers() {
+  case "$1" in
+    quad9) echo "9.9.9.9#dns.quad9.net 149.112.112.112#dns.quad9.net 2620:fe::fe#dns.quad9.net 2620:fe::9#dns.quad9.net" ;;
+    mullvad) echo "194.242.2.2#dns.mullvad.net 2a07:e340::2#dns.mullvad.net" ;;
+    adblock) echo "194.242.2.3#adblock.dns.mullvad.net 2a07:e340::3#adblock.dns.mullvad.net" ;;
+    cloudflare) echo "1.1.1.1#cloudflare-dns.com 1.0.0.1#cloudflare-dns.com 2606:4700:4700::1111#cloudflare-dns.com" ;;
+    *) die "Unknown DNS provider '$1' (quad9, mullvad, adblock, cloudflare)" ;;
+  esac
+}
+
+mac_on() { [[ -f "$MAC_CONF" ]]; }
+dns_on() { [[ -f "$DNS_CONF" ]]; }
+block_on() { grep -qF "$BEGIN" "$HOSTS" 2>/dev/null; }
+
+reload_nm() { sudo systemctl reload NetworkManager 2>/dev/null || sudo systemctl try-restart NetworkManager || true; }
+
+mac() {
+  case "${1:-}" in
+    on)
+      # "stable": its own address on each network, the same one each time you
+      # return (so sign-in pages and router reservations keep working).
+      sudo install -D -m644 /dev/stdin "$MAC_CONF" <<'EOF'
+# an4rch privacy: don't show this computer's real hardware address to networks.
+[device-mac-randomization]
+wifi.scan-rand-mac-address=yes
+
+[connection-mac-randomization]
+wifi.cloned-mac-address=stable
+ethernet.cloned-mac-address=stable
+EOF
+      reload_nm
+      echo "✓ Hidden hardware address: on (takes effect when each network reconnects)"
+      ;;
+    off)
+      sudo rm -f "$MAC_CONF"
+      reload_nm
+      echo "✓ Hidden hardware address: off"
+      ;;
+    *) die "usage: anarch-privacy mac on|off" ;;
+  esac
+}
+
+# Make NetworkManager hand DNS to systemd-resolved (which does DNS-over-TLS).
+use_resolved() {
+  has resolvectl || die "systemd-resolved is missing"
+  sudo install -D -m644 /dev/stdin "$NM_DNS_CONF" <<'EOF'
+# an4rch: NetworkManager passes DNS settings to systemd-resolved.
+[main]
+dns=systemd-resolved
+EOF
+  sudo systemctl enable --now systemd-resolved.service >/dev/null 2>&1
+  if [[ "$(readlink /etc/resolv.conf 2>/dev/null)" != */run/systemd/resolve/stub-resolv.conf ]]; then
+    [[ -e /etc/resolv.conf && ! -L /etc/resolv.conf ]] && sudo cp /etc/resolv.conf /etc/resolv.conf.before-an4rch
+    sudo ln -sf /run/systemd/resolve/stub-resolv.conf /etc/resolv.conf
+  fi
+}
+
+dns() {
+  case "${1:-}" in
+    on)
+      local provider="${2:-quad9}" servers
+      servers=$(dns_servers "$provider")
+      use_resolved
+      sudo install -D -m644 /dev/stdin "$DNS_CONF" <<EOF
+# an4rch privacy: encrypted DNS ($provider). Remove with: anarch privacy dns off
+[Resolve]
+DNS=$servers
+DNSOverTLS=yes
+# Use these servers for every name, not the network's own.
+Domains=~.
+EOF
+      sudo systemctl restart systemd-resolved.service
+      reload_nm
+      echo "✓ Encrypted DNS: on ($provider)"
+      ;;
+    off)
+      sudo rm -f "$DNS_CONF"
+      if systemctl is-active -q systemd-resolved.service; then sudo systemctl restart systemd-resolved.service; fi
+      reload_nm
+      echo "✓ Encrypted DNS: off (the network's own DNS is used)"
+      ;;
+    *) die "usage: anarch-privacy dns on|off [quad9|mullvad|adblock|cloudflare]" ;;
+  esac
+}
+
+# Rewrite /etc/hosts with the blocklist between the markers (or without it).
+write_hosts() {
+  local list="${1:-}" new
+  new=$(mktemp)
+  awk -v b="$BEGIN" -v e="$END" '$0==b{skip=1} !skip{print} $0==e{skip=0}' "$HOSTS" >"$new"
+  if [[ -n "$list" ]]; then
+    {
+      echo "$BEGIN"
+      echo "# from $BLOCK_URL, $(date +%F)"
+      # Only blocking lines: nothing in the list can point a name somewhere else.
+      grep -E '^0\.0\.0\.0[[:space:]]+[A-Za-z0-9._-]+[[:space:]]*(#.*)?$' "$list" | grep -vE '^0\.0\.0\.0[[:space:]]+0\.0\.0\.0' | awk '{print "0.0.0.0 " $2}'
+      echo "$END"
+    } >>"$new"
+  fi
+  sudo install -m644 "$new" "$HOSTS"
+  rm -f "$new"
+}
+
+block() {
+  case "${1:-}" in
+    on | update)
+      local list n
+      list=$(mktemp)
+      curl -fsSL --max-time 60 "$BLOCK_URL" -o "$list" || { rm -f "$list"; die "Couldn't download the blocklist (no internet?)"; }
+      n=$(grep -cE '^0\.0\.0\.0[[:space:]]+[A-Za-z0-9._-]+' "$list" || true)
+      ((n > 1000)) || { rm -f "$list"; die "The blocklist looks wrong (only $n entries); left /etc/hosts as it was"; }
+      write_hosts "$list"
+      rm -f "$list"
+      resolvectl flush-caches 2>/dev/null || true
+      echo "✓ Tracker blocking: on ($n sites blocked)"
+      ;;
+    off)
+      block_on || { echo "✓ Tracker blocking: off"; return; }
+      write_hosts ""
+      resolvectl flush-caches 2>/dev/null || true
+      echo "✓ Tracker blocking: off"
+      ;;
+    *) die "usage: anarch-privacy block on|off|update" ;;
+  esac
+}
+
+status() {
+  local d="off" b="off" m="off" p
+  mac_on && m="on"
+  if dns_on; then
+    p=$(sed -n 's/^# an4rch privacy: encrypted DNS (\([a-z0-9]*\)).*/\1/p' "$DNS_CONF")
+    d="on (${p:-custom})"
+  fi
+  block_on && b="on ($(sed -n "/^$BEGIN\$/,/^$END\$/p" "$HOSTS" | grep -c '^0\.0\.0\.0') sites)"
+  printf '  Hidden hardware address   %s\n' "$m"
+  printf '  Encrypted DNS             %s\n' "$d"
+  printf '  Tracker blocking          %s\n' "$b"
+}
+
+pick() {
+  local m d b choice
+  mac_on && m="on" || m="off"
+  dns_on && d="on" || d="off"
+  block_on && b="on" || b="off"
+  choice=$(printf '%s\n' \
+    "󰒃  Everything on" \
+    "󰒄  Everything off" \
+    "󰖩  Hidden hardware address: $m" \
+    "󰇖  Encrypted DNS: $d" \
+    "󰂭  Tracker blocking: $b" |
+    menu "Privacy" --width 40 --lines 5) || exit 0
+  case "$choice" in
+    *"Everything on") set -- on ;;
+    *"Everything off") set -- off ;;
+    *"address: on") set -- mac off ;;
+    *"address: off") set -- mac on ;;
+    *"DNS: on") set -- dns off ;;
+    *"DNS: off") set -- dns on ;;
+    *"blocking: on") set -- block off ;;
+    *"blocking: off") set -- block on ;;
+    *) exit 0 ;;
+  esac
+  term --float --hold --title "Privacy" -- "$0" "$@"
+}
+
+case "${1:-}" in
+  "")
+    if [[ -t 1 ]]; then status; else pick; fi
+    ;;
+  status) status ;;
+  menu) pick ;;
+  on)
+    in_terminal "$0" "$@"
+    mac on
+    dns on "${2:-quad9}"
+    block on
+    ;;
+  off)
+    in_terminal "$0" "$@"
+    mac off
+    dns off
+    block off
+    ;;
+  mac) shift; in_terminal "$0" mac "$@"; mac "$@" ;;
+  dns) shift; in_terminal "$0" dns "$@"; dns "$@" ;;
+  block) shift; in_terminal "$0" block "$@"; block "$@" ;;
+  -h | --help | help) sed -n '2,15s/^# \{0,1\}//p' "$0" ;;
+  *) die "Unknown option '$1'. See: anarch-privacy --help" ;;
+esac

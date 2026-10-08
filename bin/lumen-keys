@@ -1,25 +1,4 @@
 #!/usr/bin/env bash
-# lumen-keys — searchable list of every key binding (SUPER + /).
-set -euo pipefail
-source "${LUMEN_PATH:-$HOME/.local/share/lumen}/lib/lumen.sh"
-
-# hyprctl reports modifiers as a bit mask; turn it back into names.
-hyprctl binds -j | jq -r '
-  def mods($m): [
-    (if ($m / 64 | floor) % 2 == 1 then "SUPER" else empty end),
-    (if ($m / 4  | floor) % 2 == 1 then "CTRL"  else empty end),
-    (if ($m / 8  | floor) % 2 == 1 then "ALT"   else empty end),
-    (if ($m      | floor) % 2 == 1 then "SHIFT" else empty end)
-  ];
-  def pretty($k): {
-    "Return":"Enter","SPACE":"Space","space":"Space","grave":"`","slash":"/","period":".",
-    "comma":",","semicolon":";","equal":"=","minus":"-","bracketleft":"[","bracketright":"]",
-    "mouse:272":"Left drag","mouse:273":"Right drag","mouse_down":"Scroll down","mouse_up":"Scroll up",
-    "Print":"PrtSc","escape":"Esc","Escape":"Esc","SUPER_L":"(tap)","SUPER_R":"(tap, right)"
-  }[$k] // $k;
-  .[]
-  | select((.submap // "") == "" and (.description // "") != "")
-  | ((mods(.modmask) + [pretty(.key)]) | join(" + ")) as $keys
-  | "\($keys)\t\(.description)"' |
-  awk -F'\t' '!seen[$0]++ { printf "%-28s  %s\n", $1, $2 }' |
-  menu "Keys" --width 72 --lines 16 --font "JetBrainsMono Nerd Font:size=11" >/dev/null || true
+# lumen-keys — obsolete name (before an4rch OS 1.1.0) of anarch-keys; kept so old configs still work.
+[[ -t 2 ]] && printf '\e[33m!\e[0m lumen-keys is obsolete: use anarch-keys (or: anarch keys)\n' >&2
+exec "${LUMEN_PATH:-$HOME/.local/share/lumen}/bin/anarch-keys" "$@"

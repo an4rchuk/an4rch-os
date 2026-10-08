@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Lumen sound panel — drops down from the volume icon in the top bar:
+"""an4rch sound panel — drops down from the volume icon in the top bar:
 volume, mute, which speakers or headphones to use, the microphone, and
 links to the full mixer and Sound settings.
 
@@ -48,7 +48,7 @@ def run(*cmd: str) -> None:
     try:
         subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
     except OSError as err:
-        print(f"lumen-audio: {err}", file=sys.stderr)
+        print(f"anarch-audio: {err}", file=sys.stderr)
 
 
 def lumen(*argv: str) -> None:
@@ -134,7 +134,7 @@ class SoundPanel(Gtk.ApplicationWindow):
     def __init__(self, app: Gtk.Application):
         super().__init__(application=app, title="Sound")
         self.set_decorated(False)
-        self.add_css_class("lumen-audio")
+        self.add_css_class("anarch-audio")
         display = Gdk.Display.get_default()
         self.theme_css = Gtk.CssProvider()
         self.css = Gtk.CssProvider()
@@ -143,7 +143,7 @@ class SoundPanel(Gtk.ApplicationWindow):
 
         if LayerShell is not None and LayerShell.is_supported():
             LayerShell.init_for_window(self)
-            LayerShell.set_namespace(self, "lumen-audio")
+            LayerShell.set_namespace(self, "anarch-audio")
             LayerShell.set_layer(self, LayerShell.Layer.OVERLAY)
             for edge in (LayerShell.Edge.TOP, LayerShell.Edge.BOTTOM, LayerShell.Edge.LEFT, LayerShell.Edge.RIGHT):
                 LayerShell.set_anchor(self, edge, True)
@@ -184,7 +184,7 @@ class SoundPanel(Gtk.ApplicationWindow):
         self.panel.append(self.sources)
 
         footer = Gtk.Box(spacing=8, homogeneous=True, margin_top=6)
-        for label, argv in (("Mixer", ["lumen-audio", "mixer"]), ("Sound settings", ["lumen-settings", "sound"])):
+        for label, argv in (("Mixer", ["anarch-audio", "mixer"]), ("Sound settings", ["anarch-settings", "sound"])):
             b = Gtk.Button(label=label, css_classes=["footer-button"])
             b.connect("clicked", lambda _b, a=argv: (self.close_panel(), lumen(*a)))
             footer.append(b)

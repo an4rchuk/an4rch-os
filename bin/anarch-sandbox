@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+# anarch-sandbox — run an app walled off from your files, so anything it saves vanishes when it closes.
+#
+#   anarch-sandbox APP [ARGS]            a throwaway home folder: the app can't
+#                                        see your files, and forgets everything
+#   anarch-sandbox --offline APP [ARGS]  the same, with no internet
+#   anarch-sandbox --keep APP [ARGS]     your home folder, but the app's firejail
+#                                        restrictions (no access to other apps' data)
+#   anarch-sandbox browser               a private browser that keeps nothing
+#   anarch-sandbox                       type a command to run sandboxed
+#
+# Good for apps you don't trust yet, opening odd downloads, or a clean
+# browser for banking. Uses firejail (installed the first time).
+set -euo pipefail
+source "${LUMEN_PATH:-$HOME/.local/share/lumen}/lib/lumen.sh"
+
+opts=(--quiet --private-tmp --nogroups --noroot --caps.drop=all --nonewprivs --seccomp)
+home=throwaway
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --offline) opts+=(--net=none); shift ;;
+    --keep) home=keep; shift ;;
+    -h | --help) sed -n '2,13s/^# \{0,1\}//p' "$0"; exit 0 ;;
+    --) shift; break ;;
+    *) break ;;
+  esac
+done
+
+if [[ $# -eq 0 ]]; then
+  [[ -t 0 ]] && die "usage: anarch-sandbox [--offline] [--keep] APP [ARGS]"
+  line=$(ask "Run sandboxed" "firefox") || exit 0
+  [[ -n "$line" ]] || exit 0
+  read -r -a words <<<"$line"
+  set -- "${words[@]}"
+fi
+
+[[ "$1" == browser ]] && set -- "$LUMEN_BROWSER" "${@:2}"
+has "$1" || die "'$1' isn't installed"
+
+if ! has firejail; then
+  if [[ -t 0 ]]; then need firejail
+  else term --float --hold --title "Sandbox" -- bash -c "source '$LUMEN_PATH/lib/lumen.sh'; need firejail && echo && echo 'Ready. Start it again from the menu.'"; exit 0
+  fi
+fi
+
+[[ "$home" == throwaway ]] && opts+=(--private)
+notify "Sandboxed: ${1##*/}" "$([[ "$home" == throwaway ]] && echo "Can't see your files. Everything it saves is gone when it closes." || echo "Restricted to its own data.")" -i security-high -t 4000
+if [[ -t 1 ]]; then
+  exec firejail "${opts[@]}" "$@"
+else
+  LUMEN_LAUNCH_NAME="${1##*/} (sandboxed)" launch firejail "${opts[@]}" "$@"
+fi

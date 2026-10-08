@@ -1,0 +1,199 @@
+#!/usr/bin/env bash
+# anarch-a11y — accessibility: screen reader, bigger text and cursor, less motion, high contrast.
+#
+#   anarch-a11y                       what's on (or pick from a menu)
+#   anarch-a11y reader on|off         the Orca screen reader (also SUPER + ALT + R)
+#   anarch-a11y text bigger|smaller|reset   text size in apps (100% to 200%)
+#   anarch-a11y cursor big|huge|normal      a larger mouse pointer
+#   anarch-a11y motion reduce|normal  turn window animations off
+#   anarch-a11y contrast on|off       the High contrast theme (off: back to yours)
+#   anarch-a11y apply                 re-apply saved choices (runs at login)
+#
+# Zoom around the cursor: SUPER + CTRL + Z. Choices are kept in
+# ~/.config/lumen/a11y.conf and come back at every login.
+set -euo pipefail
+source "${LUMEN_PATH:-$HOME/.local/share/lumen}/lib/lumen.sh"
+
+conf="$LUMEN_CONFIG/a11y.conf"
+READER=off TEXT=1.0 CURSOR=24 MOTION=normal CONTRAST=off PREV_THEME=""
+# shellcheck source=/dev/null
+[[ -f "$conf" ]] && source "$conf"
+
+save() {
+  mkdir -p "$LUMEN_CONFIG"
+  cat >"$conf" <<EOF
+# an4rch accessibility (anarch a11y). Applied at every login.
+READER=$READER
+TEXT=$TEXT
+CURSOR=$CURSOR
+MOTION=$MOTION
+CONTRAST=$CONTRAST
+PREV_THEME=$PREV_THEME
+EOF
+}
+
+gset() { if has gsettings; then gsettings set "$@" 2>/dev/null || true; fi; }
+in_hypr() { [[ -n "${HYPRLAND_INSTANCE_SIGNATURE:-}" ]]; }
+
+apply_reader() {
+  if [[ "$READER" == on ]]; then
+    gset org.gnome.desktop.a11y.applications screen-reader-enabled true
+    gset org.gnome.desktop.interface toolkit-accessibility true
+    has orca && ! pgrep -x orca >/dev/null && in_hypr && launch orca --replace
+  else
+    gset org.gnome.desktop.a11y.applications screen-reader-enabled false
+    pkill -x orca 2>/dev/null || true
+  fi
+}
+
+apply_text() { gset org.gnome.desktop.interface text-scaling-factor "$TEXT"; }
+
+apply_cursor() {
+  gset org.gnome.desktop.interface cursor-size "$CURSOR"
+  in_hypr && hyprctl setcursor "${XCURSOR_THEME:-Bibata-Modern-Classic}" "$CURSOR" >/dev/null 2>&1
+  return 0
+}
+
+apply_motion() {
+  if [[ "$MOTION" == reduce ]]; then
+    gset org.gnome.desktop.interface enable-animations false
+    in_hypr && hyprctl eval 'hl.config({ animations = { enabled = false } })' >/dev/null 2>&1
+  else
+    gset org.gnome.desktop.interface enable-animations true
+    in_hypr && hyprctl eval 'hl.config({ animations = { enabled = true } })' >/dev/null 2>&1
+  fi
+  return 0
+}
+
+status() {
+  printf '  Screen reader     %s\n' "$READER"
+  printf '  Text size         %s%%\n' "$(awk -v t="$TEXT" 'BEGIN {printf "%d", t * 100}')"
+  printf '  Cursor size       %s\n' "$CURSOR"
+  printf '  Animations        %s\n' "$([[ "$MOTION" == reduce ]] && echo off || echo on)"
+  printf '  High contrast     %s\n' "$CONTRAST"
+}
+
+reader() {
+  case "${1:-toggle}" in
+    on) READER=on ;;
+    off) READER=off ;;
+    toggle) [[ "$READER" == on ]] && READER=off || READER=on ;;
+    *) die "usage: anarch-a11y reader on|off" ;;
+  esac
+  if [[ "$READER" == on ]] && ! has orca; then
+    if [[ -t 0 ]]; then need orca
+    else save; term --float --hold --title "Screen reader" -- "$0" reader on; exit 0; fi
+  fi
+  save
+  apply_reader
+  notify "Screen reader $READER" "$([[ "$READER" == on ]] && echo "Orca is reading the screen. SUPER + ALT + R turns it off.")" -i preferences-desktop-accessibility -t 3000
+  echo "✓ Screen reader: $READER"
+}
+
+text() {
+  local steps=(1.0 1.25 1.5 1.75 2.0) i cur=0
+  for i in "${!steps[@]}"; do [[ "${steps[$i]}" == "$TEXT" ]] && cur=$i; done
+  case "${1:-}" in
+    bigger) ((cur < ${#steps[@]} - 1)) && cur=$((cur + 1)) ;;
+    smaller) ((cur > 0)) && cur=$((cur - 1)) ;;
+    reset) cur=0 ;;
+    *) die "usage: anarch-a11y text bigger|smaller|reset" ;;
+  esac
+  TEXT=${steps[$cur]}
+  save
+  apply_text
+  echo "✓ Text size: $(awk -v t="$TEXT" 'BEGIN {printf "%d", t * 100}')% (apps opened from now on; some need restarting)"
+}
+
+cursor() {
+  case "${1:-}" in
+    normal) CURSOR=24 ;;
+    big) CURSOR=40 ;;
+    huge) CURSOR=64 ;;
+    *) die "usage: anarch-a11y cursor big|huge|normal" ;;
+  esac
+  save
+  apply_cursor
+  echo "✓ Cursor size: $CURSOR"
+}
+
+motion() {
+  case "${1:-}" in
+    reduce | off) MOTION=reduce ;;
+    normal | on) MOTION=normal ;;
+    *) die "usage: anarch-a11y motion reduce|normal" ;;
+  esac
+  save
+  apply_motion
+  echo "✓ Animations: $([[ "$MOTION" == reduce ]] && echo off || echo on)"
+}
+
+contrast() {
+  case "${1:-}" in
+    on)
+      if [[ "$CONTRAST" != on ]]; then
+        PREV_THEME=$(theme_current)
+        [[ "$PREV_THEME" == high-contrast ]] && PREV_THEME=$DEFAULT_THEME
+      fi
+      CONTRAST=on
+      save
+      "$LUMEN_PATH/bin/anarch-theme" set high-contrast
+      ;;
+    off)
+      CONTRAST=off
+      local back="${PREV_THEME:-$DEFAULT_THEME}"
+      save
+      "$LUMEN_PATH/bin/anarch-theme" set "$back"
+      ;;
+    *) die "usage: anarch-a11y contrast on|off" ;;
+  esac
+  echo "✓ High contrast: $CONTRAST"
+}
+
+pick() {
+  local choice
+  choice=$(printf '%s\n' \
+    "󰗅  Screen reader: $READER" \
+    "󰛂  Bigger text" \
+    "󰛁  Smaller text" \
+    "󰇀  Big cursor" \
+    "󰇀  Normal cursor" \
+    "󰑙  Animations: $([[ "$MOTION" == reduce ]] && echo off || echo on)" \
+    "󰔎  High contrast: $CONTRAST" \
+    "󰍉  Zoom around the cursor (SUPER + CTRL + Z)" |
+    menu "Accessibility" --width 44 --lines 8) || exit 0
+  case "$choice" in
+    *"reader: on") reader off ;;
+    *"reader: off") reader on ;;
+    *"Bigger text") text bigger ;;
+    *"Smaller text") text smaller ;;
+    *"Big cursor") cursor big ;;
+    *"Normal cursor") cursor normal ;;
+    *"Animations: on") motion reduce ;;
+    *"Animations: off") motion normal ;;
+    *"contrast: on") contrast off ;;
+    *"contrast: off") contrast on ;;
+    *Zoom*) hyprctl eval 'hl.config({ cursor = { zoom_factor = 2 } })' >/dev/null 2>&1 || true ;;
+  esac >/dev/null
+}
+
+case "${1:-}" in
+  "") if [[ -t 1 ]]; then status; else pick; fi ;;
+  status) status ;;
+  menu) pick ;;
+  reader) reader "${2:-toggle}" ;;
+  text) text "${2:-}" ;;
+  cursor) cursor "${2:-}" ;;
+  motion) motion "${2:-}" ;;
+  contrast) contrast "${2:-}" ;;
+  apply)
+    [[ -f "$conf" ]] || exit 0
+    apply_text
+    apply_cursor
+    [[ "$MOTION" == reduce ]] && apply_motion
+    [[ "$READER" == on ]] && apply_reader
+    exit 0
+    ;;
+  -h | --help | help) sed -n '2,14s/^# \{0,1\}//p' "$0" ;;
+  *) die "Unknown option '$1'. See: anarch-a11y --help" ;;
+esac

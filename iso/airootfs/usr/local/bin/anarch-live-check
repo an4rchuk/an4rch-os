@@ -1,0 +1,52 @@
+#!/bin/bash
+# anarch-live-check — VM test only (boot with lumen.livecheck=1): report on the
+# live desktop over the serial console, as E2E-RESULT lines the e2e
+# workflow collects, plus details for diagnosis.
+set -u
+exec >/dev/ttyS0 2>&1
+
+u=live
+uid=$(id -u "$u")
+run=/run/user/$uid
+sig=$(find "$run/hypr" -mindepth 1 -maxdepth 1 -printf '%f\n' 2>/dev/null | head -n1)
+wl=""
+for s in "$run"/wayland-[0-9]*; do [[ -S "$s" ]] && { wl="${s##*/}"; break; }; done
+as_live() {
+  timeout 30 runuser -u "$u" -- env -i HOME="/home/$u" USER="$u" XDG_RUNTIME_DIR="$run" \
+    WAYLAND_DISPLAY="$wl" HYPRLAND_INSTANCE_SIGNATURE="$sig" DBUS_SESSION_BUS_ADDRESS="unix:path=$run/bus" \
+    LUMEN_PATH=/opt/lumen PATH="/opt/lumen/bin:/usr/local/bin:/usr/bin" "$@"
+}
+result() { printf 'E2E-RESULT live: %s %s %s\n' "$1" "$2" "${3:-}"; }
+check() { # check NAME CMD...
+  local name="$1"
+  shift
+  if "$@" >/dev/null 2>&1; then result "$name" PASS; else result "$name" FAIL; fi
+}
+
+echo "=== LUMEN-LIVE-CHECK ==="
+check "desktop session running" test -n "$sig"
+check "top bar running" pgrep -u "$u" -x waybar
+check "taskbar running" pgrep -u "$u" -f "waybar -c .*taskbar.jsonc"
+check "wallpaper (swaybg) running" pgrep -u "$u" -x swaybg
+check "installer window open" pgrep -u "$u" -f lumen_installer.py
+check "desktop icons (Install an4rch OS) showing" pgrep -u "$u" -f lumen_desktop.py
+check "sound (PipeWire) running" as_live wpctl status
+for c in hypridle hyprsunset pavucontrol wiremix playerctl bluetoothctl notify-send powerprofilesctl; do
+  check "command $c" command -v "$c"
+done
+
+echo "--- details"
+echo "swaybg: $(pgrep -u "$u" -a swaybg | cut -c1-200)"
+echo "wallpaper link: $(readlink "/home/$u/.config/lumen/current/wallpaper" 2>&1)"
+echo "theme: $(cat "/home/$u/.config/lumen/current/theme.name" 2>&1)"
+ls /opt/lumen-wallpapers 2>&1 | head -n 12 | tr '\n' ' '
+echo
+echo "settings:"; cat "/home/$u/.config/lumen/settings.conf" 2>&1
+echo "graphics: $(lspci -k 2>/dev/null | grep -A3 -iE "vga|3d" | sed -n "s/.*Kernel driver in use: //p" | tr "\n" " ") nvidia module: $(lsmod | grep -c "^nvidia")"
+echo "plugins: $(as_live hyprctl plugin list 2>&1 | head -n 3 | tr '\n' ' ')"
+echo "user services failed:"; as_live systemctl --user --failed --no-legend 2>&1 | head -n 10
+echo "preload: $(journalctl -u anarch-live-preload -b --no-pager -o cat 2>&1 | tail -n 2 | tr "\n" " ")"
+echo "live setup log:"; tail -n 40 /var/log/lumen-live-setup.log 2>&1
+echo "live session log:"; tail -n 20 "/home/$u/.local/state/lumen/live-session.log" 2>&1
+echo "user journal errors:"; journalctl _UID="$uid" -p err -b --no-pager -o cat 2>&1 | tail -n 30
+echo "=== LUMEN-LIVE-CHECK-END ==="

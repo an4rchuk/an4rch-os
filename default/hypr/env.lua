@@ -16,7 +16,7 @@ hl.env("ELECTRON_OZONE_PLATFORM_HINT", "auto")
 hl.env("SDL_VIDEODRIVER", "wayland,x11")
 
 hl.env("LUMEN_PATH", lumen.root)
--- Prepend Lumen's commands once (this file runs again on every reload).
+-- Prepend an4rch's commands once (this file runs again on every reload).
 local path = os.getenv("PATH") or "/usr/local/bin:/usr/bin"
 local bin = lumen.root .. "/bin"
 if not (":" .. path .. ":"):find(":" .. bin .. ":", 1, true) then

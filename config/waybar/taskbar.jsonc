@@ -1,5 +1,5 @@
-// Lumen taskbar (bottom of the screen). Turn it on or off with:
-//   Lumen menu → Toggle → Taskbar, or `lumen taskbar on|off`.
+// an4rch taskbar (bottom of the screen). Turn it on or off with:
+//   an4rch menu → Toggle → Taskbar, or `anarch taskbar on|off`.
 // Click an app to switch to it, click the active app to minimise it,
 // middle-click to close. Minimised windows come back with a click.
 {
@@ -19,8 +19,8 @@
   "custom/start": {
     "format": "󰣇",
     "tooltip-format": "Start",
-    "on-click": "lumen-start",
-    "on-click-right": "lumen-menu"
+    "on-click": "anarch-start",
+    "on-click-right": "anarch-menu"
   },
 
   "wlr/taskbar": {
@@ -31,14 +31,14 @@
     "on-click": "minimize-raise",
     "on-click-middle": "close",
     "on-click-right": "fullscreen",
-    "ignore-list": ["lumen-start"]
+    "ignore-list": ["anarch-start"]
   },
 
   "custom/minimized": {
-    "exec": "n=$(lumen-window list | wc -l); [ \"$n\" -gt 0 ] && echo \"󰖰 $n\" || echo",
+    "exec": "n=$(anarch-window list | wc -l); [ \"$n\" -gt 0 ] && echo \"󰖰 $n\" || echo",
     "interval": 2,
     "tooltip-format": "Minimised windows: click to restore one",
-    "on-click": "lumen-window restore-menu"
+    "on-click": "anarch-window restore-menu"
   },
 
   "clock#taskbar": {

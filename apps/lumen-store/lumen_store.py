@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Lumen App Store — find, install, update and remove apps.
+"""an4rch App Store — find, install, update and remove apps.
 
-One place for every source Lumen supports:
+One place for every source an4rch supports:
   * Arch repositories (pacman) — fast, integrated, updated with the system
   * Flathub (Flatpak)          — sandboxed apps straight from developers
   * AUR (yay)                  — community packages for everything else
@@ -252,7 +252,7 @@ class Backend:
         else:
             desktop = find_desktop_for_package(src["id"])
             argv = ["gtk-launch", desktop] if desktop else [src["id"]]
-        launcher = LUMEN_PATH / "bin/lumen-launch"
+        launcher = LUMEN_PATH / "bin/anarch-launch"
         if launcher.exists():
             argv = [str(launcher), "--", *argv]
         subprocess.Popen(argv, start_new_session=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -732,7 +732,7 @@ class StoreWindow(Adw.ApplicationWindow):
             self.installed_box.append(fgroup)
 
         note = Gtk.Label(wrap=True, xalign=0, css_classes=["dim-label", "caption"],
-                         label="Command-line tools and system packages are managed with “lumen pkg” in a terminal.")
+                         label="Command-line tools and system packages are managed with “anarch pkg” in a terminal.")
         self.installed_box.append(note)
 
     def installed_row(self, app: App, src: dict) -> Adw.ActionRow:
@@ -772,13 +772,13 @@ class StoreWindow(Adw.ApplicationWindow):
         total = len(res["system"]) + len(res["flatpak"])
         if total == 0:
             self.updates_box.append(Adw.StatusPage(icon_name="emblem-ok-symbolic", title="You're up to date",
-                                                   description="Lumen checks for updates every hour."))
+                                                   description="an4rch checks for updates every hour."))
             return
         status = Adw.StatusPage(icon_name="software-update-available-symbolic",
                                 title=f"{total} update{'s' if total != 1 else ''} available",
                                 description="A snapshot is taken first, so any update can be undone.")
         btn = Gtk.Button(label="Update everything", halign=Gtk.Align.CENTER, css_classes=["pill", "suggested-action"])
-        btn.connect("clicked", lambda *_: self.run_tool(["lumen-update"]))
+        btn.connect("clicked", lambda *_: self.run_tool(["anarch-update"]))
         status.set_child(btn)
         self.updates_box.append(status)
         for title, items in (("System and apps", res["system"]), ("Flatpak apps", res["flatpak"])):
@@ -871,7 +871,7 @@ class StoreWindow(Adw.ApplicationWindow):
                     for n, d in found]
             repo_box.append(self.section("From the Arch repositories", apps))
             more = Gtk.Button(label="Search the AUR in a terminal…", halign=Gtk.Align.START, css_classes=["flat"])
-            more.connect("clicked", lambda *_: self.run_tool(["lumen-pkg", "install"]))
+            more.connect("clicked", lambda *_: self.run_tool(["anarch-pkg", "install"]))
             repo_box.append(more)
 
         in_thread(flathub, show_flathub)

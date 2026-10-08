@@ -1,4 +1,4 @@
--- Lumen key bindings.
+-- an4rch key bindings.
 --
 -- The layout of the keyboard map:
 --   SUPER + key            apps and windows
@@ -31,7 +31,7 @@ bind("SUPER + SUPER_L",       exec(cmd("start")),                      "Start me
 bind("SUPER + SUPER_R",       exec(cmd("start")),                      "Start menu (right Windows key)", { release = true })
 bind("SUPER + SPACE",         exec(cmd("launcher")),                   "Quick app launcher")
 bind("SUPER + A",             exec(cmd("store")),                      "App Store")
-bind("SUPER + ALT + SPACE",   exec(cmd("menu")),                       "Lumen menu")
+bind("SUPER + ALT + SPACE",   exec(cmd("menu")),                       "an4rch menu")
 bind("SUPER + B",             exec(launch("browser")),                 "Browser")
 bind("SUPER + SHIFT + B",     exec(launch("browser --private")),       "Browser (private window)")
 bind("SUPER + E",             exec(launch("files")),                   "File manager")
@@ -39,7 +39,7 @@ bind("SUPER + C",             exec(launch("editor")),                  "Code edi
 bind("SUPER + SHIFT + Return", exec(cmd("term", "--float")),           "Floating terminal")
 bind("SUPER + grave",         exec(cmd("windows")),                    "Find an open window")
 bind("SUPER + slash",         exec(cmd("keys")),                       "Show all key bindings")
-bind("SUPER + F1",            exec(cmd("manual")),                     "Open the Lumen manual")
+bind("SUPER + F1",            exec(cmd("manual")),                     "Open the an4rch manual")
 bind("SUPER + I",             exec(cmd("settings")),                   "Settings")
 bind("CTRL + SHIFT + Escape",  exec(launch("monitor")),                 "Task Manager (like Windows)")
 
@@ -152,6 +152,7 @@ bind("SUPER + CTRL + period",  exec("makoctl invoke"),             "Open notific
 -- System (SUPER + CTRL)
 ---------------------------------------------------------------------------
 bind("SUPER + Escape",         exec(cmd("power")),                 "Power menu")
+bind("SUPER + SHIFT + Escape", exec(cmd("panic")),                 "Panic: hide everything, close vaults, lock")
 bind("SUPER + CTRL + L",       exec("loginctl lock-session"),      "Lock screen")
 bind("SUPER + CTRL + T",       exec(cmd("theme")),                 "Pick a theme")
 bind("SUPER + CTRL + SHIFT + T", exec(cmd("theme", "next")),       "Next theme")
@@ -160,6 +161,7 @@ bind("SUPER + CTRL + SHIFT + W", exec(cmd("wallpaper", "pick")),   "Pick a wallp
 bind("SUPER + CTRL + N",       exec(cmd("toggle", "nightlight")),  "Toggle night light")
 bind("SUPER + CTRL + I",       exec(cmd("toggle", "idle")),        "Keep awake (pause screen lock)")
 bind("SUPER + CTRL + D",       exec(cmd("toggle", "dnd")),         "Toggle Do Not Disturb")
+bind("SUPER + CTRL + F",       exec(cmd("focus")),                 "Start / stop a 25-minute focus session")
 bind("SUPER + CTRL + B",       exec(cmd("toggle", "bar")),         "Show or hide the top bar")
 bind("SUPER + CTRL + G",       exec(cmd("toggle", "gaps")),        "Toggle gaps and rounding")
 bind("SUPER + CTRL + S",       exec(cmd("toggle", "layout")),      "Switch tiling / scrolling layout")
@@ -179,6 +181,10 @@ bind("SUPER + ALT + D", exec(cmd("display")),    "Displays")
 bind("SUPER + ALT + T", exec(launch("monitor")), "System monitor")
 bind("SUPER + ALT + I", exec(cmd("pkg", "install")), "Install apps")
 bind("SUPER + ALT + U", exec(cmd("update")),     "Update the system")
+bind("SUPER + ALT + R", exec(cmd("a11y", "reader")), "Screen reader on / off")
+bind("SUPER + ALT + P", exec(cmd("privacy")),    "Privacy (hidden MAC, encrypted DNS, tracker blocking)")
+bind("SUPER + ALT + S", exec(cmd("say")),        "Read the selected text aloud (again to stop)")
+bind("SUPER + ALT + K", exec(cmd("note")),       "Quick notes (show / hide)")
 
 ---------------------------------------------------------------------------
 -- Hardware keys (work on the lock screen too)

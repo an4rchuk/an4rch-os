@@ -1,40 +1,4 @@
 #!/usr/bin/env bash
-# lumen-taskbar — a taskbar along the bottom of the screen, Windows-style.
-#
-#   lumen-taskbar on       show it now and at every login
-#   lumen-taskbar off      hide it
-#   lumen-taskbar toggle   switch (Lumen menu → Toggle → Taskbar)
-#   lumen-taskbar start    start it if the setting is on (used at login)
-#
-# It shows Start, your open windows (click to switch, click the active one
-# to minimise, middle-click to close) and minimised windows to restore.
-set -euo pipefail
-source "${LUMEN_PATH:-$HOME/.local/share/lumen}/lib/lumen.sh"
-
-conf="${XDG_CONFIG_HOME:-$HOME/.config}/waybar"
-running() { pgrep -f 'waybar -c .*taskbar.jsonc' >/dev/null; }
-
-set_setting() {
-  mkdir -p "$LUMEN_CONFIG"
-  local f="$LUMEN_CONFIG/settings.conf"
-  touch "$f"
-  if grep -q '^LUMEN_TASKBAR=' "$f"; then
-    sed -i "s/^LUMEN_TASKBAR=.*/LUMEN_TASKBAR=$1/" "$f"
-  else
-    printf '\n# Taskbar along the bottom of the screen: yes | no\nLUMEN_TASKBAR=%s\n' "$1" >>"$f"
-  fi
-}
-
-show() { running || launch waybar -c "$conf/taskbar.jsonc" -s "$conf/taskbar.css"; }
-hide() { pkill -f 'waybar -c .*taskbar.jsonc' || true; }
-
-case "${1:-toggle}" in
-  on) set_setting yes; show ;;
-  off) set_setting no; hide ;;
-  toggle) if running; then set_setting no; hide; else set_setting yes; show; fi ;;
-  start) [[ "${LUMEN_TASKBAR:-no}" == yes ]] && show ;;
-  restart) hide; sleep 0.2; [[ "${LUMEN_TASKBAR:-no}" == yes ]] && show ;;
-  -h | --help | help) sed -n '2,10s/^# \{0,1\}//p' "$0" ;;
-  *) die "Unknown command '$1'. See: lumen-taskbar --help" ;;
-esac
-exit 0
+# lumen-taskbar — obsolete name (before an4rch OS 1.1.0) of anarch-taskbar; kept so old configs still work.
+[[ -t 2 ]] && printf '\e[33m!\e[0m lumen-taskbar is obsolete: use anarch-taskbar (or: anarch taskbar)\n' >&2
+exec "${LUMEN_PATH:-$HOME/.local/share/lumen}/bin/anarch-taskbar" "$@"

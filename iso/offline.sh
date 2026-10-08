@@ -29,7 +29,7 @@ source "$root/install/packages.sh"
 mkdir -p "$repo" "$dbpath"
 
 # --- 1. The packages ------------------------------------------------------------
-# Everything lumen-os-install and install.sh install by default, for any CPU
+# Everything anarch-os-install and install.sh install by default, for any CPU
 # and GPU, plus the build tools the title bars need on a Hyprland update.
 # From install/distro.sh: plymouth zram-generator pacman-contrib
 # arch-install-scripts snapper snap-pac.
@@ -39,7 +39,7 @@ want=(
   "${PKGS_TOOLS[@]}" "${PKGS_FONTS[@]}" "${PKGS_LOOK[@]}" "${PKGS_OPTIONAL[@]}"
   "${PKGS_GPU_INTEL[@]}" "${PKGS_GPU_AMD[@]}" "${PKGS_GPU_NVIDIA[@]}" linux-headers linux-lts-headers
   "${PKG_FOR[firefox]}" "${PKG_FOR[ghostty]}" "${PKG_FOR[code]}"
-  "${PKGS_TITLEBARS[@]}"
+  "${PKGS_TITLEBARS[@]}" "${PKGS_SERVER[@]}" "${PKGS_SERVER_OPTIONAL[@]}" fish bash-completion
   plymouth zram-generator pacman-contrib arch-install-scripts snapper snap-pac
 )
 pacman --dbpath "$dbpath" --logfile /dev/null -Sy >/dev/null
@@ -111,8 +111,8 @@ rm -f "$repo"/*.old
 # --- 3. The title bar plugin ----------------------------------------------------------
 # Compiled once here; the live system and every install use this copy.
 echo "==> Title bars: building the hyprbars plugin for $(arch-chroot "$builder" pacman -Q hyprland)"
-install -D -m755 "$root/bin/lumen-hyprbars-build" "$builder/usr/local/bin/lumen-hyprbars-build"
-if arch-chroot "$builder" /usr/local/bin/lumen-hyprbars-build /root/hyprbars.so >"$work/hyprbars.log" 2>&1; then
+install -D -m755 "$root/bin/anarch-hyprbars-build" "$builder/usr/local/bin/anarch-hyprbars-build"
+if arch-chroot "$builder" /usr/local/bin/anarch-hyprbars-build /root/hyprbars.so >"$work/hyprbars.log" 2>&1; then
   install -D -m755 "$builder/root/hyprbars.so" "$profile/airootfs/usr/lib/lumen/hyprbars.so"
   arch-chroot "$builder" pacman -Q hyprland | awk '{print $2}' |
     install -D -m644 /dev/stdin "$profile/airootfs/var/lib/lumen/hyprbars-hyprland"

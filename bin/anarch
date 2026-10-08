@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+# anarch — front door to every an4rch OS command.
+#
+#   anarch                 open the menu
+#   anarch <command> ...   run that command, e.g. `anarch theme set nord`
+#   anarch anarch          add the anarchism theme pack (12 themes + wallpapers)
+#   anarch help            list commands
+#
+# `lumen` (the OS's name before 1.1.0) still works and does the same.
+set -euo pipefail
+source "${LUMEN_PATH:-$HOME/.local/share/lumen}/lib/lumen.sh"
+
+if [[ $# -eq 0 ]]; then
+  exec "$LUMEN_PATH/bin/anarch-menu"
+fi
+
+case "$1" in
+  help | -h | --help)
+    printf '\e[1man4rch OS\e[0m %s\n\n' "$(cat "$LUMEN_PATH/VERSION" 2>/dev/null || echo dev)"
+    printf 'Usage: anarch <command> [args]\n\n'
+    for f in "$LUMEN_PATH"/bin/anarch-*; do
+      name="${f##*/anarch-}"
+      summary=$(sed -n '2s/^# anarch-[a-z-]* — //p' "$f")
+      printf '  \e[36m%-15s\e[0m %s\n' "$name" "$summary"
+    done
+    printf '  \e[36m%-15s\e[0m %s\n' anarch "add the anarchism theme pack (12 themes, gradient wallpapers)"
+    printf '\nFull manual: anarch manual   ·   Key bindings: SUPER + /\n'
+    ;;
+  version | --version)
+    cat "$LUMEN_PATH/VERSION" 2>/dev/null || echo dev
+    ;;
+  anarch | anarchism)
+    shift
+    exec "$LUMEN_PATH/bin/anarch-theme" get anarchism "$@"
+    ;;
+  themes)
+    shift
+    if [[ $# -eq 0 ]]; then exec "$LUMEN_PATH/bin/anarch-theme" packs; fi
+    exec "$LUMEN_PATH/bin/anarch-theme" "$@"
+    ;;
+  *)
+    sub="$LUMEN_PATH/bin/anarch-$1"
+    [[ -x "$sub" ]] || die "Unknown command '$1'. Try: anarch help"
+    shift
+    exec "$sub" "$@"
+    ;;
+esac

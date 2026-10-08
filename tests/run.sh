@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Lumen test suite. Runs on any Linux box (no Hyprland needed):
+# an4rch test suite. Runs on any Linux box (no Hyprland needed):
 #   - Hyprland Lua config checked against the real 0.56 API (tests/hypr-api.lua)
 #   - every theme renders with no leftover placeholders
 #   - shellcheck on all shell scripts
@@ -27,13 +27,31 @@ export PATH="$tmp/bin:$PATH"
 step "Themes"
 for t in "$root"/themes/*/; do
   name=$(basename "$t")
-  if out=$("$root/bin/lumen-theme" set "$name" 2>&1) && ! grep -rq '{{' "$HOME/.config/lumen/current/theme/"; then
+  if out=$("$root/bin/anarch-theme" set "$name" 2>&1) && ! grep -rq '{{' "$HOME/.config/lumen/current/theme/"; then
     ok "$name"
   else
     bad "$name: $out"
   fi
 done
-"$root/bin/lumen-theme" set lumen >/dev/null
+# Themes from the packs (anarch theme get …).
+for t in "$root"/themes-extra/*/*/; do
+  [[ -f "$t/theme.conf" ]] || continue
+  name=$(basename "$t")
+  mkdir -p "$HOME/.config/lumen/themes" && cp -r "$t" "$HOME/.config/lumen/themes/$name"
+  if out=$("$root/bin/anarch-theme" set "$name" 2>&1) && ! grep -rq '{{' "$HOME/.config/lumen/current/theme/"; then
+    ok "pack theme $name"
+  else
+    bad "pack theme $name: $out"
+  fi
+  rm -rf "$HOME/.config/lumen/themes/$name"
+done
+# The signature theme's old name still works.
+if "$root/bin/anarch-theme" set lumen >/dev/null 2>&1 && [[ "$("$root/bin/anarch-theme" current)" == an4rch ]]; then
+  ok "old theme name 'lumen' switches to an4rch"
+else
+  bad "theme 'lumen' doesn't map to an4rch"
+fi
+"$root/bin/anarch-theme" set an4rch >/dev/null
 
 step "Hyprland config (Lua)"
 lua=$(command -v lua5.4 || command -v lua5.3 || command -v luajit || command -v lua)
@@ -79,8 +97,8 @@ fi
 for s in "${scripts[@]}"; do bash -n "$s" || bad "syntax: $s"; done
 ok "bash -n"
 
-step "Lumen apps (Start menu, App Store, Welcome)"
-if python3 -m py_compile "$root"/apps/*/*.py "$root/bin/lumen-wallgen" 2>&1; then ok "Python compiles"; else bad "Python syntax"; fi
+step "an4rch apps (Start menu, App Store, Welcome)"
+if python3 -m py_compile "$root"/apps/*/*.py "$root/bin/anarch-wallgen" 2>&1; then ok "Python compiles"; else bad "Python syntax"; fi
 rm -rf "$root"/apps/*/__pycache__ "$root"/bin/__pycache__
 if python3 - "$root/apps/lumen-store/catalog.json" <<'PY'
 import json, re, sys
@@ -103,7 +121,7 @@ PY
 then ok "store catalogue is valid"; else bad "store catalogue"; fi
 
 # Every menu entry, Start search action, Settings button, bar click, key
-# binding and app shortcut must point at a command Lumen ships (or a
+# binding and app shortcut must point at a command an4rch ships (or a
 # well-known system one), so no menu item silently does nothing.
 if python3 - "$root" <<'PY'
 import re, sys
@@ -112,22 +130,22 @@ root = Path(sys.argv[1])
 ours = {p.name for p in (root / "bin").iterdir()}
 refs = []  # (where, command)
 def add(where, cmd):
-    if cmd.startswith("lumen-"):
+    if cmd.startswith("anarch-"):
         refs.append((where, cmd))
-for f in [root / "bin/lumen-menu", *root.glob("apps/*/*.py"), root / "config/waybar/config.jsonc",
+for f in [root / "bin/anarch-menu", *root.glob("apps/*/*.py"), root / "config/waybar/config.jsonc",
           root / "config/waybar/taskbar.jsonc", root / "default/hypr/binds.lua"]:
     text = f.read_text()
-    for m in re.finditer(r'\$bin/(lumen-[a-z-]+)', text): add(f.name, m.group(1))
-    for m in re.finditer(r'["\[]\s*"?(lumen-[a-z-]+)"', text): add(f.name, m.group(1))
-    for m in re.finditer(r'"on-click[a-z-]*":\s*"(lumen-[a-z-]+)', text): add(f.name, m.group(1))
-    for m in re.finditer(r'(?<![\w.])cmd\("([a-z-]+)"', text): add(f.name, "lumen-" + m.group(1))
+    for m in re.finditer(r'\$bin/(anarch-[a-z0-9-]+)', text): add(f.name, m.group(1))
+    for m in re.finditer(r'["\[]\s*"?(anarch-[a-z0-9-]+)"', text): add(f.name, m.group(1))
+    for m in re.finditer(r'"on-click[a-z-]*":\s*"(anarch-[a-z0-9-]+)', text): add(f.name, m.group(1))
+    for m in re.finditer(r'(?<![\w.])cmd\("([a-z0-9-]+)"', text): add(f.name, "anarch-" + m.group(1))
 for f in root.glob("share/applications/*.desktop"):
     m = re.search(r"^Exec=(\S+)", f.read_text(), re.M)
     if m: add(f.name, m.group(1))
-# Lua files are referenced as lumen-<name>.lua etc. and app ids as lumen-start; keep real commands only.
-skip = {"lumen-logo", "lumen-installer", "lumen-floating", "lumen-start.desktop"}
+# Lua files are referenced as lumen-<name>.lua etc. and app ids as anarch-start; keep real commands only.
+skip = {"lumen-logo", "anarch-installer", "lumen-floating", "lumen-start.desktop"}
 missing = sorted({(w, c) for w, c in refs if c not in ours and c not in skip and not c.endswith((".desktop", "-"))
-                  and c != "lumen-os-install" and (root / "iso/airootfs/usr/local/bin" / c).exists() is False})
+                  and c != "anarch-os-install" and (root / "iso/airootfs/usr/local/bin" / c).exists() is False})
 for w, c in missing:
     print(f"  {w}: {c} doesn't exist")
 print(f"  {len(set(c for _, c in refs))} commands referenced from menus, bars, binds and apps")
@@ -138,10 +156,11 @@ then ok "every menu item points at a real command"; else bad "menu items point a
 # Headless smoke test: each GTK app starts and renders without a traceback.
 if command -v xvfb-run >/dev/null && python3 -c 'import gi; gi.require_version("Gtk", "4.0"); gi.require_version("Adw", "1")' 2>/dev/null; then
   for app in "lumen-start/lumen_start.py --show" "lumen-store/lumen_store.py" "lumen-welcome/lumen_welcome.py" "lumen-installer/lumen_installer.py" \
-    "lumen-settings/lumen_settings.py" "lumen-audio/lumen_audio.py --show" "lumen-desktop/lumen_desktop.py"; do
+    "lumen-settings/lumen_settings.py" "lumen-audio/lumen_audio.py --show" "lumen-desktop/lumen_desktop.py" \
+    "lumen-panels/lumen_panels.py network --show" "lumen-panels/lumen_panels.py bluetooth --show" "lumen-panels/lumen_panels.py power --show"; do
     log="$tmp/gui.log"
     # shellcheck disable=SC2086
-    LUMEN_INSTALLER_DEMO=1 LUMEN_SETTINGS_ALL_PAGES=1 GDK_BACKEND=x11 GSK_RENDERER=cairo GTK_A11Y=none timeout 25 xvfb-run -a dbus-run-session -- \
+    LUMEN_INSTALLER_DEMO=1 LUMEN_SETTINGS_ALL_PAGES=1 LUMEN_PANELS_DEMO=1 GDK_BACKEND=x11 GSK_RENDERER=cairo GTK_A11Y=none timeout 25 xvfb-run -a dbus-run-session -- \
       bash -c "python3 $root/apps/$app & pid=\$!; sleep 6; kill -0 \$pid && echo LUMEN-ALIVE; kill \$pid" >"$log" 2>&1 || true
     if grep -qE 'Traceback|Error:' "$log" || ! grep -q LUMEN-ALIVE "$log"; then
       bad "${app%%/*}: $(grep -v 'fd limit' "$log" | grep -m1 -E 'Error|error|No such' || echo "exited early")"
@@ -198,13 +217,105 @@ fi
 
 step "Wallpapers"
 if python3 -c 'import PIL' 2>/dev/null; then
-  if python3 "$root/bin/lumen-wallgen" --theme lumen --theme catppuccin-latte --size 640x360 --out "$tmp/walls" >/dev/null; then
-    ok "$(find "$tmp/walls" -type f | wc -l) wallpapers generated"
+  if python3 "$root/bin/anarch-wallgen" --theme an4rch --theme catppuccin-latte --theme ancom --size 640x360 --out "$tmp/walls" >/dev/null &&
+    [[ $(find "$tmp/walls" -type f | wc -l) -eq 27 ]]; then
+    ok "$(find "$tmp/walls" -type f | wc -l) wallpapers generated (incl. a pack theme)"
   else
-    bad "lumen-wallgen failed"
+    bad "anarch-wallgen failed"
   fi
 else
   printf '  - skipped (Pillow not installed)\n'
+fi
+
+step "Privacy, safety and other an4rch tools"
+# anarch carry: export, change a setting, import, and the setting is back.
+mkdir -p "$HOME/.config/lumen" "$HOME/.config/hypr"
+echo 'LUMEN_BROWSER=carry-test' >"$HOME/.config/lumen/settings.conf"
+echo '-- monitors here' >"$HOME/.config/hypr/monitors.lua"
+if "$root/bin/anarch-carry" export "$tmp/carry.tar.gz" >/dev/null 2>&1 &&
+  echo 'LUMEN_BROWSER=changed' >"$HOME/.config/lumen/settings.conf" &&
+  echo '-- this machine' >"$HOME/.config/hypr/monitors.lua" &&
+  script -qefc "$root/bin/anarch-carry import $tmp/carry.tar.gz" /dev/null </dev/null >/dev/null 2>&1 &&
+  grep -q carry-test "$HOME/.config/lumen/settings.conf" && grep -q 'this machine' "$HOME/.config/hypr/monitors.lua" &&
+  ls "$HOME"/.local/state/lumen/before-carry-*/.config/lumen/settings.conf >/dev/null 2>&1; then
+  ok "anarch carry: export and import round-trip (screen layout kept, old settings backed up)"
+else
+  bad "anarch carry round-trip"
+fi
+# An unsafe carry file is refused.
+mkdir -p "$tmp/evil/meta" && touch "$tmp/evil/meta/carry.conf" "$tmp/evil/escape"
+tar -C "$tmp/evil" -czf "$tmp/evil.tar.gz" meta escape
+if ! "$root/bin/anarch-carry" show "$tmp/evil.tar.gz" >/dev/null 2>&1; then ok "anarch carry refuses files outside home/ and meta/"; else bad "anarch carry accepted an unsafe file"; fi
+rm -f "$HOME/.config/lumen/settings.conf"
+
+# anarch a11y: text size steps, saved for the next login.
+if "$root/bin/anarch-a11y" text bigger >/dev/null && "$root/bin/anarch-a11y" text bigger >/dev/null &&
+  grep -qx 'TEXT=1.5' "$HOME/.config/lumen/a11y.conf" && "$root/bin/anarch-a11y" text reset >/dev/null &&
+  grep -qx 'TEXT=1.0' "$HOME/.config/lumen/a11y.conf"; then
+  ok "anarch a11y text sizes"
+else
+  bad "anarch a11y text sizes"
+fi
+if "$root/bin/anarch-a11y" contrast on >/dev/null 2>&1 && [[ "$("$root/bin/anarch-theme" current)" == high-contrast ]] &&
+  "$root/bin/anarch-a11y" contrast off >/dev/null 2>&1 && [[ "$("$root/bin/anarch-theme" current)" == an4rch ]]; then
+  ok "anarch a11y contrast on/off returns to the theme you had"
+else
+  bad "anarch a11y contrast"
+fi
+
+# The status JSON the top bar reads.
+for m in camera focus; do
+  if "$root/bin/anarch-status" "$m" | jq -e 'has("text") and has("class")' >/dev/null 2>&1; then ok "anarch-status $m"; else bad "anarch-status $m: not JSON"; fi
+done
+# Every new command has --help.
+for c in privacy panic vault sandbox scrub focus health carry a11y auto note say screentime tidy reset share; do
+  if [[ -n "$("$root/bin/anarch-$c" --help 2>/dev/null | head -n1)" ]]; then :; else bad "anarch-$c --help"; fi
+done
+ok "--help for privacy, panic, vault, sandbox, scrub, focus, health, carry, a11y, auto, note, say, screentime, tidy, reset, share"
+# Vault names can't escape ~/.vaults.
+if ! "$root/bin/anarch-vault" open ../../etc >/dev/null 2>&1; then ok "anarch vault rejects odd names"; else bad "anarch vault accepted '../../etc'"; fi
+
+# anarch auto: sunrise and sunset from the time zone (London in early October: ~07:10 and ~18:25).
+sun=$(sed -n "/python3 - \"\$tz\" <<'PY'/,/^PY\$/p" "$root/bin/anarch-auto" | sed '1d;$d')
+if [[ "$(TZ=Europe/London python3 - Europe/London <<<"$sun" 2>/dev/null | wc -w)" == 2 ]] &&
+  TZ=Europe/London python3 - Europe/London <<<"$sun" | grep -qE '^0[4-9]:[0-5][0-9] 1[5-9]:[0-5][0-9]$|^0[4-9]:[0-5][0-9] 2[0-2]:[0-5][0-9]$'; then
+  ok "anarch auto: sunrise $(TZ=Europe/London python3 - Europe/London <<<"$sun" | tr ' ' '/') in London today"
+else
+  bad "anarch auto: sunrise/sunset calculation"
+fi
+if "$root/bin/anarch-auto" times 07:00 19:30 >/dev/null && grep -qx 'MODE=fixed' "$HOME/.config/lumen/auto.conf" &&
+  ! "$root/bin/anarch-auto" times 25:00 19:30 >/dev/null 2>&1; then
+  ok "anarch auto: fixed times, bad times refused"
+else
+  bad "anarch auto times"
+fi
+rm -f "$HOME/.config/lumen/auto.conf"
+
+# anarch note: a line added from the command line.
+if LUMEN_NOTES="$tmp/notes.md" "$root/bin/anarch-note" buy milk >/dev/null && grep -q -- '- buy milk' "$tmp/notes.md"; then
+  ok "anarch note adds a line"
+else
+  bad "anarch note"
+fi
+
+# anarch screentime: a report from counted time, and limits.
+mkdir -p "$HOME/.local/state/lumen/screentime"
+printf 'firefox\t1800\nfirefox\t1800\ncom.mitchellh.ghostty\t600\n' >"$HOME/.local/state/lumen/screentime/$(date +%F).tsv"
+if out=$(script -qefc "$root/bin/anarch-screentime" /dev/null </dev/null) && grep -q '1h 10m' <<<"$out" && grep -qi 'firefox.*1h 00m' <<<"$out" &&
+  "$root/bin/anarch-screentime" limit firefox 60 >/dev/null && grep -qx 'firefox 60' "$HOME/.config/lumen/screentime-limits" &&
+  "$root/bin/anarch-screentime" limit firefox off >/dev/null && ! grep -q firefox "$HOME/.config/lumen/screentime-limits"; then
+  ok "anarch screentime: report and limits"
+else
+  bad "anarch screentime: $out"
+fi
+
+# anarch reset: lists changed files and changes nothing on --dry-run.
+mkdir -p "$HOME/.config/hypr" && echo '-- mine' >"$HOME/.config/hypr/bindings.lua"
+if "$root/bin/anarch-reset" --dry-run 2>/dev/null | grep -q 'hypr/bindings.lua' && grep -q mine "$HOME/.config/hypr/bindings.lua" &&
+  ! "$root/bin/anarch-reset" --dry-run 2>/dev/null | grep -q 'monitors.lua'; then
+  ok "anarch reset --dry-run (screens and keyboard kept)"
+else
+  bad "anarch reset --dry-run"
 fi
 
 printf '\n'

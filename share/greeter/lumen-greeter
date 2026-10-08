@@ -1,9 +1,9 @@
 #!/bin/bash
-# lumen-greeter — Lumen's login screen, started by greetd as the "greeter"
-# user (installed to /usr/local/bin by `lumen-login setup`).
+# lumen-greeter — an4rch's login screen, started by greetd as the "greeter"
+# user (installed to /usr/local/bin by `anarch-login setup`).
 #
 # ReGreet, a graphical login screen, runs in the cage kiosk compositor with
-# your wallpaper and theme (copied to /var/lib/lumen/login by `lumen-login
+# your wallpaper and theme (copied to /var/lib/lumen/login by `anarch-login
 # sync`). If it can't start on this computer, the text login screen
 # (tuigreet) takes over, so you can always log in.
 dir=/var/lib/lumen/login
@@ -12,10 +12,10 @@ log="${XDG_RUNTIME_DIR:-/tmp}/lumen-greeter.log"
 
 if [[ ! -e "$dir/text-only" ]] && command -v cage >/dev/null && command -v regreet >/dev/null &&
   compgen -G '/dev/dri/card*' >/dev/null; then
-  # Lumen's session files come first: ReGreet takes the first file of each
-  # name, so the list shows one "Lumen" session (Hyprland through uwsm).
+  # an4rch's session files come first: ReGreet takes the first file of each
+  # name, so the list shows one "an4rch" session (Hyprland through uwsm).
   export XDG_DATA_DIRS="/usr/local/share/lumen:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
-  # The system keyboard layout (set by the installer or lumen setup keyboard),
+  # The system keyboard layout (set by the installer or anarch setup keyboard),
   # so passwords type the same as on the desktop.
   kbconf=/etc/X11/xorg.conf.d/00-keyboard.conf
   if [[ -f "$kbconf" ]]; then
@@ -34,4 +34,4 @@ if [[ ! -e "$dir/text-only" ]] && command -v cage >/dev/null && command -v regre
 fi
 
 exec tuigreet --time --time-format '%A %d %B  ·  %H:%M' --remember --asterisks \
-  --greeting 'Welcome to Lumen' --cmd "$session"
+  --greeting 'Welcome to an4rch' --cmd "$session"

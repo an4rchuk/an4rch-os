@@ -1,0 +1,164 @@
+#!/usr/bin/env bash
+# anarch-setup — one-time setup tasks for this computer.
+#
+#   anarch-setup keyboard       choose keyboard layout(s)
+#   anarch-setup timezone       set the time zone (or `auto` from your IP)
+#   anarch-setup defaults       choose default browser, editor, terminal, files
+#   anarch-setup fingerprint    enrol a finger for lock screen, sudo and prompts
+#   anarch-setup printing       install and enable printer support
+#   anarch-setup autologin on|off   skip the login screen (use with disk encryption)
+set -euo pipefail
+source "${LUMEN_PATH:-$HOME/.local/share/lumen}/lib/lumen.sh"
+
+input_conf="${XDG_CONFIG_HOME:-$HOME/.config}/hypr/input.lua"
+
+set_setting() { # set_setting KEY VALUE — update settings.conf in place
+  local f="$LUMEN_CONFIG/settings.conf"
+  mkdir -p "$LUMEN_CONFIG"
+  touch "$f"
+  if grep -q "^$1=" "$f"; then
+    sed -i "s|^$1=.*|$1=$2|" "$f"
+  else
+    printf '%s=%s\n' "$1" "$2" >>"$f"
+  fi
+}
+
+keyboard() {
+  local layouts layout variants variant value
+  mapfile -t layouts < <(localectl list-x11-keymap-layouts 2>/dev/null)
+  [[ ${#layouts[@]} -gt 0 ]] || die "Could not list keyboard layouts"
+  layout=$(printf '%s\n' "${layouts[@]}" | menu "Layout" --placeholder "us, de, fr, gb…" --width 30) || exit 0
+  mapfile -t variants < <(localectl list-x11-keymap-variants "$layout" 2>/dev/null)
+  variant=""
+  if [[ ${#variants[@]} -gt 0 ]]; then
+    variant=$( { echo "(default)"; printf '%s\n' "${variants[@]}"; } | menu "Variant" --width 30) || exit 0
+    [[ "$variant" == "(default)" ]] && variant=""
+  fi
+  value="$layout"
+  if confirm "Keep a second layout? (ALT + SHIFT switches)"; then
+    local second
+    second=$(printf '%s\n' "${layouts[@]}" | menu "Second layout" --width 30) || exit 0
+    value="$layout,$second"
+    sed -i -E "s|^(\s*)(--\s*)?kb_options\s*=.*|\1kb_options = \"compose:ralt,grp:alt_shift_toggle\",|" "$input_conf"
+    [[ -n "$variant" ]] && variant="$variant,"
+  fi
+  sed -i -E "0,/kb_layout/s|^(\s*)(--\s*)?kb_layout\s*=.*|\1kb_layout  = \"$value\",|" "$input_conf"
+  sed -i -E "0,/kb_variant/s|^(\s*)(--\s*)?kb_variant\s*=.*|\1kb_variant = \"$variant\",|" "$input_conf"
+  # Also for the text console and login screen.
+  sudo -n localectl set-x11-keymap "${value%%,*}" "" "${variant%%,*}" 2>/dev/null || true
+  notify "Keyboard: $value" "Saved to ~/.config/hypr/input.lua" -i input-keyboard
+}
+
+timezone() {
+  local tz
+  if [[ "${1:-}" == auto ]]; then
+    tz=$(curl -fsS --max-time 5 https://ipapi.co/timezone 2>/dev/null) || die "Could not detect the time zone"
+  else
+    tz=$( { echo "󰩠  Detect automatically"; timedatectl list-timezones; } | menu "Time zone" --placeholder "Europe/Berlin, America/New_York…" --width 40) || exit 0
+    [[ "$tz" == *automatically ]] && { timezone auto; return; }
+  fi
+  timedatectl set-timezone "$tz"
+  timedatectl set-ntp true 2>/dev/null || true
+  notify "Time zone: $tz" "$(date '+%H:%M, %A %d %B')" -i preferences-system-time
+}
+
+defaults() {
+  local kind choice
+  kind=$(printf '%s\n' "󰖟  Browser" "󰨞  Code editor" "󰆍  Terminal" "󰉋  File manager" | menu "Default app" --lines 4 --width 30) || exit 0
+  case "$kind" in
+    *Browser)
+      choice=$(printf '%s\n' firefox chromium brave zen-browser google-chrome-stable librewolf | while read -r b; do has "$b" && echo "$b"; done | menu "Browser" --width 30) || exit 0
+      set_setting LUMEN_BROWSER "$choice"
+      local desktop
+      desktop=$(find /usr/share/applications ~/.local/share/applications -name "*${choice%%-*}*.desktop" 2>/dev/null | head -n1)
+      if [[ -n "$desktop" ]]; then
+        xdg-settings set default-web-browser "$(basename "$desktop")" 2>/dev/null || true
+        xdg-mime default "$(basename "$desktop")" x-scheme-handler/http x-scheme-handler/https text/html
+      fi
+      ;;
+    *editor)
+      choice=$(printf '%s\n' code zed nvim helix cursor subl | while read -r b; do has "$b" && echo "$b"; done | menu "Editor" --width 30) || exit 0
+      set_setting LUMEN_EDITOR "$choice"
+      ;;
+    *Terminal)
+      choice=$(printf '%s\n' ghostty alacritty kitty foot | while read -r b; do has "$b" && echo "$b"; done | menu "Terminal" --width 30) || exit 0
+      set_setting LUMEN_TERMINAL "$choice"
+      ;;
+    *manager)
+      choice=$(printf '%s\n' nautilus thunar dolphin nemo "anarch-term -- yazi" | while read -r b; do has "${b%% *}" && echo "$b"; done | menu "Files" --width 30) || exit 0
+      set_setting LUMEN_FILES "\"$choice\""
+      ;;
+  esac
+  notify "Default updated" "$choice" -i preferences-desktop-default-applications
+}
+
+fingerprint() {
+  echo "Fingerprint login"
+  echo
+  pacman -Q fprintd >/dev/null 2>&1 || sudo pacman -S --needed fprintd
+  if ! fprintd-list "$USER" 2>/dev/null | grep -q 'Fingerprints for user'; then
+    echo "No fingerprint reader found, or it isn't supported by libfprint."
+    echo "Supported devices: https://fprint.freedesktop.org/supported-devices.html"
+    exit 1
+  fi
+  echo "Touch the sensor repeatedly until enrolment completes."
+  fprintd-enroll "$USER"
+  echo
+  echo "Testing — touch the sensor once more:"
+  fprintd-verify "$USER"
+
+  # PAM: allow a finger for sudo and for polkit prompts (password still works).
+  if [[ ! -f /etc/pam.d/polkit-1 && -f /usr/lib/pam.d/polkit-1 ]]; then
+    sudo cp /usr/lib/pam.d/polkit-1 /etc/pam.d/polkit-1
+  fi
+  for f in /etc/pam.d/sudo /etc/pam.d/polkit-1; do
+    [[ -f "$f" ]] || continue
+    grep -q pam_fprintd "$f" || sudo sed -i '0,/^auth/s//auth      sufficient pam_fprintd.so\nauth/' "$f"
+  done
+  sed -i 's/^\(\s*fingerprint:enabled\s*=\s*\).*/\1true/' "$HOME/.config/hypr/hyprlock.conf"
+  echo
+  echo "✓ Fingerprint works for the lock screen, sudo and admin prompts."
+}
+
+printing() {
+  echo "Printer support"
+  echo
+  sudo pacman -S --needed cups cups-pdf cups-filters system-config-printer avahi nss-mdns
+  sudo systemctl enable --now cups.socket avahi-daemon.service
+  # Let network printers be found automatically.
+  if ! grep -q 'mdns_minimal' /etc/nsswitch.conf; then
+    sudo sed -i 's/^hosts: \(.*\)resolve/hosts: \1mdns_minimal [NOTFOUND=return] resolve/' /etc/nsswitch.conf
+  fi
+  echo
+  echo "✓ Printing is ready. Most network printers appear by themselves;"
+  echo "  add others with: system-config-printer"
+  has system-config-printer && launch system-config-printer
+}
+
+autologin() {
+  local conf=/etc/greetd/config.toml
+  [[ -f "$conf" ]] || die "greetd is not installed"
+  case "${1:-}" in
+    on)
+      if ! grep -q '^\[initial_session\]' "$conf"; then
+        printf '\n[initial_session]\ncommand = "uwsm start -- hyprland.desktop"\nuser = "%s"\n' "$USER" | sudo tee -a "$conf" >/dev/null
+      fi
+      echo "Auto-login on. The lock screen still protects your session after it locks."
+      ;;
+    off)
+      sudo sed -i '/^\[initial_session\]/,$d' "$conf"
+      echo "Auto-login off."
+      ;;
+    *) die "usage: anarch-setup autologin on|off" ;;
+  esac
+}
+
+case "${1:-}" in
+  keyboard) keyboard ;;
+  timezone) timezone "${2:-}" ;;
+  defaults) defaults ;;
+  fingerprint) fingerprint ;;
+  printing) printing ;;
+  autologin) autologin "${2:-}" ;;
+  *) sed -n '2,10s/^# \{0,1\}//p' "$0" ;;
+esac

@@ -18,14 +18,14 @@ banner() {
   printf '%s' "$ACCENT"
   cat <<'EOF'
 
-    ██╗     ██╗   ██╗███╗   ███╗███████╗███╗   ██╗
-    ██║     ██║   ██║████╗ ████║██╔════╝████╗  ██║
-    ██║     ██║   ██║██╔████╔██║█████╗  ██╔██╗ ██║
-    ██║     ██║   ██║██║╚██╔╝██║██╔══╝  ██║╚██╗██║
-    ███████╗╚██████╔╝██║ ╚═╝ ██║███████╗██║ ╚████║
-    ╚══════╝ ╚═════╝ ╚═╝     ╚═╝╚══════╝╚═╝  ╚═══╝
+     █████╗ ███╗   ██╗██╗  ██╗██████╗  ██████╗██╗  ██╗
+    ██╔══██╗████╗  ██║██║  ██║██╔══██╗██╔════╝██║  ██║
+    ███████║██╔██╗ ██║███████║██████╔╝██║     ███████║
+    ██╔══██║██║╚██╗██║╚════██║██╔══██╗██║     ██╔══██║
+    ██║  ██║██║ ╚████║     ██║██║  ██║╚██████╗██║  ██║
+    ╚═╝  ╚═╝╚═╝  ╚═══╝     ╚═╝╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝
 EOF
-  printf '%s    %sa calm, keyboard-driven Arch + Hyprland desktop%s\n\n' "$RESET" "$DIM" "$RESET"
+  printf '%s    %sArch, your way: no masters, no telemetry%s\n\n' "$RESET" "$DIM" "$RESET"
 }
 
 STEP_NO=0
@@ -76,7 +76,7 @@ run() {
 }
 
 # booted — true on a running system; false in a chroot or container (the
-# Lumen OS installer runs install.sh inside a chroot), where services can be
+# an4rch OS installer runs install.sh inside a chroot), where services can be
 # enabled but not started, and the kernel's firewall can't be touched.
 booted() {
   [[ "$(ps -p 1 -o comm= 2>/dev/null)" == systemd ]] && ! systemd-detect-virt -q --chroot 2>/dev/null

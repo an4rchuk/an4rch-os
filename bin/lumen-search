@@ -1,20 +1,4 @@
 #!/usr/bin/env bash
-# lumen-search — search the web from anywhere (SUPER + SHIFT + W).
-# Prefixes: "!w" Wikipedia, "!yt" YouTube, "!gh" GitHub, "!aw" Arch Wiki,
-# "!maps" Maps — any DuckDuckGo !bang works.
-set -euo pipefail
-source "${LUMEN_PATH:-$HOME/.local/share/lumen}/lib/lumen.sh"
-
-if [[ "${1:-}" == --query ]]; then
-  query="${2:-}"
-else
-  query=$(ask "󰖟" "Search the web  ·  !aw arch wiki  ·  !gh github") || exit 0
-fi
-[[ -n "$query" ]] || exit 0
-if [[ "$query" =~ ^[a-zA-Z][a-zA-Z0-9+.-]*://|^[a-z0-9-]+(\.[a-z0-9-]+)+(/.*)?$ ]]; then
-  url="$query"
-  [[ "$url" == *://* ]] || url="https://$url"
-else
-  url="${LUMEN_SEARCH_URL:-https://duckduckgo.com/?q=}$(python3 -c 'import sys, urllib.parse; print(urllib.parse.quote_plus(sys.argv[1]))' "$query")"
-fi
-launch xdg-open "$url"
+# lumen-search — obsolete name (before an4rch OS 1.1.0) of anarch-search; kept so old configs still work.
+[[ -t 2 ]] && printf '\e[33m!\e[0m lumen-search is obsolete: use anarch-search (or: anarch search)\n' >&2
+exec "${LUMEN_PATH:-$HOME/.local/share/lumen}/bin/anarch-search" "$@"

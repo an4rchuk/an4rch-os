@@ -1,10 +1,10 @@
 
-  Lumen OS live environment
+  an4rch OS live environment
 
-  Install:   lumen-os-install
-  Rescue:    lumen-rescue        (roll back a system that won't start)
+  Install:   anarch-os-install
+  Rescue:    anarch-rescue        (roll back a system that won't start)
   Wi-Fi:     iwctl               (station wlan0 connect "Network")
   Recover:   photorec            (get deleted files back from an erased disk;
                                   save them to a different drive)
 
-  Desktop stuck?  Ctrl+Alt+F2, log in as root (no password), then run lumen-os-install
+  Desktop stuck?  Ctrl+Alt+F2, log in as root (no password), then run anarch-os-install

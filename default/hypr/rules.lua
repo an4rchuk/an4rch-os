@@ -1,5 +1,5 @@
 -- Window, layer and workspace rules.
--- Find a window's class with `hyprctl clients` or `lumen-doctor windows`.
+-- Find a window's class with `hyprctl clients` or `anarch-doctor windows`.
 
 -- Apps should not maximise themselves; tiling decides their size.
 hl.window_rule({
@@ -15,7 +15,7 @@ hl.window_rule({
     no_focus = true,
 })
 
--- Lumen dialogs: TUIs opened with `lumen-term --float` (Wi-Fi, Bluetooth,
+-- an4rch dialogs: TUIs opened with `anarch-term --float` (Wi-Fi, Bluetooth,
 -- audio, package installer, ...) behave like centred dialogs.
 hl.window_rule({
     name  = "lumen-floating",
@@ -63,9 +63,9 @@ hl.window_rule({
     center = true,
 })
 
--- Lumen's own windows.
-hl.window_rule({ name = "lumen-welcome", match = { class = "^(org\\.lumen\\.Welcome)$" }, float = true, center = true, size = { 820, 640 } })
-hl.window_rule({ name = "lumen-settings", match = { class = "^(org\\.lumen\\.Settings)$" }, float = true, center = true, size = { 980, 700 } })
+-- an4rch's own windows.
+hl.window_rule({ name = "anarch-welcome", match = { class = "^(org\\.lumen\\.Welcome)$" }, float = true, center = true, size = { 820, 640 } })
+hl.window_rule({ name = "anarch-settings", match = { class = "^(org\\.lumen\\.Settings)$" }, float = true, center = true, size = { 980, 700 } })
 
 hl.window_rule({ name = "lumen-modal-center", match = { modal = true }, float = true, center = true })
 
@@ -88,6 +88,16 @@ hl.window_rule({
     keep_aspect_ratio = true,
     size  = { "monitor_w*0.25", "monitor_h*0.25" },
     move  = { "monitor_w*0.74", "monitor_h*0.72" },
+})
+
+-- Quick notes (anarch note, SUPER + ALT + K) live on their own hidden workspace.
+hl.window_rule({
+    name  = "anarch-notes",
+    match = { class = "^(lumen\\.notes)$" },
+    workspace = "special:notes",
+    float  = true,
+    center = true,
+    size   = { "monitor_w*0.42", "monitor_h*0.6" },
 })
 
 -- Do not let the screen go to sleep while something is fullscreen.
@@ -119,8 +129,9 @@ hl.window_rule({ name = "lumen-steam-float", match = { class = "^(steam)$", titl
 hl.layer_rule({ name = "lumen-blur-bar",      match = { namespace = "^waybar$" },        blur = true, ignore_alpha = 0.2 })
 hl.layer_rule({ name = "lumen-blur-launcher", match = { namespace = "^launcher$" },      blur = true, ignore_alpha = 0.2, animation = "popin 95%" })
 hl.layer_rule({ name = "lumen-blur-notify",   match = { namespace = "^notifications$" }, blur = true, ignore_alpha = 0.2, animation = "slide right" })
-hl.layer_rule({ name = "lumen-blur-start",    match = { namespace = "^lumen-start$" },   blur = true, ignore_alpha = 0.1, animation = "fade" })
-hl.layer_rule({ name = "lumen-blur-audio",    match = { namespace = "^lumen-audio$" },   blur = true, ignore_alpha = 0.1, animation = "fade" })
+hl.layer_rule({ name = "lumen-blur-start",    match = { namespace = "^anarch-start$" },   blur = true, ignore_alpha = 0.1, animation = "fade" })
+hl.layer_rule({ name = "lumen-blur-audio",    match = { namespace = "^anarch-audio$" },   blur = true, ignore_alpha = 0.1, animation = "fade" })
+hl.layer_rule({ name = "lumen-blur-panel",    match = { namespace = "^anarch-panel$" },   blur = true, ignore_alpha = 0.1, animation = "fade" })
 hl.layer_rule({ name = "lumen-no-anim-selection", match = { namespace = "^(selection|hyprpicker)$" }, no_anim = true })
 
 ---------------------------------------------------------------------------

@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Build the Lumen OS installer ISO.
+# Build the an4rch OS installer ISO.
 #
-#   sudo iso/build.sh                 → out/lumen-<date>-x86_64.iso
+#   sudo iso/build.sh                 → out/an4rch-os-<date>-x86_64.iso
 #   sudo WORK=/var/tmp/lumen iso/build.sh
 #
 # Needs an Arch Linux host (or the archlinux container) with `archiso`
-# installed. The ISO is Arch's official "releng" live image with Lumen's
+# installed. The ISO is Arch's official "releng" live image with an4rch's
 # installer, branding and a copy of this repository layered on top, so it
 # stays in step with upstream archiso automatically.
 #
@@ -47,18 +47,18 @@ cat "$root/iso/packages.x86_64" >>"$profile/packages.x86_64"
 ) >>"$profile/packages.x86_64"
 sort -u -o "$profile/packages.x86_64" "$profile/packages.x86_64"
 
-# A copy of Lumen itself (with git history, so `lumen update` works after
+# A copy of an4rch itself (with git history, so `anarch update` works after
 # installing). Build leftovers are left out.
 mkdir -p "$profile/airootfs/opt/lumen"
 tar -C "$root" --exclude=./out --exclude=./work --exclude='./iso/*.iso' --exclude='__pycache__' -cf - . |
   tar -C "$profile/airootfs/opt/lumen" -xf -
-git -C "$profile/airootfs/opt/lumen" remote set-url origin "${LUMEN_REPO:-https://github.com/an4rchuk/lumen-os.git}" 2>/dev/null || true
+git -C "$profile/airootfs/opt/lumen" remote set-url origin "${LUMEN_REPO:-https://github.com/an4rchuk/an4rch-os.git}" 2>/dev/null || true
 
 # Wallpapers for the live desktop and the installer's theme picker, painted
 # now so booting stays fast (needs python-pillow on the build host).
 if python3 -c 'import PIL' 2>/dev/null; then
   echo "==> Painting wallpapers"
-  LUMEN_PATH="$root" python3 "$root/bin/lumen-wallgen" --all --out "$profile/airootfs/opt/lumen-wallpapers" --size 1920x1080 >/dev/null
+  LUMEN_PATH="$root" python3 "$root/bin/anarch-wallgen" --all --out "$profile/airootfs/opt/lumen-wallpapers" --size 1920x1080 >/dev/null
 else
   echo "  (python-pillow not installed: the live desktop will have no wallpapers)"
 fi
@@ -73,27 +73,33 @@ fi
 # Identity of the image.
 version="$(date +%Y.%m.%d)"
 sed -i \
-  -e 's/^iso_name=.*/iso_name="lumen"/' \
-  -e "s/^iso_label=.*/iso_label=\"LUMEN_\$(date --date=\"@\${SOURCE_DATE_EPOCH:-\$(date +%s)}\" +%Y%m)\"/" \
-  -e 's/^iso_publisher=.*/iso_publisher="Lumen OS <https:\/\/github.com\/an4rchuk\/lumen-os>"/' \
-  -e 's/^iso_application=.*/iso_application="Lumen OS installer"/' \
+  -e 's/^iso_name=.*/iso_name="an4rch-os"/' \
+  -e "s/^iso_label=.*/iso_label=\"AN4RCH_\$(date --date=\"@\${SOURCE_DATE_EPOCH:-\$(date +%s)}\" +%Y%m)\"/" \
+  -e 's/^iso_publisher=.*/iso_publisher="an4rch OS <https:\/\/github.com\/an4rchuk\/an4rch-os>"/' \
+  -e 's/^iso_application=.*/iso_application="an4rch OS installer"/' \
   "$profile/profiledef.sh"
 # mkarchiso copies airootfs without file modes, so everything that must stay
-# executable is listed: our installer, and every executable in Lumen's tree
+# executable is listed: our installer, and every executable in an4rch's tree
 # (otherwise every lumen-* command fails with "Permission denied").
-perms='  ["/usr/local/bin/lumen-os-install"]="0:0:755"\n  ["/usr/local/bin/lumen-rescue"]="0:0:755"\n  ["/usr/local/bin/lumen-live-setup"]="0:0:755"\n  ["/usr/local/bin/lumen-installer"]="0:0:755"\n  ["/usr/local/bin/lumen-live-check"]="0:0:755"\n  ["/usr/local/bin/lumen-live-preload"]="0:0:755"\n  ["/usr/local/bin/lumen-disk-info"]="0:0:755"'
+perms='  ["/usr/local/bin/anarch-os-install"]="0:0:755"\n  ["/usr/local/bin/anarch-rescue"]="0:0:755"\n  ["/usr/local/bin/anarch-live-setup"]="0:0:755"\n  ["/usr/local/bin/anarch-installer"]="0:0:755"\n  ["/usr/local/bin/anarch-live-check"]="0:0:755"\n  ["/usr/local/bin/anarch-live-preload"]="0:0:755"\n  ["/usr/local/bin/anarch-disk-info"]="0:0:755"'
 while IFS= read -r f; do
   perms+="\\n  [\"/opt/lumen/${f#./}\"]=\"0:0:755\""
 done < <(cd "$profile/airootfs/opt/lumen" && find . -path ./.git -prune -o -type f -perm -u+x -print | sort)
 sed -i "s|^file_permissions=(|file_permissions=(\\n$perms|" "$profile/profiledef.sh"
 
-# zstd squashes faster than xz and barely differs here: most of the image is
-# already-compressed packages.
-sed -i "s/^airootfs_image_tool_options=.*/airootfs_image_tool_options=('-comp' 'zstd' '-Xcompression-level' '15' '-b' '1M')/" "$profile/profiledef.sh"
+# zstd rather than xz: as small at this level, and much faster to read from
+# a USB stick while the live system starts (most of the image is
+# already-compressed packages anyway). Level 19 costs build time only.
+sed -i "s/^airootfs_image_tool_options=.*/airootfs_image_tool_options=('-comp' 'zstd' '-Xcompression-level' '19' '-b' '1M')/" "$profile/profiledef.sh"
+
+# The live system leaves out manuals, help pages and translations other than
+# English (smaller ISO). Installs are unaffected: they install the full
+# packages from /opt/lumen-repo.
+sed -i '/^\[options\]/a NoExtract = usr/share/doc/* usr/share/gtk-doc/* usr/share/help/* usr/share/man/* usr/share/info/*\nNoExtract = usr/share/locale/* !usr/share/locale/en* !usr/share/locale/locale.alias' "$profile/pacman.conf"
 
 # Boot menu branding.
 find "$profile/efiboot" "$profile/syslinux" "$profile/grub" -type f \( -name '*.conf' -o -name '*.cfg' \) \
-  -exec sed -i -e 's/Arch Linux install medium/Lumen OS installer/g' -e 's/Arch Linux/Lumen OS/g' {} +
+  -exec sed -i -e 's/Arch Linux install medium/an4rch OS installer/g' -e 's/Arch Linux/an4rch OS/g' {} +
 [[ -f "$root/iso/splash.png" ]] && cp "$root/iso/splash.png" "$profile/syslinux/splash.png"
 
 # Run from the stick rather than copying the (large) image into memory first.
@@ -123,7 +129,7 @@ done
 echo "==> Building (this takes a while)"
 mkarchiso -v -w "$work/build" -o "$out" "$profile"
 
-iso=$(ls -t "$out"/lumen-*.iso | head -n1)
+iso=$(ls -t "$out"/an4rch-os-*.iso | head -n1)
 (cd "$out" && sha256sum "$(basename "$iso")" >"$(basename "$iso").sha256")
 echo
 echo "✓ $iso"

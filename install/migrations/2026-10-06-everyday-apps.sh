@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Lumen 2.3: a Task Manager (Ctrl + Shift + Esc), a text editor and a camera
+# an4rch 2.3: a Task Manager (Ctrl + Shift + Esc), a text editor and a camera
 # app; systemd-oomd closes a runaway app instead of letting the whole
 # computer freeze when memory runs out.
 set -euo pipefail

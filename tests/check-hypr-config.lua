@@ -1,4 +1,4 @@
--- Load Lumen's Hyprland config against a stub `hl` API generated from the
+-- Load an4rch's Hyprland config against a stub `hl` API generated from the
 -- Hyprland source (tests/hypr-api.lua) and report anything Hyprland would
 -- reject: unknown options, rule fields, dispatchers, events or bind flags,
 -- plus duplicate key bindings.

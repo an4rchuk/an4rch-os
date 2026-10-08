@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+# anarch-say — read text aloud (SUPER + ALT + S reads what you've selected), like macOS's Speak Selection.
+#
+#   anarch-say              read the selected text (or the clipboard); again to stop
+#   anarch-say TEXT...      read this
+#   anarch-say stop         stop reading
+#
+# Uses Piper's natural voices when installed (anarch pkg add piper-tts-bin
+# and a voice in ~/.local/share/piper/*.onnx), otherwise eSpeak NG.
+# LUMEN_SAY_SPEED=1.0 sets the speed (0.5 to 2).
+set -uo pipefail
+source "${LUMEN_PATH:-$HOME/.local/share/lumen}/lib/lumen.sh"
+
+speed="${LUMEN_SAY_SPEED:-1.0}"
+pidfile="${XDG_RUNTIME_DIR:-/tmp}/anarch-say.pid"
+
+stop() {
+  local pid
+  pid=$(cat "$pidfile" 2>/dev/null) || return 1
+  rm -f "$pidfile"
+  kill -- "-$pid" 2>/dev/null || kill "$pid" 2>/dev/null
+  return 0
+}
+
+case "${1:-}" in
+  stop) stop; exit 0 ;;
+  -h | --help | help) sed -n '2,11s/^# \{0,1\}//p' "$0"; exit 0 ;;
+esac
+
+if [[ $# -gt 0 ]]; then
+  text="$*"
+else
+  # Pressing the key again while reading stops it.
+  stop && exit 0
+  text=$(wl-paste --primary --no-newline 2>/dev/null)
+  [[ -n "${text// /}" ]] || text=$(wl-paste --no-newline 2>/dev/null)
+fi
+[[ -n "${text//[[:space:]]/}" ]] || { notify "Nothing to read" "Select some text first." -i audio-speakers -t 2500; exit 0; }
+text=${text:0:20000}
+
+voice=$(find "${XDG_DATA_HOME:-$HOME/.local/share}/piper" -name '*.onnx' 2>/dev/null | sort | head -n1)
+if [[ -n "$voice" ]] && has piper-tts; then
+  cmd=(bash -c 'piper-tts --model "$1" --length-scale "$(awk -v s="$2" "BEGIN {print 1/s}")" --output-raw 2>/dev/null |
+    pw-play --rate 22050 --channels 1 --format s16 - 2>/dev/null' _ "$voice" "$speed")
+else
+  if ! has espeak-ng; then
+    if [[ -t 0 ]]; then need espeak-ng || exit 1
+    else term --float --hold --title "Read aloud" -- bash -c "source '$LUMEN_PATH/lib/lumen.sh'; need espeak-ng && echo && echo 'Ready: select text and press SUPER + ALT + S.'"; exit 0
+    fi
+  fi
+  lang=${LANG%%.*}
+  lang=${lang/_/-}
+  lang=${lang,,}
+  espeak-ng --voices 2>/dev/null | awk '{print $2}' | grep -qx -- "$lang" || lang=${lang%%-*}
+  cmd=(espeak-ng -v "${lang:-en}" -s "$(awk -v s="$speed" 'BEGIN {printf "%d", 170 * s}')")
+fi
+
+# Its own process group, so "stop" ends the whole pipeline.
+setsid "${cmd[@]}" <<<"$text" &
+echo $! >"$pidfile"
+wait $! 2>/dev/null
+[[ "$(cat "$pidfile" 2>/dev/null)" == "$!" ]] && rm -f "$pidfile"
+exit 0

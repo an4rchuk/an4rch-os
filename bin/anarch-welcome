@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# anarch-welcome — the first-boot tour: pick a look, set up Wi-Fi, gaming and apps, learn the keys.
+set -euo pipefail
+LUMEN_PATH="${LUMEN_PATH:-$HOME/.local/share/lumen}"
+exec python3 "$LUMEN_PATH/apps/lumen-welcome/lumen_welcome.py" "$@"

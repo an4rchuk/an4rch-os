@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+# anarch-panel — quick panels that drop down from the top bar's icons.
+#
+#   anarch-panel network     Wi-Fi, airplane mode, hotspot, connection speed
+#   anarch-panel bluetooth   turn Bluetooth on or off, connect and pair devices
+#   anarch-panel power       battery, power mode, brightness, lock/sleep/restart
+#   anarch-panel --daemon    start hidden (done at login, so panels open at once)
+#
+# Clicking the same icon again closes the panel. The sound panel is anarch-audio.
+set -euo pipefail
+source "${LUMEN_PATH:-$HOME/.local/share/lumen}/lib/lumen.sh"
+
+case "${1:-network}" in
+  network | bluetooth | power)
+    # Fast path: ask the running panels to toggle over D-Bus (no Python start-up).
+    if gdbus call --session --dest org.lumen.Panels --object-path /org/lumen/Panels \
+      --method org.gtk.Actions.Activate "${1:-network}" '[]' '{}' >/dev/null 2>&1; then
+      exit 0
+    fi
+    ;;
+  --daemon | --quit) ;;
+  -h | --help | help) sed -n '2,9s/^# \{0,1\}//p' "$0"; exit 0 ;;
+  *) die "Unknown panel '$1'. See: anarch-panel --help" ;;
+esac
+# gtk4-layer-shell must be loaded before libwayland, which Python can't
+# guarantee on its own.
+for lib in /usr/lib/libgtk4-layer-shell.so /usr/lib64/libgtk4-layer-shell.so; do
+  if [[ -f "$lib" ]]; then
+    export LD_PRELOAD="$lib${LD_PRELOAD:+:$LD_PRELOAD}"
+    break
+  fi
+done
+exec python3 "$LUMEN_PATH/apps/lumen-panels/lumen_panels.py" "$@"

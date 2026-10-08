@@ -3,7 +3,7 @@
 # Package sets. REQUIRED packages stop the install if missing; everything else
 # is best-effort and reported at the end.
 
-# The base system lumen-os-install puts on the disk (plus the CPU's microcode).
+# The base system anarch-os-install puts on the disk (plus the CPU's microcode).
 PKGS_BASE=(
   base linux linux-lts linux-firmware sof-firmware btrfs-progs cryptsetup
   sudo git base-devel networkmanager wpa_supplicant plymouth zram-generator
@@ -21,7 +21,7 @@ PKGS_DESKTOP=(
   xdg-desktop-portal-hyprland xdg-desktop-portal-gtk
   uwsm libnewt
   qt5-wayland qt6-wayland
-  waybar fuzzel mako swaybg
+  waybar dbus fuzzel mako swaybg
   python-gobject gtk4 libadwaita
   polkit gnome-keyring libsecret
   xdg-user-dirs xdg-utils
@@ -34,10 +34,12 @@ PKGS_SYSTEM=(
   playerctl
   greetd greetd-regreet greetd-tuigreet cage
   ufw
+  exfatprogs ntfs-3g dosfstools
+  keyd
   git base-devel curl
 )
 
-# Everyday command-line tools Lumen relies on.
+# Everyday command-line tools an4rch relies on.
 PKGS_TOOLS=(
   zsh zsh-autosuggestions zsh-syntax-highlighting starship
   fzf ripgrep fd bat eza zoxide jq
@@ -55,6 +57,19 @@ PKGS_LOOK=(
   adw-gtk-theme papirus-icon-theme
 )
 
+# The server edition (anarch-os-install --server): no desktop; the system,
+# remote access and the command-line tools an4rch's commands use.
+PKGS_SERVER=(
+  openssh ufw networkmanager
+  zsh zsh-autosuggestions zsh-syntax-highlighting starship
+  fzf ripgrep fd bat eza zoxide jq
+  btop fastfetch git curl python
+)
+PKGS_SERVER_OPTIONAL=(
+  man-db less unzip zip 7zip wget rsync tmux neovim fail2ban smartmontools
+  pacman-contrib fwupd lm_sensors
+)
+
 # Best-effort extras: nice to have, never fatal.
 PKGS_OPTIONAL=(
   man-db less unzip zip 7zip wget rsync
@@ -69,6 +84,7 @@ PKGS_OPTIONAL=(
   loupe mpv evince gnome-calculator gnome-disk-utility gnome-system-monitor gnome-text-editor snapshot
   flatpak fwupd pacman-contrib pciutils
   gtk4-layer-shell
+  gocryptfs mat2 smartmontools lm_sensors qrencode espeak-ng
   bibata-cursor-theme-bin
 )
 
@@ -94,12 +110,12 @@ PKGS_GPU_NVIDIA=(nvidia-open-dkms nvidia-utils libva-nvidia-driver egl-wayland)
 # --- Optional features, installed on demand -----------------------------------
 # Kept here so CI checks every name against the repos and the AUR.
 
-# lumen-tune (CachyOS-style performance)
+# anarch-tune (CachyOS-style performance)
 PKGS_TUNE_SCX=(scx-scheds)
 PKGS_TUNE_ZEN=(linux-zen linux-zen-headers)
 PKGS_TUNE_MIRRORS=(reflector)
 
-# lumen-extras (Bazzite-style one-command recipes)
+# anarch-extras (Bazzite-style one-command recipes)
 PKGS_X_OPENRGB=(openrgb)
 PKGS_X_LACT=(lact)
 PKGS_X_DISTROBOX=(distrobox podman)
@@ -112,10 +128,14 @@ PKGS_X_OFFICE=(libreoffice-fresh hunspell-en_gb hunspell-en_us)
 PKGS_X_HANDHELD=(hhd)
 PKGS_X_CONTROLLERS=(game-devices-udev)
 
-# lumen-dev (development environment)
+# Privacy, safety and accessibility (anarch sandbox, anarch a11y)
+PKGS_FEAT_SANDBOX=(firejail)
+PKGS_FEAT_A11Y=(orca)
+
+# anarch-dev (development environment)
 PKGS_DEV_BASE=(mise github-cli lazygit)
 PKGS_DEV_DOCKER=(docker docker-compose docker-buildx lazydocker)
 
-# lumen-titlebars: compiling the hyprbars plugin against the headers the
+# anarch-titlebars: compiling the hyprbars plugin against the headers the
 # hyprland package installs (its other build needs are Hyprland's own deps).
 PKGS_TITLEBARS=(gcc make pkgconf git)

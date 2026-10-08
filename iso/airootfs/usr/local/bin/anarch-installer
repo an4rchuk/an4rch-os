@@ -1,0 +1,3 @@
+#!/bin/bash
+# anarch-installer — the graphical an4rch OS installer (live USB).
+exec python3 /opt/lumen/apps/lumen-installer/lumen_installer.py "$@"

@@ -1,9 +1,9 @@
 # shellcheck shell=bash
 # shellcheck disable=SC2034  # settings are read by the commands that source this file
-# Lumen shared shell library. Sourced by every `lumen-*` command.
+# an4rch shared shell library. Sourced by every `lumen-*` command.
 #
 # Keep this file dependency-free: it must load on a half-installed system so
-# `lumen doctor` can explain what is missing.
+# `anarch doctor` can explain what is missing.
 
 LUMEN_PATH="${LUMEN_PATH:-$HOME/.local/share/lumen}"
 LUMEN_CONFIG="${XDG_CONFIG_HOME:-$HOME/.config}/lumen"
@@ -12,6 +12,13 @@ LUMEN_STATE="${XDG_STATE_HOME:-$HOME/.local/state}/lumen"
 LUMEN_CACHE="${XDG_CACHE_HOME:-$HOME/.cache}/lumen"
 LUMEN_WALLPAPERS="${XDG_DATA_HOME:-$HOME/.local/share}/backgrounds/lumen"
 export LUMEN_PATH LUMEN_CONFIG LUMEN_CURRENT LUMEN_STATE LUMEN_CACHE LUMEN_WALLPAPERS
+
+# The taskbar's waybar runs on a private D-Bus session: two waybars on the
+# session bus count as one app, and the second crashes a few minutes in.
+# Commands it starts get the real session bus back here.
+if [[ -n "${LUMEN_DBUS:-}" && "${DBUS_SESSION_BUS_ADDRESS:-}" != "$LUMEN_DBUS" ]]; then
+  export DBUS_SESSION_BUS_ADDRESS="$LUMEN_DBUS"
+fi
 
 # --- settings ---------------------------------------------------------------
 # settings.conf is plain `KEY=value` shell syntax. Defaults live here so a
@@ -31,6 +38,27 @@ LUMEN_TASKBAR=no      # taskbar along the bottom of the screen
 # --- small helpers -------------------------------------------------------------
 has() { command -v "$1" >/dev/null 2>&1; }
 
+# need PKG... — install the packages a feature uses if they're missing
+# (pacman asks first; AUR names go through the AUR helper).
+need() {
+  local missing=() p
+  for p in "$@"; do pacman -Q "$p" >/dev/null 2>&1 || missing+=("$p"); done
+  [[ ${#missing[@]} -eq 0 ]] && return 0
+  printf '\e[2mThis needs: %s\e[0m\n' "${missing[*]}"
+  "$LUMEN_PATH/bin/anarch-pkg" add "${missing[@]}"
+}
+
+# in_terminal "$0" "$@" — rerun in a floating terminal when started from a
+# menu or key (no terminal to ask questions in).
+in_terminal() {
+  [[ -t 0 ]] && return 0
+  term --float --hold --title "an4rch" -- "$@"
+  exit 0
+}
+
+# is_server — installed as an4rch Server (no desktop).
+is_server() { [[ "$(cat "$LUMEN_CONFIG/edition" 2>/dev/null)" == server ]]; }
+
 die() {
   printf '\e[31m✗\e[0m %s\n' "$*" >&2
   exit 1
@@ -42,7 +70,7 @@ notify() {
   shift 2 2>/dev/null || shift $#
   has notify-send || { printf '%s %s\n' "$title" "$body"; return; }
   # No notification service (an install from a console): not an error.
-  notify-send -a Lumen "$@" "$title" "$body" 2>/dev/null || printf '%s %s\n' "$title" "$body"
+  notify-send -a an4rch "$@" "$title" "$body" 2>/dev/null || printf '%s %s\n' "$title" "$body"
 }
 
 # Run a program detached from the caller, as its own systemd scope when the
@@ -53,7 +81,7 @@ notify() {
 # Apps must never fail silently: a missing program says so; if the scope
 # can't be made the app runs directly; and an app that quits with an error
 # within a few seconds shows why (also in ~/.local/state/lumen/apps.log,
-# which `lumen doctor` reports). LUMEN_LAUNCH_NAME names it in messages.
+# which `anarch doctor` reports). LUMEN_LAUNCH_NAME names it in messages.
 launch() {
   local name="${LUMEN_LAUNCH_NAME:-${1##*/}}"
   if ! has "$1"; then
@@ -65,7 +93,7 @@ launch() {
   (
     # Never stop half-way (callers use set -e / pipefail): always report.
     set +e +o pipefail
-    err=$(mktemp "${XDG_RUNTIME_DIR:-/tmp}/lumen-launch.XXXXXX") || err=/dev/null
+    err=$(mktemp "${XDG_RUNTIME_DIR:-/tmp}/anarch-launch.XXXXXX") || err=/dev/null
     start=$SECONDS rc=0
     # Only the last few KB of an app's error output are kept, however long it runs.
     if systemctl --user is-active -q graphical-session.target 2>/dev/null; then
@@ -132,7 +160,7 @@ confirm() {
 }
 
 # --- terminal ------------------------------------------------------------------
-# term [--float] [--title TITLE] [--hold] [-- CMD...]
+# term [--float] [--class CLASS] [--title TITLE] [--hold] [-- CMD...]
 # Opens the configured terminal. --float uses the `lumen.floating` class, which
 # Hyprland centres and sizes like a dialog.
 term() {
@@ -140,6 +168,7 @@ term() {
   while [[ $# -gt 0 ]]; do
     case "$1" in
       --float) class="lumen.floating" ;;
+      --class) class="$2"; shift ;;
       --title) title="$2"; shift ;;
       --hold) hold=1 ;;
       --) shift; break ;;
@@ -192,15 +221,20 @@ bar_signal() {
     record) n=10 ;;
     nightlight) n=11 ;;
     updates) n=12 ;;
+    focus) n=14 ;;
     *) return ;;
   esac
   pkill -RTMIN+"$n" waybar 2>/dev/null || true
 }
 
 # --- themes --------------------------------------------------------------------
+DEFAULT_THEME=an4rch
+
 # theme_dir NAME — user themes in ~/.config/lumen/themes shadow bundled ones.
 theme_dir() {
   local d
+  # The signature theme was called "lumen" before the an4rch rename.
+  [[ "$1" == lumen && ! -f "$LUMEN_CONFIG/themes/lumen/theme.conf" ]] && set -- "$DEFAULT_THEME"
   for d in "$LUMEN_CONFIG/themes/$1" "$LUMEN_PATH/themes/$1"; do
     [[ -f "$d/theme.conf" ]] && { echo "$d"; return 0; }
   done
@@ -215,7 +249,10 @@ theme_list() {
 }
 
 theme_current() {
-  cat "$LUMEN_CURRENT/theme.name" 2>/dev/null || echo lumen
+  local t
+  t=$(cat "$LUMEN_CURRENT/theme.name" 2>/dev/null) || t=""
+  [[ -z "$t" || ( "$t" == lumen && ! -f "$LUMEN_CONFIG/themes/lumen/theme.conf" ) ]] && t=$DEFAULT_THEME
+  echo "$t"
 }
 
 # theme_get NAME KEY — read one value from a theme.conf.

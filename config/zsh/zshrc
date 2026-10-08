@@ -1,4 +1,4 @@
-# ~/.zshrc — Lumen loads its defaults first; your settings go below.
+# ~/.zshrc — an4rch loads its defaults first; your settings go below.
 source "${LUMEN_PATH:-$HOME/.local/share/lumen}/default/zsh/rc.zsh"
 
 # Your aliases, functions and exports:

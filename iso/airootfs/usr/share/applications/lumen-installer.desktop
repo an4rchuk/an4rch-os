@@ -1,8 +1,8 @@
 [Desktop Entry]
 Type=Application
-Name=Install Lumen OS
-Comment=Put Lumen OS on this computer
-Exec=lumen-installer
+Name=Install an4rch OS
+Comment=Put an4rch OS on this computer
+Exec=anarch-installer
 Icon=lumen-logo
 Categories=System;
 Keywords=install;installer;setup;

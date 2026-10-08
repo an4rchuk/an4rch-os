@@ -1,4 +1,4 @@
-# Lumen notifications (mako). Colours come from the active theme.
+# an4rch notifications (mako). Colours come from the active theme.
 # Do Not Disturb: SUPER + CTRL + D. Dismiss: SUPER + N.
 # Reference: man 5 mako
 
@@ -36,7 +36,7 @@ default-timeout=4000
 [urgency=critical]
 default-timeout=0
 
-# Volume / brightness pop-ups (lumen-osd): compact and quick.
+# Volume / brightness pop-ups (anarch-osd): compact and quick.
 [category=osd]
 default-timeout=1400
 width=280

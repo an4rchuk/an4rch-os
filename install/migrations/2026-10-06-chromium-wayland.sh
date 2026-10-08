@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Lumen 2.3: Chromium, Brave and Chrome run as native Wayland apps (they
+# an4rch 2.3: Chromium, Brave and Chrome run as native Wayland apps (they
 # could fail to open without an X display, and look blurry when scaled).
 set -euo pipefail
 LUMEN_PATH="${LUMEN_PATH:-$HOME/.local/share/lumen}"

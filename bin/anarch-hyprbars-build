@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# anarch-hyprbars-build — build the title bar plugin (hyprbars) for the installed Hyprland.
+#
+#   anarch-hyprbars-build OUT.so
+#
+# Compiles hyprbars from Hyprland's official plugin repository against the
+# headers the hyprland package installs, at the plugin commit that repository
+# pins for this Hyprland release. Needs gcc, make, pkgconf and git.
+# anarch-titlebars and the ISO build (iso/offline.sh) use it; most people want
+# `anarch titlebars setup` instead.
+set -euo pipefail
+
+out="${1:?usage: anarch-hyprbars-build OUT.so}"
+repo=https://github.com/hyprwm/hyprland-plugins
+
+version=$(pacman -Q hyprland 2>/dev/null | awk '{print $2}')
+version="${version%-*}"
+commit=$(Hyprland --version-json 2>/dev/null | sed -n 's/.*"commit": *"\([0-9a-f]\{40\}\)".*/\1/p' | head -n1 || true)
+
+tmp=$(mktemp -d)
+trap 'rm -rf "$tmp"' EXIT
+git clone -q "$repo" "$tmp/plugins"
+cd "$tmp/plugins"
+
+# hyprpm.toml: commit_pins = [ ["<hyprland commit>", "<plugins commit>"], # 0.56.2
+pin=""
+[[ -n "$commit" ]] && pin=$(grep -o "\"$commit\", *\"[0-9a-f]\{40\}\"" hyprpm.toml | grep -o '[0-9a-f]\{40\}"$' | tr -d '"' | head -n1 || true)
+[[ -z "$pin" && -n "$version" ]] && pin=$(grep -E "# *$version\s*$" hyprpm.toml | grep -o '"[0-9a-f]\{40\}"' | tail -n1 | tr -d '"' || true)
+if [[ -n "$pin" ]]; then
+  echo "Hyprland ${version:-?}: building hyprbars at ${pin:0:7}"
+  git checkout -q "$pin"
+else
+  echo "Hyprland ${version:-?} isn't pinned yet: building the newest hyprbars"
+fi
+
+make -C hyprbars all
+install -D -m755 hyprbars/hyprbars.so "$out"
+echo "Built $out"

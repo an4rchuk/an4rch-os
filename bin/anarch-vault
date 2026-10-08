@@ -1,0 +1,129 @@
+#!/usr/bin/env bash
+# anarch-vault — encrypted folders: files you can only read after typing a password.
+#
+#   anarch-vault                 list vaults (or pick one from a menu)
+#   anarch-vault new NAME        make a vault (asks for its password twice)
+#   anarch-vault open NAME       unlock it: the files appear in ~/Vaults/NAME
+#   anarch-vault close NAME      lock it again
+#   anarch-vault close-all       lock every vault (the panic key does this)
+#   anarch-vault list            vaults and whether they're open
+#
+# Vaults use gocryptfs: each file is encrypted on its own, so they back up
+# and sync well (only the encrypted form is in ~/.vaults). An open vault
+# closes itself after LUMEN_VAULT_IDLE unused (default 30m; "0" = never).
+# Scripts can give the password in a file: LUMEN_VAULT_PASSFILE=FILE.
+set -euo pipefail
+source "${LUMEN_PATH:-$HOME/.local/share/lumen}/lib/lumen.sh"
+
+STORE="$HOME/.vaults"
+MOUNTS="$HOME/Vaults"
+idle="${LUMEN_VAULT_IDLE:-30m}"
+pass=()
+[[ -n "${LUMEN_VAULT_PASSFILE:-}" ]] && pass=(-passfile "$LUMEN_VAULT_PASSFILE")
+
+valid() { [[ "$1" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]] || die "Vault names are letters, numbers, . _ and - (got '$1')"; }
+exists() { [[ -f "$STORE/$1/gocryptfs.conf" ]]; }
+is_open() { mountpoint -q "$MOUNTS/$1" 2>/dev/null; }
+names() { local d; for d in "$STORE"/*/gocryptfs.conf; do [[ -f "$d" ]] && basename "$(dirname "$d")"; done; }
+
+new() {
+  local name="${1:-}"
+  [[ -n "$name" ]] || die "usage: anarch-vault new NAME"
+  valid "$name"
+  exists "$name" && die "There's already a vault called '$name'"
+  [[ ${#pass[@]} -gt 0 ]] || in_terminal "$0" new "$name"
+  need gocryptfs
+  mkdir -p "$STORE/$name" "$MOUNTS/$name"
+  chmod 700 "$STORE"
+  echo "Choose a password for '$name'. There is no way to get the files back without it."
+  gocryptfs -init -q "${pass[@]}" "$STORE/$name"
+  echo
+  echo "✓ Vault '$name' made. Open it with: anarch vault open $name"
+  echo "  Keep the master key gocryptfs printed above somewhere safe (on paper)."
+}
+
+open() {
+  local name="${1:-}"
+  [[ -n "$name" ]] || die "usage: anarch-vault open NAME"
+  valid "$name"
+  exists "$name" || die "No vault called '$name'. Make one with: anarch vault new $name"
+  if is_open "$name"; then
+    echo "✓ '$name' is already open: $MOUNTS/$name"
+  else
+    [[ ${#pass[@]} -gt 0 ]] || in_terminal "$0" open "$name"
+    need gocryptfs
+    mkdir -p "$MOUNTS/$name"
+    local args=(-q "${pass[@]}")
+    [[ "$idle" != 0 ]] && args+=(-idle "$idle")
+    gocryptfs "${args[@]}" "$STORE/$name" "$MOUNTS/$name"
+    echo "✓ '$name' is open: $MOUNTS/$name"
+  fi
+  [[ -n "${WAYLAND_DISPLAY:-}" && ${#pass[@]} -eq 0 ]] && launch "$LUMEN_FILES" "$MOUNTS/$name"
+  return 0
+}
+
+close() {
+  local name="${1:-}"
+  [[ -n "$name" ]] || die "usage: anarch-vault close NAME"
+  valid "$name"
+  if ! is_open "$name"; then echo "✓ '$name' is closed"; return; fi
+  if fusermount3 -u "$MOUNTS/$name" 2>/dev/null || fusermount3 -uz "$MOUNTS/$name"; then
+    echo "✓ '$name' is closed"
+    notify "Vault closed" "$name" -i changes-prevent -t 2000
+  else
+    die "Couldn't close '$name'"
+  fi
+}
+
+close_all() {
+  local n quiet="${1:-}"
+  while read -r n; do
+    [[ -n "$n" ]] || continue
+    is_open "$n" || continue
+    fusermount3 -u "$MOUNTS/$n" 2>/dev/null || fusermount3 -uz "$MOUNTS/$n" 2>/dev/null || true
+    [[ "$quiet" == --quiet ]] || echo "✓ closed $n"
+  done < <(names)
+}
+
+list() {
+  local n any=0
+  while read -r n; do
+    [[ -n "$n" ]] || continue
+    any=1
+    if is_open "$n"; then printf '  \e[32m󰌿\e[0m %-20s open in ~/Vaults/%s\n' "$n" "$n"
+    else printf '  \e[2m󰌾\e[0m %-20s locked\n' "$n"; fi
+  done < <(names)
+  ((any)) || echo "No vaults yet. Make one: anarch vault new private"
+}
+
+pick() {
+  local -a items=()
+  local n
+  while read -r n; do
+    [[ -n "$n" ]] || continue
+    if is_open "$n"; then items+=("󰌿  Close $n"); else items+=("󰌾  Open $n"); fi
+  done < <(names)
+  items+=("󰐕  New vault…")
+  local choice
+  choice=$(printf '%s\n' "${items[@]}" | menu "Vaults" --width 36 --lines "${#items[@]}") || exit 0
+  case "$choice" in
+    *"Close "*) close "${choice##*Close }" ;;
+    *"Open "*) term --float --title "Open vault" -- "$0" open "${choice##*Open }" ;;
+    *"New vault"*)
+      n=$(ask "Vault name" "private") || exit 0
+      [[ -n "$n" ]] && term --float --hold --title "New vault" -- "$0" new "$n"
+      ;;
+  esac
+}
+
+case "${1:-}" in
+  "") if [[ -t 1 ]]; then list; else pick; fi ;;
+  list) list ;;
+  menu) pick ;;
+  new) new "${2:-}" ;;
+  open) open "${2:-}" ;;
+  close) close "${2:-}" ;;
+  close-all) close_all "${2:-}" ;;
+  -h | --help | help) sed -n '2,15s/^# \{0,1\}//p' "$0" ;;
+  *) die "Unknown option '$1'. See: anarch-vault --help" ;;
+esac

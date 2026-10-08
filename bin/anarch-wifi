@@ -1,0 +1,130 @@
+#!/usr/bin/env bash
+# anarch-wifi — connect to Wi-Fi and manage network connections (SUPER + ALT + W).
+set -euo pipefail
+source "${LUMEN_PATH:-$HOME/.local/share/lumen}/lib/lumen.sh"
+
+has nmcli || die "NetworkManager is not installed"
+
+radio=$(nmcli -t radio wifi 2>/dev/null || echo disabled)
+entries=()
+ssids=()
+secs=()
+
+# IN-USE:SIGNAL:SECURITY:SSID, strongest first, de-duplicated by name.
+# The networks found by the last scan open the menu at once (a fresh scan
+# takes several seconds); a new scan runs in the background for next time.
+networks() {
+  nmcli -t -f IN-USE,SIGNAL,SECURITY,SSID dev wifi list --rescan "$1" 2>/dev/null |
+    sort -t: -k2 -nr | awk -F: '!seen[$4]++'
+}
+
+if [[ "$radio" == enabled ]]; then
+  list=$(networks no)
+  if [[ -z "$list" ]]; then
+    notify "Scanning for networks…" "" -t 1500 -h string:x-canonical-private-synchronous:anarch-wifi -i network-wireless
+    list=$(networks yes)
+  else
+    (nmcli dev wifi rescan >/dev/null 2>&1 &)
+  fi
+  while IFS=: read -r inuse signal security ssid; do
+    [[ -z "$ssid" ]] && continue
+    ssid="${ssid//\\:/:}"
+    bars="󰤯"
+    ((signal > 20)) && bars="󰤟"
+    ((signal > 40)) && bars="󰤢"
+    ((signal > 60)) && bars="󰤥"
+    ((signal > 80)) && bars="󰤨"
+    lock=""
+    [[ -n "$security" && "$security" != "--" ]] && lock="  󰌾"
+    mark=""
+    [[ "$inuse" == "*" ]] && mark="  ·  connected"
+    entries+=("$bars  $ssid$lock$mark")
+    ssids+=("$ssid")
+    secs+=("$security")
+  done <<<"$list"
+  entries+=("󰖪  Turn Wi-Fi off" "󰈈  Hidden network…")
+else
+  entries+=("󰖩  Turn Wi-Fi on")
+fi
+entries+=("󰛳  Network settings" "󰒓  Advanced (terminal)")
+
+choice=$(printf '%s\n' "${entries[@]}" | menu "Wi-Fi" --index --width 44 --lines 10) || exit 0
+
+if ((choice < ${#ssids[@]})); then
+  ssid="${ssids[$choice]}"
+  if [[ "${entries[$choice]}" == *connected ]]; then
+    if confirm "Disconnect from $ssid?"; then
+      # The Wi-Fi device itself: the saved connection's name can differ from
+      # the network's (e.g. "Home 1").
+      dev=$(nmcli -t -f DEVICE,TYPE dev 2>/dev/null | awk -F: '$2 == "wifi" { print $1; exit }')
+      if nmcli dev disconnect "${dev:-wlan0}" >/dev/null 2>&1; then
+        notify "Disconnected" "$ssid" -i network-wireless-offline
+      else
+        notify "Couldn't disconnect" "$ssid" -u critical -i network-wireless
+      fi
+    fi
+    exit 0
+  fi
+  notify "Connecting…" "$ssid" -t 2000 -h string:x-canonical-private-synchronous:anarch-wifi -i network-wireless
+  security="${secs[$choice]}"
+  known=0
+  nmcli -t -f NAME con show | grep -Fxq -- "$ssid" && known=1
+  # Known network: just bring it up.
+  if ((known)) && nmcli con up id "$ssid" >/dev/null 2>&1; then
+    notify "Connected" "$ssid" -i network-wireless -h string:x-canonical-private-synchronous:anarch-wifi
+    exit 0
+  fi
+  if [[ "$security" == *802.1X* ]]; then
+    # School and work Wi-Fi (WPA2/3-Enterprise, e.g. eduroam): a username
+    # and password, the usual PEAP + MSCHAPv2 sign-in.
+    user=$(ask "Username for $ssid" "e.g. you@school.ac.uk") || exit 0
+    [[ -n "$user" ]] || exit 0
+    password=$(ask_secret "Password for $ssid") || exit 0
+    ((known)) && nmcli con delete id "$ssid" >/dev/null 2>&1
+    dev=$(nmcli -t -f DEVICE,TYPE dev 2>/dev/null | awk -F: '$2 == "wifi" { print $1; exit }')
+    result=$(nmcli con add type wifi con-name "$ssid" ifname "${dev:-*}" ssid "$ssid" \
+      wifi-sec.key-mgmt wpa-eap 802-1x.eap peap 802-1x.phase2-auth mschapv2 \
+      802-1x.identity "$user" 802-1x.password "$password" 2>&1 &&
+      nmcli con up id "$ssid" 2>&1) && ok=1 || ok=0
+  else
+    password=""
+    if [[ "${entries[$choice]}" == *󰌾* ]]; then
+      password=$(ask_secret "Password for $ssid") || exit 0
+    fi
+    # A saved network whose password changed: replace the old details
+    # rather than adding a second copy ("Home 1").
+    ((known)) && [[ -n "$password" ]] && nmcli con delete id "$ssid" >/dev/null 2>&1
+    if [[ -n "$password" ]]; then
+      result=$(nmcli dev wifi connect "$ssid" password "$password" 2>&1) && ok=1 || ok=0
+    else
+      result=$(nmcli dev wifi connect "$ssid" 2>&1) && ok=1 || ok=0
+    fi
+  fi
+  if [[ $ok -eq 1 ]]; then
+    notify "Connected" "$ssid" -i network-wireless -h string:x-canonical-private-synchronous:anarch-wifi
+  else
+    notify "Couldn't connect to $ssid" "${result#Error: }" -u critical -i network-wireless-offline
+  fi
+  exit 0
+fi
+
+case "${entries[$choice]}" in
+  *"Turn Wi-Fi off") nmcli radio wifi off && notify "Wi-Fi off" "" -i network-wireless-offline ;;
+  *"Hidden network…")
+    ssid=$(ask "Network name" "exactly as it's set on the router") || exit 0
+    [[ -n "$ssid" ]] || exit 0
+    password=$(ask_secret "Password for $ssid (empty if none)") || exit 0
+    notify "Connecting…" "$ssid" -t 2000 -h string:x-canonical-private-synchronous:anarch-wifi -i network-wireless
+    if [[ -n "$password" ]]; then
+      result=$(nmcli dev wifi connect "$ssid" password "$password" hidden yes 2>&1) && ok=1 || ok=0
+    else
+      result=$(nmcli dev wifi connect "$ssid" hidden yes 2>&1) && ok=1 || ok=0
+    fi
+    if ((ok)); then notify "Connected" "$ssid" -i network-wireless; else notify "Couldn't connect to $ssid" "${result#Error: }" -u critical -i network-wireless-offline; fi
+    ;;
+  *"Turn Wi-Fi on") nmcli radio wifi on && notify "Wi-Fi on" "Open this menu again to pick a network." -i network-wireless ;;
+  *"Network settings")
+    if has nm-connection-editor; then launch nm-connection-editor; else term --float -- nmtui; fi
+    ;;
+  *Advanced*) term --float --title "Network" -- nmtui ;;
+esac
