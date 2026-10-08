@@ -448,7 +448,8 @@ fi
 case "$(uname -r)" in *lts*) result "running the LTS kernel" PASS "$(uname -r)" ;; esac
 
 # --- Installed alongside Windows ---------------------------------------------------------------
-if findmnt -n /efi >/dev/null 2>&1; then
+# (Only beside Windows: own partitions with a separate boot partition also use /efi.)
+if findmnt -n /efi >/dev/null 2>&1 && { [[ "$(choice mode)" == alongside ]] || [[ -d /efi/EFI/Microsoft ]]; }; then
   say "--- dual boot: $(bootctl list --no-pager 2>/dev/null | grep -E 'title:|id:' | tr -s ' ' | tr '\n' ' ')"
   if [[ -f /efi/EFI/Microsoft/Boot/bootmgfw.efi ]]; then result "Windows boot manager kept" PASS; else result "Windows boot manager kept" FAIL; fi
   if bootctl list --no-pager 2>/dev/null | grep -qi 'windows'; then result "boot menu lists Windows" PASS; else result "boot menu lists Windows" FAIL "$(bootctl list --no-pager 2>&1 | head -n 20 | tr '\n' ' ')"; fi
