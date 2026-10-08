@@ -69,7 +69,7 @@ def spawn(*cmd: str) -> None:
     try:
         subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
     except OSError as err:
-        print(f"lumen-panel: {err}", file=sys.stderr)
+        print(f"anarch-panel: {err}", file=sys.stderr)
 
 
 def lumen(*argv: str) -> None:
@@ -193,7 +193,7 @@ class NetworkPage(Gtk.Box):
         head.append(label("Networks", "title", hexpand=True))
         head.append(icon_button("view-refresh-symbolic", "Look for networks", self.rescan))
         head.append(icon_button("emblem-system-symbolic", "Network settings",
-                                lambda: self.panel.leave("lumen-settings", "network")))
+                                lambda: self.panel.leave("anarch-settings", "network")))
         self.append(head)
 
         bar = Gtk.Box(spacing=8)
@@ -228,8 +228,8 @@ class NetworkPage(Gtk.Box):
         self.append(self.status)
 
         foot = Gtk.Box(spacing=8, homogeneous=True, margin_top=4)
-        foot.append(text_button("Hidden network…", lambda: self.panel.leave("lumen-wifi")))
-        foot.append(text_button("Network settings", lambda: self.panel.leave("lumen-settings", "network")))
+        foot.append(text_button("Hidden network…", lambda: self.panel.leave("anarch-wifi")))
+        foot.append(text_button("Network settings", lambda: self.panel.leave("anarch-settings", "network")))
         self.append(foot)
 
     # data ----------------------------------------------------------------------------
@@ -397,7 +397,7 @@ class NetworkPage(Gtk.Box):
             if n["ssid"] in self.known or not n["security"]:
                 self.connect(n, None)
             elif "802.1X" in n["security"]:
-                self.panel.leave("lumen-wifi")  # school/work login: username and password
+                self.panel.leave("anarch-wifi")  # school/work login: username and password
             else:
                 reveal.set_reveal_child(not reveal.get_reveal_child())
                 if reveal.get_reveal_child():
@@ -511,7 +511,7 @@ class BluetoothPage(Gtk.Box):
         self.status = label("", "dim", wrap=True)
         self.append(self.status)
         foot = Gtk.Box(spacing=8, homogeneous=True, margin_top=4)
-        foot.append(text_button("More Bluetooth settings", lambda: self.panel.leave("lumen-bluetooth")))
+        foot.append(text_button("More Bluetooth settings", lambda: self.panel.leave("anarch-bluetooth")))
         self.append(foot)
         self.timer = 0
 
@@ -800,7 +800,7 @@ class PowerPage(Gtk.Box):
         elif key == "suspend":
             spawn("systemctl", "suspend")
         elif key == "logout":
-            lumen("lumen-session", "logout")
+            lumen("anarch-session", "logout")
         elif key == "reboot":
             spawn("systemctl", "reboot")
         elif key == "poweroff":
@@ -813,7 +813,7 @@ class Panels(Gtk.ApplicationWindow):
     def __init__(self, app: Gtk.Application):
         super().__init__(application=app, title="Quick settings")
         self.set_decorated(False)
-        self.add_css_class("lumen-audio")  # shares the sound panel's styling
+        self.add_css_class("anarch-audio")  # shares the sound panel's styling
         self.add_css_class("quick-panels")
         display = Gdk.Display.get_default()
         self.providers = []
@@ -824,7 +824,7 @@ class Panels(Gtk.ApplicationWindow):
 
         if LayerShell is not None and LayerShell.is_supported():
             LayerShell.init_for_window(self)
-            LayerShell.set_namespace(self, "lumen-panel")
+            LayerShell.set_namespace(self, "anarch-panel")
             LayerShell.set_layer(self, LayerShell.Layer.OVERLAY)
             for edge in (LayerShell.Edge.TOP, LayerShell.Edge.BOTTOM, LayerShell.Edge.LEFT, LayerShell.Edge.RIGHT):
                 LayerShell.set_anchor(self, edge, True)

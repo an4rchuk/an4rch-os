@@ -64,7 +64,7 @@ Out of the box:
 
 Nothing dims or sleeps while a video or game is fullscreen, or while an app asks to stay awake (video calls, presentations). <kbd>SUPER</kbd> + <kbd>CTRL</kbd> + <kbd>I</kbd> (*keep awake*) pauses all of it.
 
-- Change the timings in `~/.config/hypr/hypridle.conf`, then run `lumen-session restart idle`.
+- Change the timings in `~/.config/hypr/hypridle.conf`, then run `anarch-session restart idle`.
 - Set `LUMEN_IDLE_SUSPEND=battery` in `settings.conf` to only suspend on battery, or `never` to stop idle suspend entirely.
 
 Closing the laptop lid suspends, and the screen is always locked before the computer sleeps. The **power button** opens the power menu instead of cutting power; holding it for a few seconds still forces a shutdown.
@@ -73,7 +73,7 @@ Closing the laptop lid suspends, and the screen is always locked before the comp
 
 ## Logging in, passwords and the keyring
 
-an4rch's login screen is **greetd** with the graphical **ReGreet** greeter, showing your wallpaper and your theme's colours (both follow you when you change them: `lumen-login sync`). It remembers the last user, so you usually just type your password. If it can't start on your graphics hardware, the text login screen (tuigreet) appears instead; `lumen-login text on` always uses the text one, and `lumen-login preview` shows the graphical one in a window.
+an4rch's login screen is **greetd** with the graphical **ReGreet** greeter, showing your wallpaper and your theme's colours (both follow you when you change them: `anarch-login sync`). It remembers the last user, so you usually just type your password. If it can't start on your graphics hardware, the text login screen (tuigreet) appears instead; `anarch-login text on` always uses the text one, and `anarch-login preview` shows the graphical one in a window.
 
 - Your login password also unlocks the **GNOME keyring**, where browsers, Git and other apps store secrets. You won't get a second password prompt.
 - When an app needs administrator rights (changing the time zone, mounting a disk), a centred password dialog appears. This is the Hyprland polkit agent.

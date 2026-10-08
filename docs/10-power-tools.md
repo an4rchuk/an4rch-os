@@ -83,7 +83,7 @@ anarch theme install https://github.com/someone/lumen-frosty-theme
 anarch theme remove frosty
 ```
 
-The theme's name comes from the repository name, without `lumen-` and `-theme`. Themes without wallpapers get painted ones. Run the same install command again to update a theme. From the desktop: an4rch menu → Style → *Install a theme from git*.
+The theme's name comes from the repository name, without `an4rch-`, `anarch-` (or `lumen-`) and `-theme`. Themes without wallpapers get painted ones. Run the same install command again to update a theme. From the desktop: an4rch menu → Style → *Install a theme from git*.
 
 ## Battery warnings
 

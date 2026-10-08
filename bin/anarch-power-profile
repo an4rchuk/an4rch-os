@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# anarch-power-profile — switch between power saver, balanced and performance.
+#
+#   anarch-power-profile          choose from a menu
+#   anarch-power-profile next     cycle (SUPER + CTRL + P)
+set -euo pipefail
+source "${LUMEN_PATH:-$HOME/.local/share/lumen}/lib/lumen.sh"
+
+has powerprofilesctl || die "power-profiles-daemon is not installed"
+mapfile -t profiles < <(powerprofilesctl list | sed -n -E 's/^[* ] *([a-z-]+):$/\1/p')
+current=$(powerprofilesctl get)
+
+case "${1:-pick}" in
+  next)
+    for i in "${!profiles[@]}"; do
+      [[ "${profiles[$i]}" == "$current" ]] && next="${profiles[$(((i + 1) % ${#profiles[@]}))]}"
+    done
+    ;;
+  pick)
+    choice=$(for p in "${profiles[@]}"; do
+      [[ "$p" == "$current" ]] && printf '%s  ·  current\n' "$p" || printf '%s\n' "$p"
+    done | menu "Power profile" --index --width 32 --lines "${#profiles[@]}") || exit 0
+    next="${profiles[$choice]}"
+    ;;
+  *) die "usage: anarch-power-profile [pick|next]" ;;
+esac
+
+powerprofilesctl set "$next"
+notify "Power profile: $next" "" -i battery-good -t 2000 -h string:x-canonical-private-synchronous:anarch-power

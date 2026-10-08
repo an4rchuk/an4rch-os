@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# anarch-desktop — icons on the desktop, listed in ~/.config/lumen/desktop-icons.json
+# (the live USB's "Install an4rch OS"). Started by anarch-session when that file exists.
+set -euo pipefail
+source "${LUMEN_PATH:-$HOME/.local/share/lumen}/lib/lumen.sh"
+# gtk4-layer-shell must be loaded before libwayland, which Python can't
+# guarantee on its own.
+for lib in /usr/lib/libgtk4-layer-shell.so /usr/lib64/libgtk4-layer-shell.so; do
+  if [[ -f "$lib" ]]; then
+    export LD_PRELOAD="$lib${LD_PRELOAD:+:$LD_PRELOAD}"
+    break
+  fi
+done
+exec python3 "$LUMEN_PATH/apps/lumen-desktop/lumen_desktop.py" "$@"

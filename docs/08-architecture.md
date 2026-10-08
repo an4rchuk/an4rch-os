@@ -20,7 +20,7 @@ lumen/
 ├── iso/                    an4rch OS: archiso overlay, build.sh, the OS installer and rescue tool
 ├── system/                 OS-level files (fastfetch logo and layout)
 ├── share/                  .desktop launchers and icons for an4rch's apps
-├── bin/                    every `lumen-*` command (bash; one Python tool)
+├── bin/                    every `anarch-*` command (bash; one Python tool), and the obsolete `lumen-*` names that forward to them
 ├── lib/lumen.sh            shared shell library: paths, settings, menus, terminals
 ├── default/                an4rch-managed defaults, loaded before user config
 │   ├── hypr/*.lua          Hyprland: env, looks, input, rules, binds, autostart
@@ -44,7 +44,7 @@ Every other app follows the same pattern through its own include mechanism: Wayb
 
 ## The theme engine
 
-`lumen-theme set NAME`:
+`anarch-theme set NAME`:
 
 1. reads `themes/NAME/theme.conf` (or `~/.config/lumen/themes/NAME/`) and derives missing values (terminal colours, GTK theme, icon theme);
 2. renders every `templates/*.tpl` into `~/.config/lumen/current/theme.new/`, substituting `{{key}}`, `{{key.hex}}` and `{{key.rgb}}`; files in the theme's `overrides/` are copied instead;
@@ -55,7 +55,7 @@ To add support for a new app, drop a template in `templates/`. It's rendered for
 
 ## Session start
 
-Hyprland runs under [uwsm](https://github.com/Vladimir-csp/uwsm), so the session is a set of systemd units with a clean environment and clean shutdown. On `hyprland.start`, an4rch runs `lumen-session start`, which:
+Hyprland runs under [uwsm](https://github.com/Vladimir-csp/uwsm), so the session is a set of systemd units with a clean environment and clean shutdown. On `hyprland.start`, an4rch runs `anarch-session start`, which:
 
 - renders a theme if none exists and restores the wallpaper (`swaybg`);
 - starts Waybar, mako, hypridle and the clipboard watchers, each as its own systemd scope via `uwsm app`;
@@ -63,26 +63,26 @@ Hyprland runs under [uwsm](https://github.com/Vladimir-csp/uwsm), so the session
 - restores night light and Do Not Disturb;
 - shows the welcome notification on the first login.
 
-Apps launched from the launcher or key bindings go through `lumen-launch`, which uses `uwsm app` too. That way every app gets its own scope, and its logs land in `journalctl --user`.
+Apps launched from the launcher or key bindings go through `anarch-launch`, which uses `uwsm app` too. That way every app gets its own scope, and its logs land in `journalctl --user`.
 
 ## an4rch OS
 
-`iso/build.sh` copies Arch's official `releng` archiso profile and layers `iso/airootfs/` on top: the installer (`lumen-os-install`, a `gum` TUI), `lumen-rescue`, an auto-start on tty1, and a full copy of this repository at `/opt/lumen`. The profile is renamed and the boot menus rebranded. Because releng is copied at build time, the ISO keeps up with upstream archiso.
+`iso/build.sh` copies Arch's official `releng` archiso profile and layers `iso/airootfs/` on top: the installer (`anarch-os-install`, a `gum` TUI), `anarch-rescue`, an auto-start on tty1, and a full copy of this repository at `/opt/lumen`. The profile is renamed and the boot menus rebranded. Because releng is copied at build time, the ISO keeps up with upstream archiso.
 
 The installer partitions (1 GB ESP plus btrfs, optionally inside LUKS2), creates the `@`, `@home`, `@log`, `@pkg` and `@snapshots` subvolumes, and `pacstrap`s a base system with both kernels. It configures a systemd-based initramfs (`plymouth` and `sd-encrypt` hooks) and systemd-boot. Then it runs `install.sh --distro` as the new user inside the chroot. `install/distro.sh` adds the OS layer: os-release branding (with a pacman hook so `filesystem` upgrades keep it), Plymouth, zram, multilib, paccache and snapper.
 
-fstab mounts subvolumes **by name, not ID**, which is what makes rollbacks work. `lumen-snapshot restore` renames `@` to `@broken-<date>`, snapshots the chosen snapshot into a new `@`, and reinstalls that snapshot's kernel version from the `@pkg` cache into `/boot`. That last step keeps the kernel on the ESP matching the restored system's `/usr/lib/modules`.
+fstab mounts subvolumes **by name, not ID**, which is what makes rollbacks work. `anarch-snapshot restore` renames `@` to `@broken-<date>`, snapshots the chosen snapshot into a new `@`, and reinstalls that snapshot's kernel version from the `@pkg` cache into `/boot`. That last step keeps the kernel on the ESP matching the restored system's `/usr/lib/modules`.
 
 ## Start menu and App Store
 
 Both are Python + GTK 4 apps that take their colours from `apps.css`, rendered by the theme engine like every other app.
 
-- **Start** runs as a hidden `Gtk.Application` (`org.lumen.Start`). Tapping Super runs `lumen-start`, which activates the app's `toggle` action over D-Bus with `gdbus`, so no Python starts per tap. With gtk4-layer-shell it's a full-screen overlay below the bar, whose backdrop closes it on click. The Hyprland bind is `hl.bind("SUPER + SUPER_L", …, { release = true })`. Hyprland shadows release binds while another bound key is pressed, so Super shortcuts never open Start.
+- **Start** runs as a hidden `Gtk.Application` (`org.lumen.Start`). Tapping Super runs `anarch-start`, which activates the app's `toggle` action over D-Bus with `gdbus`, so no Python starts per tap. With gtk4-layer-shell it's a full-screen overlay below the bar, whose backdrop closes it on click. The Hyprland bind is `hl.bind("SUPER + SUPER_L", …, { release = true })`. Hyprland shadows release binds while another bound key is pressed, so Super shortcuts never open Start.
 - **The App Store** keeps a curated `catalog.json` (name, category and an ordered list of `pacman`/`flatpak`/`aur` sources). Repo availability is checked with one `pacman -Si` call. Installs run `pkexec pacman`, `flatpak --user` or `yay --sudo pkexec`, with output streamed to a progress bar. Screenshots and descriptions come from Flathub's `/api/v2/appstream/{id}`, and search uses `/api/v2/search`. Everything is cached under `~/.cache/lumen/store`.
 
 ## Menus
 
-Every menu is fuzzel in dmenu mode, through the `menu`, `ask`, `ask_secret` and `confirm` helpers in `lib/lumen.sh`. Opening a menu while another is open closes it, so every menu hotkey doubles as a toggle. Bar modules are custom Waybar modules fed by `lumen-status`. Scripts refresh them instantly with real-time signals through `bar_signal` in `lib/lumen.sh`.
+Every menu is fuzzel in dmenu mode, through the `menu`, `ask`, `ask_secret` and `confirm` helpers in `lib/lumen.sh`. Opening a menu while another is open closes it, so every menu hotkey doubles as a toggle. Bar modules are custom Waybar modules fed by `anarch-status`. Scripts refresh them instantly with real-time signals through `bar_signal` in `lib/lumen.sh`.
 
 ## Tests
 

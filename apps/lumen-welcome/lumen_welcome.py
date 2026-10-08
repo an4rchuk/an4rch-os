@@ -30,7 +30,7 @@ def tool(*argv: str) -> None:
     try:
         subprocess.Popen(cmd, start_new_session=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     except OSError as err:
-        print(f"lumen-welcome: {err}", file=sys.stderr)
+        print(f"anarch-welcome: {err}", file=sys.stderr)
 
 
 def read_theme(path: Path) -> dict[str, str]:
@@ -169,7 +169,7 @@ class Welcome(Adw.ApplicationWindow):
             inner.append(swatches)
             inner.append(Gtk.Label(label=t.get("name", slug)))
             b.set_child(inner)
-            b.connect("clicked", lambda _b, s=slug: (tool("lumen-theme", "set", s), GLib.timeout_add(700, self.reload_style)))
+            b.connect("clicked", lambda _b, s=slug: (tool("anarch-theme", "set", s), GLib.timeout_add(700, self.reload_style)))
             flow.append(b)
         return self.page("Pick a look", "Themes restyle everything at once: windows, bar, menus, terminal and apps. "
                          "Change it any time with Super + Ctrl + T.", flow, self.nav())
@@ -188,12 +188,12 @@ class Welcome(Adw.ApplicationWindow):
             r.connect("activated", lambda *_: tool(*argv))
             group.add(r)
 
-        row("Connect to Wi-Fi", "Or click the network icon in the top bar", "network-wireless-symbolic", ["lumen-wifi"])
-        row("Set up gaming", "Steam, Proton, GameMode, MangoHud and drivers in one go", "input-gaming-symbolic", ["lumen-gaming"])
-        row("Get apps", "Browse the App Store: Flathub, Arch and the AUR in one place", "system-software-install-symbolic", ["lumen-store"])
-        row("Fingerprint login", "Unlock with your finger, if your laptop has a reader", "fingerprint-symbolic", ["lumen-term", "--float", "--hold", "--", "lumen-setup", "fingerprint"])
-        row("Printers", "Find printers on your network", "printer-symbolic", ["lumen-setup", "printing"])
-        row("Snapshots", "Every update can be undone — see how", "document-revert-symbolic", ["lumen-snapshot", "menu"])
+        row("Connect to Wi-Fi", "Or click the network icon in the top bar", "network-wireless-symbolic", ["anarch-wifi"])
+        row("Set up gaming", "Steam, Proton, GameMode, MangoHud and drivers in one go", "input-gaming-symbolic", ["anarch-gaming"])
+        row("Get apps", "Browse the App Store: Flathub, Arch and the AUR in one place", "system-software-install-symbolic", ["anarch-store"])
+        row("Fingerprint login", "Unlock with your finger, if your laptop has a reader", "fingerprint-symbolic", ["anarch-term", "--float", "--hold", "--", "anarch-setup", "fingerprint"])
+        row("Printers", "Find printers on your network", "printer-symbolic", ["anarch-setup", "printing"])
+        row("Snapshots", "Every update can be undone — see how", "document-revert-symbolic", ["anarch-snapshot", "menu"])
         return self.page("Set up the essentials", "Everything here is also in the Start menu and the an4rch menu.",
                          group, self.nav())
 
@@ -207,7 +207,7 @@ class Welcome(Adw.ApplicationWindow):
              "Click the update icon in the top bar, or press ⊞ + Alt + U. an4rch takes a snapshot first."),
             ("document-revert-symbolic", "Every update can be undone",
              "If something breaks after an update, pick an older snapshot in the boot menu, "
-             "or run lumen-rescue from the USB stick."),
+             "or run anarch-rescue from the USB stick."),
             ("network-wireless-symbolic", "Wi-Fi and Bluetooth",
              "Click their icons in the top bar, or press ⊞ + Alt + W and ⊞ + Alt + B."),
             ("audio-volume-high-symbolic", "Sound",
@@ -258,7 +258,7 @@ class Welcome(Adw.ApplicationWindow):
         startup.connect("toggled", self.on_startup_toggle)
         box.append(startup)
         manual = Gtk.Button(label="Open the manual", css_classes=["flat"], halign=Gtk.Align.CENTER)
-        manual.connect("clicked", lambda *_: tool("lumen-manual"))
+        manual.connect("clicked", lambda *_: tool("anarch-manual"))
         box.append(manual)
         return self.page("You're all set", "The Windows key is your home base. A few more to remember:",
                          box, self.nav(next_label="Start using an4rch", on_next=self.finish))

@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+# anarch-launch — start your preferred apps (terminal, browser, editor, …).
+#
+#   anarch-launch terminal|browser|editor|files|monitor [args]
+#   anarch-launch -- COMMAND [args]     run any command as a session app
+#
+# Preferred apps are set in ~/.config/lumen/settings.conf.
+set -euo pipefail
+source "${LUMEN_PATH:-$HOME/.local/share/lumen}/lib/lumen.sh"
+
+what="${1:-}"
+shift || true
+
+# The chosen browser can be missing (an install that couldn't download it,
+# or it was removed): use whichever browser is installed, and say so once.
+if ! has "$LUMEN_BROWSER"; then
+  for b in firefox chromium brave zen-browser librewolf google-chrome-stable vivaldi-stable; do
+    if has "$b"; then
+      flag="${XDG_RUNTIME_DIR:-/tmp}/lumen-browser-fallback"
+      [[ -e "$flag" ]] || { touch "$flag"; notify "Using $b" "$LUMEN_BROWSER isn't installed; change the browser in Settings → Apps." -i web-browser; }
+      LUMEN_BROWSER="$b"
+      break
+    fi
+  done
+fi
+
+case "$what" in
+  --) [[ $# -gt 0 ]] || die "usage: anarch-launch -- COMMAND"; launch "$@" ;;
+  terminal) term "$@" ;;
+  browser)
+    if [[ "${1:-}" == --private ]]; then
+      case "$LUMEN_BROWSER" in
+        firefox | librewolf | zen*) launch "$LUMEN_BROWSER" --private-window ;;
+        *) launch "$LUMEN_BROWSER" --incognito ;;
+      esac
+    else
+      launch "$LUMEN_BROWSER" "$@"
+    fi
+    ;;
+  editor)
+    if [[ "$LUMEN_EDITOR" == nvim || "$LUMEN_EDITOR" == vim || "$LUMEN_EDITOR" == hx || "$LUMEN_EDITOR" == helix ]]; then
+      term -- "$LUMEN_EDITOR" "$@"
+    else
+      launch "$LUMEN_EDITOR" "$@"
+    fi
+    ;;
+  files) launch "$LUMEN_FILES" "$@" ;;
+  monitor)
+    # The Task Manager window; btop in a terminal when it isn't installed.
+    if has gnome-system-monitor; then launch gnome-system-monitor --show-processes-tab
+    else term --title "System monitor" -- btop; fi ;;
+  "") die "usage: anarch-launch terminal|browser|editor|files|monitor  or  anarch-launch -- COMMAND" ;;
+  *) launch "$what" "$@" ;;
+esac

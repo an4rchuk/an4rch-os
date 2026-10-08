@@ -6,5 +6,5 @@ set -euo pipefail
 LUMEN_PATH="${LUMEN_PATH:-$HOME/.local/share/lumen}"
 command -v dbus-run-session >/dev/null || sudo pacman -S --needed --noconfirm dbus || true
 if [[ -n "${HYPRLAND_INSTANCE_SIGNATURE:-}" ]]; then
-  "$LUMEN_PATH/bin/lumen-taskbar" restart || true
+  "$LUMEN_PATH/bin/anarch-taskbar" restart || true
 fi

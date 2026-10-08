@@ -1,6 +1,6 @@
 # Built-in tools
 
-All of these are in the an4rch menu (<kbd>SUPER</kbd> + <kbd>ALT</kbd> + <kbd>SPACE</kbd>), and each one is also a plain command (`lumen <tool>`) you can script or bind to other keys.
+All of these are in the an4rch menu (<kbd>SUPER</kbd> + <kbd>ALT</kbd> + <kbd>SPACE</kbd>), and each one is also a plain command (`anarch <tool>`) you can script or bind to other keys.
 
 ## Screenshots
 
@@ -78,7 +78,7 @@ sqrt(2) * pi
 
 ## Web search
 
-<kbd>SUPER</kbd> + <kbd>SHIFT</kbd> + <kbd>W</kbd> searches from anywhere. Type an address to open it directly. DuckDuckGo bangs work: `!aw hyprland` (Arch Wiki), `!gh lumen` (GitHub), `!yt lofi`, `!w Lisbon`.
+<kbd>SUPER</kbd> + <kbd>SHIFT</kbd> + <kbd>W</kbd> searches from anywhere. Type an address to open it directly. DuckDuckGo bangs work: `!aw hyprland` (Arch Wiki), `!gh an4rch` (GitHub), `!yt lofi`, `!w Lisbon`.
 
 ## Web apps
 

@@ -27,7 +27,7 @@ export PATH="$tmp/bin:$PATH"
 step "Themes"
 for t in "$root"/themes/*/; do
   name=$(basename "$t")
-  if out=$("$root/bin/lumen-theme" set "$name" 2>&1) && ! grep -rq '{{' "$HOME/.config/lumen/current/theme/"; then
+  if out=$("$root/bin/anarch-theme" set "$name" 2>&1) && ! grep -rq '{{' "$HOME/.config/lumen/current/theme/"; then
     ok "$name"
   else
     bad "$name: $out"
@@ -38,7 +38,7 @@ for t in "$root"/themes-extra/*/*/; do
   [[ -f "$t/theme.conf" ]] || continue
   name=$(basename "$t")
   mkdir -p "$HOME/.config/lumen/themes" && cp -r "$t" "$HOME/.config/lumen/themes/$name"
-  if out=$("$root/bin/lumen-theme" set "$name" 2>&1) && ! grep -rq '{{' "$HOME/.config/lumen/current/theme/"; then
+  if out=$("$root/bin/anarch-theme" set "$name" 2>&1) && ! grep -rq '{{' "$HOME/.config/lumen/current/theme/"; then
     ok "pack theme $name"
   else
     bad "pack theme $name: $out"
@@ -46,12 +46,12 @@ for t in "$root"/themes-extra/*/*/; do
   rm -rf "$HOME/.config/lumen/themes/$name"
 done
 # The signature theme's old name still works.
-if "$root/bin/lumen-theme" set lumen >/dev/null 2>&1 && [[ "$("$root/bin/lumen-theme" current)" == an4rch ]]; then
+if "$root/bin/anarch-theme" set lumen >/dev/null 2>&1 && [[ "$("$root/bin/anarch-theme" current)" == an4rch ]]; then
   ok "old theme name 'lumen' switches to an4rch"
 else
   bad "theme 'lumen' doesn't map to an4rch"
 fi
-"$root/bin/lumen-theme" set an4rch >/dev/null
+"$root/bin/anarch-theme" set an4rch >/dev/null
 
 step "Hyprland config (Lua)"
 lua=$(command -v lua5.4 || command -v lua5.3 || command -v luajit || command -v lua)
@@ -98,7 +98,7 @@ for s in "${scripts[@]}"; do bash -n "$s" || bad "syntax: $s"; done
 ok "bash -n"
 
 step "an4rch apps (Start menu, App Store, Welcome)"
-if python3 -m py_compile "$root"/apps/*/*.py "$root/bin/lumen-wallgen" 2>&1; then ok "Python compiles"; else bad "Python syntax"; fi
+if python3 -m py_compile "$root"/apps/*/*.py "$root/bin/anarch-wallgen" 2>&1; then ok "Python compiles"; else bad "Python syntax"; fi
 rm -rf "$root"/apps/*/__pycache__ "$root"/bin/__pycache__
 if python3 - "$root/apps/lumen-store/catalog.json" <<'PY'
 import json, re, sys
@@ -130,22 +130,22 @@ root = Path(sys.argv[1])
 ours = {p.name for p in (root / "bin").iterdir()}
 refs = []  # (where, command)
 def add(where, cmd):
-    if cmd.startswith("lumen-"):
+    if cmd.startswith("anarch-"):
         refs.append((where, cmd))
-for f in [root / "bin/lumen-menu", *root.glob("apps/*/*.py"), root / "config/waybar/config.jsonc",
+for f in [root / "bin/anarch-menu", *root.glob("apps/*/*.py"), root / "config/waybar/config.jsonc",
           root / "config/waybar/taskbar.jsonc", root / "default/hypr/binds.lua"]:
     text = f.read_text()
-    for m in re.finditer(r'\$bin/(lumen-[a-z-]+)', text): add(f.name, m.group(1))
-    for m in re.finditer(r'["\[]\s*"?(lumen-[a-z-]+)"', text): add(f.name, m.group(1))
-    for m in re.finditer(r'"on-click[a-z-]*":\s*"(lumen-[a-z-]+)', text): add(f.name, m.group(1))
-    for m in re.finditer(r'(?<![\w.])cmd\("([a-z-]+)"', text): add(f.name, "lumen-" + m.group(1))
+    for m in re.finditer(r'\$bin/(anarch-[a-z-]+)', text): add(f.name, m.group(1))
+    for m in re.finditer(r'["\[]\s*"?(anarch-[a-z-]+)"', text): add(f.name, m.group(1))
+    for m in re.finditer(r'"on-click[a-z-]*":\s*"(anarch-[a-z-]+)', text): add(f.name, m.group(1))
+    for m in re.finditer(r'(?<![\w.])cmd\("([a-z-]+)"', text): add(f.name, "anarch-" + m.group(1))
 for f in root.glob("share/applications/*.desktop"):
     m = re.search(r"^Exec=(\S+)", f.read_text(), re.M)
     if m: add(f.name, m.group(1))
-# Lua files are referenced as lumen-<name>.lua etc. and app ids as lumen-start; keep real commands only.
-skip = {"lumen-logo", "lumen-installer", "lumen-floating", "lumen-start.desktop"}
+# Lua files are referenced as lumen-<name>.lua etc. and app ids as anarch-start; keep real commands only.
+skip = {"lumen-logo", "anarch-installer", "lumen-floating", "lumen-start.desktop"}
 missing = sorted({(w, c) for w, c in refs if c not in ours and c not in skip and not c.endswith((".desktop", "-"))
-                  and c != "lumen-os-install" and (root / "iso/airootfs/usr/local/bin" / c).exists() is False})
+                  and c != "anarch-os-install" and (root / "iso/airootfs/usr/local/bin" / c).exists() is False})
 for w, c in missing:
     print(f"  {w}: {c} doesn't exist")
 print(f"  {len(set(c for _, c in refs))} commands referenced from menus, bars, binds and apps")
@@ -217,11 +217,11 @@ fi
 
 step "Wallpapers"
 if python3 -c 'import PIL' 2>/dev/null; then
-  if python3 "$root/bin/lumen-wallgen" --theme an4rch --theme catppuccin-latte --theme ancom --size 640x360 --out "$tmp/walls" >/dev/null &&
+  if python3 "$root/bin/anarch-wallgen" --theme an4rch --theme catppuccin-latte --theme ancom --size 640x360 --out "$tmp/walls" >/dev/null &&
     [[ $(find "$tmp/walls" -type f | wc -l) -eq 27 ]]; then
     ok "$(find "$tmp/walls" -type f | wc -l) wallpapers generated (incl. a pack theme)"
   else
-    bad "lumen-wallgen failed"
+    bad "anarch-wallgen failed"
   fi
 else
   printf '  - skipped (Pillow not installed)\n'

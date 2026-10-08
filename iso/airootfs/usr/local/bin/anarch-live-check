@@ -1,5 +1,5 @@
 #!/bin/bash
-# lumen-live-check — VM test only (boot with lumen.livecheck=1): report on the
+# anarch-live-check — VM test only (boot with lumen.livecheck=1): report on the
 # live desktop over the serial console, as E2E-RESULT lines the e2e
 # workflow collects, plus details for diagnosis.
 set -u
@@ -45,7 +45,7 @@ echo "settings:"; cat "/home/$u/.config/lumen/settings.conf" 2>&1
 echo "graphics: $(lspci -k 2>/dev/null | grep -A3 -iE "vga|3d" | sed -n "s/.*Kernel driver in use: //p" | tr "\n" " ") nvidia module: $(lsmod | grep -c "^nvidia")"
 echo "plugins: $(as_live hyprctl plugin list 2>&1 | head -n 3 | tr '\n' ' ')"
 echo "user services failed:"; as_live systemctl --user --failed --no-legend 2>&1 | head -n 10
-echo "preload: $(journalctl -u lumen-live-preload -b --no-pager -o cat 2>&1 | tail -n 2 | tr "\n" " ")"
+echo "preload: $(journalctl -u anarch-live-preload -b --no-pager -o cat 2>&1 | tail -n 2 | tr "\n" " ")"
 echo "live setup log:"; tail -n 40 /var/log/lumen-live-setup.log 2>&1
 echo "live session log:"; tail -n 20 "/home/$u/.local/state/lumen/live-session.log" 2>&1
 echo "user journal errors:"; journalctl _UID="$uid" -p err -b --no-pager -o cat 2>&1 | tail -n 30

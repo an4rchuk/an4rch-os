@@ -1,28 +1,4 @@
 #!/usr/bin/env bash
-# lumen-bluetooth — pair and connect Bluetooth devices (SUPER + ALT + B).
-set -euo pipefail
-source "${LUMEN_PATH:-$HOME/.local/share/lumen}/lib/lumen.sh"
-
-# Make sure the adapter is powered and not soft-blocked before opening.
-# Just after boot or unblocking, the adapter can take a few seconds to appear.
-has rfkill && rfkill unblock bluetooth 2>/dev/null || true
-if has bluetoothctl; then
-  if ! systemctl is-active -q bluetooth 2>/dev/null; then
-    notify "Bluetooth is off" "The Bluetooth service isn't running. Start it with: sudo systemctl enable --now bluetooth" -i bluetooth-disabled
-  fi
-  for _ in 1 2 3 4 5; do
-    bluetoothctl show 2>/dev/null | grep -q 'Powered: yes' && break
-    bluetoothctl power on >/dev/null 2>&1 || true
-    sleep 1
-  done
-  bluetoothctl show 2>/dev/null | grep -q 'Powered: yes' ||
-    notify "No Bluetooth adapter found" "This computer's Bluetooth may be turned off in its settings (BIOS) or need a driver." -i bluetooth-disabled
-fi
-
-if has bluetui; then
-  term --float --title "Bluetooth" -- bluetui
-elif has blueman-manager; then
-  launch blueman-manager
-else
-  term --float --title "Bluetooth" -- bluetoothctl
-fi
+# lumen-bluetooth — obsolete name (before an4rch OS 1.1.0) of anarch-bluetooth; kept so old configs still work.
+[[ -t 2 ]] && printf '\e[33m!\e[0m lumen-bluetooth is obsolete: use anarch-bluetooth (or: anarch bluetooth)\n' >&2
+exec "${LUMEN_PATH:-$HOME/.local/share/lumen}/bin/anarch-bluetooth" "$@"

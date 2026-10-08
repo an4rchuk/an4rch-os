@@ -252,7 +252,7 @@ class Backend:
         else:
             desktop = find_desktop_for_package(src["id"])
             argv = ["gtk-launch", desktop] if desktop else [src["id"]]
-        launcher = LUMEN_PATH / "bin/lumen-launch"
+        launcher = LUMEN_PATH / "bin/anarch-launch"
         if launcher.exists():
             argv = [str(launcher), "--", *argv]
         subprocess.Popen(argv, start_new_session=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -778,7 +778,7 @@ class StoreWindow(Adw.ApplicationWindow):
                                 title=f"{total} update{'s' if total != 1 else ''} available",
                                 description="A snapshot is taken first, so any update can be undone.")
         btn = Gtk.Button(label="Update everything", halign=Gtk.Align.CENTER, css_classes=["pill", "suggested-action"])
-        btn.connect("clicked", lambda *_: self.run_tool(["lumen-update"]))
+        btn.connect("clicked", lambda *_: self.run_tool(["anarch-update"]))
         status.set_child(btn)
         self.updates_box.append(status)
         for title, items in (("System and apps", res["system"]), ("Flatpak apps", res["flatpak"])):
@@ -871,7 +871,7 @@ class StoreWindow(Adw.ApplicationWindow):
                     for n, d in found]
             repo_box.append(self.section("From the Arch repositories", apps))
             more = Gtk.Button(label="Search the AUR in a terminal…", halign=Gtk.Align.START, css_classes=["flat"])
-            more.connect("clicked", lambda *_: self.run_tool(["lumen-pkg", "install"]))
+            more.connect("clicked", lambda *_: self.run_tool(["anarch-pkg", "install"]))
             repo_box.append(more)
 
         in_thread(flathub, show_flathub)

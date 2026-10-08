@@ -18,14 +18,14 @@ lumen = {
 -- Absolute path to a bundled lumen command, so binds work even when PATH is
 -- not yet set up (first login, broken shell profile, ...).
 function lumen.cmd(name, args)
-    local path = root .. "/bin/lumen-" .. name
+    local path = root .. "/bin/anarch-" .. name
     if args and args ~= "" then
         return path .. " " .. args
     end
     return path
 end
 
--- Launch through lumen-launch, which runs apps as systemd scopes under uwsm.
+-- Launch through anarch-launch, which runs apps as systemd scopes under uwsm.
 function lumen.launch(what)
     return lumen.cmd("launch", what)
 end
@@ -41,7 +41,7 @@ load("rules")
 load("binds")
 load("autostart")
 
--- Colours come from the active theme (rendered by lumen-theme). A missing
+-- Colours come from the active theme (rendered by anarch-theme). A missing
 -- theme must never stop the session from starting, so load it defensively.
 local ok, palette = pcall(require, home .. "/.config/lumen/current/theme/hyprland")
 if ok and type(palette) == "table" then

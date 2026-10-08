@@ -1,9 +1,4 @@
 #!/usr/bin/env bash
-# lumen-settings — the Settings app: look, desktop, windows, sound, network,
-# displays, keyboard and mouse, power, default apps and the system.
-#
-#   lumen-settings [PAGE]    open, optionally at a page (look, desktop, windows,
-#                            sound, network, displays, input, power, apps, system)
-set -euo pipefail
-LUMEN_PATH="${LUMEN_PATH:-$HOME/.local/share/lumen}"
-exec python3 "$LUMEN_PATH/apps/lumen-settings/lumen_settings.py" "$@"
+# lumen-settings — obsolete name (before an4rch OS 1.1.0) of anarch-settings; kept so old configs still work.
+[[ -t 2 ]] && printf '\e[33m!\e[0m lumen-settings is obsolete: use anarch-settings (or: anarch settings)\n' >&2
+exec "${LUMEN_PATH:-$HOME/.local/share/lumen}/bin/anarch-settings" "$@"

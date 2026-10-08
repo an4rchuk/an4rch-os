@@ -65,7 +65,7 @@ Tap the **Windows key** on its own and Start opens. It also opens from the 󰣇 
 
 Holding the Windows key for a shortcut (Windows + B, Windows + 1, …) never opens Start. Only a tap on its own does.
 
-Start runs quietly in the background, so it appears instantly. If it ever misbehaves: `lumen-start --quit`, then tap the Windows key again.
+Start runs quietly in the background, so it appears instantly. If it ever misbehaves: `anarch-start --quit`, then tap the Windows key again.
 
 ## The App Store
 
@@ -116,7 +116,7 @@ A rollback swaps the whole system subvolume and keeps the old one as `@broken-<d
 ### If the system doesn't start
 
 1. In the boot menu, try **an4rch OS (LTS kernel)**. A broken kernel update is the most common cause, and the LTS kernel usually boots fine.
-2. If that fails too, boot the an4rch OS USB stick, press <kbd>Ctrl</kbd> + <kbd>C</kbd> to leave the installer, and run `lumen-rescue`. It unlocks the disk, lists your snapshots, and restores the one you pick.
+2. If that fails too, boot the an4rch OS USB stick, press <kbd>Ctrl</kbd> + <kbd>C</kbd> to leave the installer, and run `anarch-rescue`. It unlocks the disk, lists your snapshots, and restores the one you pick.
 
 ## Updating
 

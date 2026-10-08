@@ -1,39 +1,4 @@
 #!/usr/bin/env bash
-# lumen-power — lock, suspend, log out, restart or shut down (SUPER + Esc).
-#
-#   lumen-power        the power panel (or the menu outside the desktop)
-#   lumen-power menu   the menu
-set -euo pipefail
-source "${LUMEN_PATH:-$HOME/.local/share/lumen}/lib/lumen.sh"
-
-# On the desktop: the power panel under the top bar (battery, power mode,
-# brightness and these actions). `lumen-power menu` is the text menu.
-if [[ "${1:-}" != menu && -n "${WAYLAND_DISPLAY:-}" && -x "$LUMEN_PATH/bin/lumen-panel" ]] &&
-  python3 -c 'import gi; gi.require_version("Gtk", "4.0")' 2>/dev/null; then
-  exec "$LUMEN_PATH/bin/lumen-panel" power
-fi
-
-options=(
-  "󰌾  Lock"
-  "󰤄  Suspend"
-  "󰍃  Log out"
-  "󰜉  Restart"
-  "󰐥  Shut down"
-)
-# Hibernate only when the system can actually resume from it.
-if [[ "$(busctl call org.freedesktop.login1 /org/freedesktop/login1 org.freedesktop.login1.Manager CanHibernate 2>/dev/null)" == *'"yes"'* ]]; then
-  options+=("󰒲  Hibernate")
-fi
-[[ -d /sys/firmware/efi ]] && options+=("󰍛  Restart into firmware setup")
-
-choice=$(printf '%s\n' "${options[@]}" | menu "Power" --lines "${#options[@]}" --width 30) || exit 0
-
-case "$choice" in
-  *Lock) loginctl lock-session ;;
-  *Suspend) systemctl suspend ;;
-  *"Log out") "$LUMEN_PATH/bin/lumen-session" logout ;;
-  *Restart) systemctl reboot ;;
-  *"Shut down") systemctl poweroff ;;
-  *Hibernate) systemctl hibernate ;;
-  *firmware*) confirm "Restart into firmware setup?" && systemctl reboot --firmware-setup ;;
-esac
+# lumen-power — obsolete name (before an4rch OS 1.1.0) of anarch-power; kept so old configs still work.
+[[ -t 2 ]] && printf '\e[33m!\e[0m lumen-power is obsolete: use anarch-power (or: anarch power)\n' >&2
+exec "${LUMEN_PATH:-$HOME/.local/share/lumen}/bin/anarch-power" "$@"

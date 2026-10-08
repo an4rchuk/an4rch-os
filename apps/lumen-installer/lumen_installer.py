@@ -3,7 +3,7 @@
 
 Runs on the live an4rch desktop, Bazzite-style: you try the system while you
 answer a few questions (network, disk, account, region, look, apps), then
-it installs. The work itself is done by lumen-os-install, the same engine as
+it installs. The work itself is done by anarch-os-install, the same engine as
 the text-mode installer, fed an answers file; this app shows its progress.
 """
 
@@ -32,7 +32,7 @@ if not (LUMEN_PATH / "themes").is_dir():
 CONFIG = Path(os.environ.get("XDG_CONFIG_HOME", HOME / ".config")) / "lumen"
 WALLPAPERS = Path(os.environ.get("XDG_DATA_HOME", HOME / ".local/share")) / "backgrounds/lumen"
 HERE = Path(__file__).resolve().parent
-ENGINE = os.environ.get("LUMEN_OS_INSTALL", "/usr/local/bin/lumen-os-install")
+ENGINE = os.environ.get("LUMEN_OS_INSTALL", "/usr/local/bin/anarch-os-install")
 LOG = Path("/var/log/lumen-os-install.log")
 DEMO = os.environ.get("LUMEN_INSTALLER_DEMO") == "1"  # UI only, never touches disks
 
@@ -65,7 +65,7 @@ def detached(*cmd: str) -> None:
     try:
         subprocess.Popen(cmd, start_new_session=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     except OSError as err:
-        print(f"lumen-installer: {err}", file=sys.stderr)
+        print(f"anarch-installer: {err}", file=sys.stderr)
 
 
 def lumen(*argv: str) -> None:
@@ -97,7 +97,7 @@ def disks() -> list[dict]:
             continue
         model = (d.get("model") or "").strip() or ("USB drive" if d.get("tran") == "usb" else "Disk")
         # What's on it now (e.g. "Windows · 4 partitions"), so it isn't erased by accident.
-        contents = run("lumen-disk-info", f"/dev/{d['name']}").strip()
+        contents = run("anarch-disk-info", f"/dev/{d['name']}").strip()
         detail = f"/dev/{d['name']} · {(d.get('tran') or '').upper() or 'internal'}"
         if contents:
             detail += f" · has {contents}"
@@ -111,10 +111,10 @@ def disks() -> list[dict]:
 
 def alongside_space(path: str) -> dict[str, str]:
     """Can an4rch go next to the Windows on this disk, and how big can it be?
-    (lumen-disk-info --space: max_gb=…, or error=…)."""
+    (anarch-disk-info --space: max_gb=…, or error=…)."""
     if DEMO:
         return {"max_gb": "180"}
-    out = run("sudo", "-n", "lumen-disk-info", "--space", path, timeout=90)
+    out = run("sudo", "-n", "anarch-disk-info", "--space", path, timeout=90)
     info = {}
     for line in out.splitlines():
         if "=" in line:
@@ -159,7 +159,7 @@ def keymaps() -> list[str]:
 
 
 def xkb_for_keymap(keymap: str) -> tuple[str, str]:
-    """Console keymap name → XKB (layout, variant), as lumen-os-install maps it."""
+    """Console keymap name → XKB (layout, variant), as anarch-os-install maps it."""
     special = {"uk": ("gb", ""), "dvorak": ("us", "dvorak"), "colemak": ("us", "colemak"), "jp106": ("jp", ""),
                "br-abnt": ("br", ""), "la-latin": ("latam", ""), "de_CH": ("ch", ""), "sg": ("ch", ""),
                "fr_CH": ("ch", "fr"), "cf": ("ca", "fr")}
@@ -379,7 +379,7 @@ class Installer(Adw.ApplicationWindow):
         group = Adw.PreferencesGroup(margin_top=12)
         group.add(keymap)
         tips = Gtk.Button(label="New to an4rch? Open the tips", css_classes=["flat"], halign=Gtk.Align.CENTER)
-        tips.connect("clicked", lambda *_: lumen("lumen-welcome"))
+        tips.connect("clicked", lambda *_: lumen("anarch-welcome"))
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14, halign=Gtk.Align.CENTER)
         for w in (logo, hello, text, group, tips):
             box.append(w)
@@ -620,13 +620,13 @@ class Installer(Adw.ApplicationWindow):
         for s, b in self.theme_buttons.items():
             (b.add_css_class if s == slug else b.remove_css_class)("theme-card-active")
         if apply and not DEMO:
-            lumen("lumen-theme", "set", slug)
+            lumen("anarch-theme", "set", slug)
             GLib.timeout_add(800, lambda: (self.load_style(), False)[1])
 
     def pick_layout(self, key: str, taskbar: str) -> None:
         self.answers["layout"] = key
         if not DEMO:
-            lumen("lumen-taskbar", "on" if taskbar == "yes" else "off")
+            lumen("anarch-taskbar", "on" if taskbar == "yes" else "off")
 
     # --- 7. apps -------------------------------------------------------------------------------
     def choice_group(self, title: str, key: str, options: list[tuple[str, str, str]]) -> Adw.PreferencesGroup:

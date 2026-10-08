@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# anarch-store — the App Store: apps and games from Arch, Flathub and the AUR (SUPER + A).
+#
+#   anarch-store                  open the store
+#   anarch-store --search TEXT    open with a search
+#   anarch-store --app ID         open an app's page (IDs from catalog.json)
+#   anarch-store --updates        open the Updates tab
+#   anarch-store --uninstall X    offer to remove the app behind launcher X.desktop
+set -euo pipefail
+LUMEN_PATH="${LUMEN_PATH:-$HOME/.local/share/lumen}"
+exec python3 "$LUMEN_PATH/apps/lumen-store/lumen_store.py" "$@"

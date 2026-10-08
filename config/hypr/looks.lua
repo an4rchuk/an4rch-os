@@ -1,5 +1,5 @@
 -- Visual tweaks on top of an4rch's defaults and the active theme.
--- Colours belong to the theme: SUPER + CTRL + T, or `lumen-theme new mytheme`.
+-- Colours belong to the theme: SUPER + CTRL + T, or `anarch-theme new mytheme`.
 
 -- hl.config({
 --     general = {

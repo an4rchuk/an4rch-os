@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+# anarch-audio — sound: volume, devices and the mixer (SUPER + ALT + A).
+#
+#   anarch-audio            the sound panel under the volume icon (again to close)
+#   anarch-audio mixer      the full mixer: volume for each app
+#   anarch-audio output     quick-switch the output device from a menu
+#   anarch-audio --daemon   start the panel hidden (done at login, so it opens at once)
+set -euo pipefail
+source "${LUMEN_PATH:-$HOME/.local/share/lumen}/lib/lumen.sh"
+
+case "${1:-}" in
+  "")
+    # Fast path: ask the running panel to toggle over D-Bus (no Python start-up).
+    if gdbus call --session --dest org.lumen.Audio --object-path /org/lumen/Audio \
+      --method org.gtk.Actions.Activate toggle '[]' '{}' >/dev/null 2>&1; then
+      exit 0
+    fi
+    ;&
+  --daemon | --show)
+    # gtk4-layer-shell must be loaded before libwayland, which Python can't
+    # guarantee on its own.
+    for lib in /usr/lib/libgtk4-layer-shell.so /usr/lib64/libgtk4-layer-shell.so; do
+      if [[ -f "$lib" ]]; then
+        export LD_PRELOAD="$lib${LD_PRELOAD:+:$LD_PRELOAD}"
+        break
+      fi
+    done
+    exec python3 "$LUMEN_PATH/apps/lumen-audio/lumen_audio.py" "$@"
+    ;;
+  output)
+    # pactl gives stable names and human descriptions for every sink.
+    mapfile -t names < <(pactl -f json list sinks | jq -r '.[].name')
+    mapfile -t descs < <(pactl -f json list sinks | jq -r '.[].description')
+    default=$(pactl get-default-sink)
+    choice=$(for i in "${!names[@]}"; do
+      [[ "${names[$i]}" == "$default" ]] && printf '󰓃  %s  ·  current\n' "${descs[$i]}" || printf '󰓃  %s\n' "${descs[$i]}"
+    done | menu "Output" --index --width 50 --lines "${#names[@]}") || exit 0
+    pactl set-default-sink "${names[$choice]}"
+    notify "Audio output" "${descs[$choice]}" -i audio-speakers -t 2000
+    ;;
+  mixer)
+    if has wiremix; then
+      term --float --title "Audio" -- wiremix
+    else
+      launch pavucontrol
+    fi
+    ;;
+  -h | --help | help) sed -n '2,7s/^# \{0,1\}//p' "$0" ;;
+  *) die "Unknown command '$1'. See: anarch-audio --help" ;;
+esac

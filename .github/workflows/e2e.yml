@@ -96,7 +96,7 @@ jobs:
           shot() { mon "screendump $PWD/$1.ppm"; sleep 2; python3 -c "from PIL import Image; Image.open('$1.ppm').save('$1.png')" && rm -f "$1.ppm" || true; }
           mkdir -p shots
           sleep 90;  shot shots/00a-live-installer
-          # lumen-live-check reports on the live desktop over serial (~100 s after boot).
+          # anarch-live-check reports on the live desktop over serial (~100 s after boot).
           for _ in $(seq 60); do grep -aq LUMEN-LIVE-CHECK-END live-serial.log && break; sleep 3; done
           shot shots/00b-live-installer-later
           # Make sure this VM is gone before the install VM starts (memory).

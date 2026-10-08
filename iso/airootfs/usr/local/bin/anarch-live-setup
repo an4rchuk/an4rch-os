@@ -1,5 +1,5 @@
 #!/bin/bash
-# lumen-live-setup — prepare the live desktop on the an4rch OS USB (runs at boot).
+# anarch-live-setup — prepare the live desktop on the an4rch OS USB (runs at boot).
 #
 # Creates the "live" user with an4rch's desktop, starts NetworkManager for the
 # installer's Wi-Fi picker, and logs that user in on the first console, where
@@ -13,9 +13,9 @@ case " $(</proc/cmdline) " in
   *" lumen.auto=1 "* | *" lumen.text=1 "*) exit 0 ;;
 esac
 
-# Everything this does is logged for diagnosis (lumen-live-check prints it).
+# Everything this does is logged for diagnosis (anarch-live-check prints it).
 exec >>/var/log/lumen-live-setup.log 2>&1
-echo "== $(date '+%T') lumen-live-setup"
+echo "== $(date '+%T') anarch-live-setup"
 set -x
 
 user=live
@@ -86,8 +86,8 @@ LUMEN_TASKBAR=yes
 LUMEN_IDLE_SUSPEND=never
 CONF
 [[ -d /opt/lumen-wallpapers ]] && ln -sfn /opt/lumen-wallpapers ~/.local/share/backgrounds/lumen
-"$LUMEN_PATH/bin/lumen-theme" set lumen >/dev/null 2>&1
-"$LUMEN_PATH/bin/lumen-session" autostart
+"$LUMEN_PATH/bin/anarch-theme" set lumen >/dev/null 2>&1
+"$LUMEN_PATH/bin/anarch-session" autostart
 touch ~/.local/state/lumen/welcome-done
 printf '["lumen-installer.desktop", "lumen-welcome.desktop", "lumen-settings.desktop", "com.mitchellh.ghostty.desktop", "lumen-store.desktop"]\n' >~/.config/lumen/start-pins.json
 cp /usr/share/applications/lumen-installer.desktop ~/.config/autostart/
@@ -176,7 +176,7 @@ if [[ "$(tty)" == /dev/tty1 && -z "${WAYLAND_DISPLAY:-}" && -z "${LUMEN_LIVE_TRI
     choice=""
     read -r choice
     case "$choice" in
-      t | T) sudo lumen-os-install ;;
+      t | T) sudo anarch-os-install ;;
       r | R) systemctl reboot ;;
       *) try_desktop uwsm || try_desktop plain ;;
     esac
@@ -196,10 +196,10 @@ systemctl daemon-reload
 
 # Read the apps people open first into memory, in the background, so they
 # start quickly instead of loading from the stick.
-systemd-run --on-active=40 --unit=lumen-live-preload -p Nice=19 -p IOSchedulingClass=idle \
-  /usr/local/bin/lumen-live-preload
+systemd-run --on-active=40 --unit=anarch-live-preload -p Nice=19 -p IOSchedulingClass=idle \
+  /usr/local/bin/anarch-live-preload
 
 # VM test (lumen.livecheck=1): report on the live desktop once it's up.
 case " $(</proc/cmdline) " in
-  *" lumen.livecheck=1 "*) systemd-run --on-active=100 --unit=lumen-live-check /usr/local/bin/lumen-live-check ;;
+  *" lumen.livecheck=1 "*) systemd-run --on-active=100 --unit=anarch-live-check /usr/local/bin/anarch-live-check ;;
 esac

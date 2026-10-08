@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# lumen-os-install — install an4rch OS from the live USB.
+# anarch-os-install — install an4rch OS from the live USB.
 #
 # Asks a few questions, then: wipes the chosen disk, creates an EFI partition
 # and an (optionally encrypted) btrfs system with subvolumes for snapshots,
@@ -25,8 +25,8 @@ exec 3>&1 # the real terminal, for gum while output goes to the log
 #   [lumen.autologin=1] [lumen.gaming=1] [lumen.encrypt=PASSWORD] [lumen.poweroff=1]
 # on the kernel command line. Progress is mirrored to the serial console.
 #
-# The graphical installer (lumen-installer) runs
-#   lumen-os-install --answers FILE
+# The graphical installer (anarch-installer) runs
+#   anarch-os-install --answers FILE
 # with the same keys as KEY=VALUE lines (plus fullname, keymap, locale,
 # taskbar, titlebars), and shows the progress lines this prints.
 AUTO=0 GUI=0
@@ -36,7 +36,7 @@ for arg in $(</proc/cmdline); do
 done
 [[ "${K[auto]:-0}" == 1 ]] && AUTO=1
 if [[ "${1:-}" == --answers ]]; then
-  [[ -r "${2:-}" ]] || { echo "usage: lumen-os-install --answers FILE"; exit 2; }
+  [[ -r "${2:-}" ]] || { echo "usage: anarch-os-install --answers FILE"; exit 2; }
   K=()
   while IFS= read -r line || [[ -n "$line" ]]; do
     [[ "$line" == *=* && "$line" != \#* ]] && K["${line%%=*}"]="${line#*=}"
@@ -79,7 +79,7 @@ fail() {
   if [[ -s "$LOG" ]] && gum confirm --default=true "Upload the log so you can share it for help? (it contains no passwords)"; then
     share_log
   fi
-  gum style --foreground "$DIM" --margin "1 2" "The full log is in $LOG. Run lumen-os-install to try again."
+  gum style --foreground "$DIM" --margin "1 2" "The full log is in $LOG. Run anarch-os-install to try again."
   exit 1
 }
 
@@ -233,7 +233,7 @@ mapfile -t disks < <(lsblk -dpno NAME,SIZE,MODEL,TYPE -e 7,11 | awk -v skip="${l
 [[ ${#disks[@]} -gt 0 ]] || fail "No disks found."
 # Show what's on each disk, so a disk with Windows on it is easy to spot.
 for i in "${!disks[@]}"; do
-  info=$(lumen-disk-info "${disks[$i]%% *}" 2>/dev/null || true)
+  info=$(anarch-disk-info "${disks[$i]%% *}" 2>/dev/null || true)
   disks[i]="${disks[$i]}${info:+   (has: $info)}"
 done
 disk_line=$(printf '%s\n' "${disks[@]}" | gum choose --header "Choose a disk. EVERYTHING on it will be erased.") || exit 1
@@ -243,7 +243,7 @@ size_gb=$(( $(lsblk -bdno SIZE "$DISK") / 1024 / 1024 / 1024 ))
 
 # A disk with Windows on it: an4rch can go alongside, keeping Windows and its files.
 MODE=erase ALONG_GB=""
-if [[ "$(lumen-disk-info "$DISK" 2>/dev/null)" == *Windows* ]]; then
+if [[ "$(anarch-disk-info "$DISK" 2>/dev/null)" == *Windows* ]]; then
   title "Windows is on this disk"
   how=$(gum choose --header "How should an4rch be installed?" \
     "Install alongside Windows (keep Windows and its files; choose at every start)" \
@@ -251,7 +251,7 @@ if [[ "$(lumen-disk-info "$DISK" 2>/dev/null)" == *Windows* ]]; then
   if [[ "$how" == Install* ]]; then
     MODE=alongside
     note "Checking how much space Windows can spare…"
-    eval "$(lumen-disk-info --space "$DISK")"
+    eval "$(anarch-disk-info --space "$DISK")"
     [[ -z "${error:-}" ]] || fail "$error"
     (( max_gb >= 30 )) || fail "There's only room for ${max_gb} GB next to Windows; an4rch needs 30 GB. Free up space in Windows (or shrink it with Disk Management), then try again."
     suggest=$(( max_gb / 2 > 60 ? max_gb / 2 : (max_gb < 60 ? max_gb : 60) ))
@@ -348,7 +348,7 @@ else
 gum style --foreground "#f2777a" --bold --margin "0 2" "Everything on $DISK will be permanently erased."
 # A disk with another system or files on it (often Windows) needs the word
 # ERASE typed, not just a click: it can't be undone.
-contents=$(lumen-disk-info "$DISK" 2>/dev/null || true)
+contents=$(anarch-disk-info "$DISK" 2>/dev/null || true)
 if [[ -n "$contents" ]]; then
   gum style --foreground "#f2777a" --bold --border double --border-foreground "#f2777a" --padding "0 2" --margin "1 2" \
     "$DISK is not empty: $contents" \
@@ -457,9 +457,9 @@ MODE="${MODE:-erase}"
 # only 100 MB) and system partition. Windows' partitions keep their place,
 # type and identity, and its EFI partition gets the an4rch boot menu.
 alongside_partition() {
-  # shellcheck disable=SC2034  # free_gb is set by lumen-disk-info's output
+  # shellcheck disable=SC2034  # free_gb is set by anarch-disk-info's output
   local error="" max_gb=0 free_gb=0 win="" esp="" need_mib free_mib ss cur new_bytes num info type guid name first end before after
-  eval "$(lumen-disk-info --space "$DISK")"
+  eval "$(anarch-disk-info --space "$DISK")"
   [[ -z "$error" ]] || fail "$error"
   [[ -n "$ALONG_GB" ]] || ALONG_GB=$max_gb
   # an4rch needs 30 GB: a smaller request gets 30 when there is room, and
@@ -695,7 +695,7 @@ lumen_args=(--yes --distro --no-reboot --browser "$BROWSER" --terminal "$TERMINA
 [[ "${K[taskbar]:-1}" == 1 ]] && lumen_args+=(--taskbar)
 [[ "${K[titlebars]:-1}" == 0 ]] && lumen_args+=(--no-titlebars)
 # The title bar plugin, built with the stick for the Hyprland on it
-# (lumen-titlebars setup sees it's current and skips building).
+# (anarch-titlebars setup sees it's current and skips building).
 if [[ -f /usr/lib/lumen/hyprbars.so && -f /var/lib/lumen/hyprbars-hyprland ]]; then
   install -D -m755 /usr/lib/lumen/hyprbars.so "$MNT/usr/lib/lumen/hyprbars.so"
   install -D -m644 /var/lib/lumen/hyprbars-hyprland "$MNT/var/lib/lumen/hyprbars-hyprland"

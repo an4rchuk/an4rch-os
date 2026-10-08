@@ -58,7 +58,7 @@ git -C "$profile/airootfs/opt/lumen" remote set-url origin "${LUMEN_REPO:-https:
 # now so booting stays fast (needs python-pillow on the build host).
 if python3 -c 'import PIL' 2>/dev/null; then
   echo "==> Painting wallpapers"
-  LUMEN_PATH="$root" python3 "$root/bin/lumen-wallgen" --all --out "$profile/airootfs/opt/lumen-wallpapers" --size 1920x1080 >/dev/null
+  LUMEN_PATH="$root" python3 "$root/bin/anarch-wallgen" --all --out "$profile/airootfs/opt/lumen-wallpapers" --size 1920x1080 >/dev/null
 else
   echo "  (python-pillow not installed: the live desktop will have no wallpapers)"
 fi
@@ -81,7 +81,7 @@ sed -i \
 # mkarchiso copies airootfs without file modes, so everything that must stay
 # executable is listed: our installer, and every executable in an4rch's tree
 # (otherwise every lumen-* command fails with "Permission denied").
-perms='  ["/usr/local/bin/lumen-os-install"]="0:0:755"\n  ["/usr/local/bin/lumen-rescue"]="0:0:755"\n  ["/usr/local/bin/lumen-live-setup"]="0:0:755"\n  ["/usr/local/bin/lumen-installer"]="0:0:755"\n  ["/usr/local/bin/lumen-live-check"]="0:0:755"\n  ["/usr/local/bin/lumen-live-preload"]="0:0:755"\n  ["/usr/local/bin/lumen-disk-info"]="0:0:755"'
+perms='  ["/usr/local/bin/anarch-os-install"]="0:0:755"\n  ["/usr/local/bin/anarch-rescue"]="0:0:755"\n  ["/usr/local/bin/anarch-live-setup"]="0:0:755"\n  ["/usr/local/bin/anarch-installer"]="0:0:755"\n  ["/usr/local/bin/anarch-live-check"]="0:0:755"\n  ["/usr/local/bin/anarch-live-preload"]="0:0:755"\n  ["/usr/local/bin/anarch-disk-info"]="0:0:755"'
 while IFS= read -r f; do
   perms+="\\n  [\"/opt/lumen/${f#./}\"]=\"0:0:755\""
 done < <(cd "$profile/airootfs/opt/lumen" && find . -path ./.git -prune -o -type f -perm -u+x -print | sort)

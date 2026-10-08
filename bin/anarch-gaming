@@ -1,0 +1,146 @@
+#!/usr/bin/env bash
+# anarch-gaming — set up this computer for games, Bazzite-style.
+#
+#   anarch-gaming                 install the gaming stack (asks first)
+#   anarch-gaming status          show what's installed
+#   anarch-gaming game-mode on    add a "Steam Game Mode" session to the login screen
+#   anarch-gaming game-mode off   remove it again
+#
+# The stack: Steam (with Proton for Windows games), 32-bit graphics drivers for
+# your GPU, GameMode (CPU/GPU boost while playing), MangoHud (FPS overlay,
+# toggle with Right Shift + F12), gamescope (game compositor and upscaler),
+# ProtonPlus (extra Proton versions), and controller support.
+set -euo pipefail
+source "${LUMEN_PATH:-$HOME/.local/share/lumen}/lib/lumen.sh"
+
+# From the desktop, run in a terminal window; unattended installs (LUMEN_YES) run as-is.
+if [[ ! -t 0 && -z "${LUMEN_YES:-}" ]]; then
+  term --float --hold --title "Gaming setup" -- "$0" "$@"
+  exit 0
+fi
+
+say() { printf '\n\e[1;35m󰊴  %s\e[0m\n' "$*"; }
+
+enable_multilib() {
+  if ! grep -q '^\[multilib\]' /etc/pacman.conf; then
+    say "Enabling 32-bit libraries (multilib) for Steam and Proton"
+    sudo bash "$LUMEN_PATH/install/enable-multilib.sh"
+  fi
+}
+
+gpu_packages() {
+  local gpus
+  gpus=$(lspci -nn 2>/dev/null | grep -Ei 'vga|3d|display' || true)
+  # By PCI vendor ID ("ati" would match "Corporation"). Steam needs a 32-bit
+  # Vulkan driver: if none is named, pacman picks the first provider
+  # (NVIDIA's), even on AMD/Intel machines; other GPUs get the software one.
+  local any=0
+  grep -q '\[1002:' <<<"$gpus" && { echo "lib32-vulkan-radeon"; any=1; }
+  grep -q '\[8086:' <<<"$gpus" && { echo "lib32-vulkan-intel"; any=1; }
+  grep -q '\[10de:' <<<"$gpus" && { echo "lib32-nvidia-utils"; any=1; }
+  ((any)) || printf '%s\n' lib32-vulkan-swrast vulkan-swrast
+  echo "lib32-mesa"
+}
+
+install_stack() {
+  say "Gaming setup"
+  cat <<'EOF'
+  This installs Steam, Proton tooling, GameMode, MangoHud, gamescope and the
+  32-bit drivers for your graphics card. About 1.5 GB to download.
+EOF
+  if [[ -z "${LUMEN_YES:-}" ]]; then
+    read -rp "  Continue? [Y/n] " yn
+    [[ -z "$yn" || "$yn" == [yY]* ]] || exit 0
+  fi
+
+  enable_multilib
+  mapfile -t gpu < <(gpu_packages)
+  say "Installing packages"
+  sudo pacman -S --needed --noconfirm steam gamemode lib32-gamemode mangohud lib32-mangohud gamescope \
+    vulkan-tools "${gpu[@]}"
+
+  # GameMode needs the user in the gamemode group to renice and change governors.
+  if getent group gamemode >/dev/null && ! id -nG "$USER" | grep -qw gamemode; then
+    sudo usermod -aG gamemode "$USER"
+  fi
+
+  if has flatpak; then
+    say "Installing ProtonPlus (extra Proton and Wine versions)"
+    flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+    flatpak install --user -y --noninteractive flathub com.vysp3r.ProtonPlus || echo "  (skipped — install it later from the App Store)"
+  fi
+
+  # MangoHud defaults: compact, top-left, hidden until toggled.
+  mkdir -p "$HOME/.config/MangoHud"
+  [[ -f "$HOME/.config/MangoHud/MangoHud.conf" ]] || cat >"$HOME/.config/MangoHud/MangoHud.conf" <<'EOF'
+# MangoHud — performance overlay. Toggle in game with Right Shift + F12.
+# Enable for a Steam game: Properties → Launch options → mangohud gamemoderun %command%
+legacy_layout=false
+horizontal
+hud_compact
+gpu_stats
+cpu_stats
+fps
+frametime=0
+frame_timing=1
+position=top-left
+round_corners=8
+background_alpha=0.5
+font_size=18
+toggle_hud=Shift_R+F12
+no_display
+EOF
+
+  say "Done"
+  cat <<'EOF'
+  • Steam is in the Start menu. In Steam → Settings → Compatibility, turn on
+    "Enable Steam Play for all other titles" to play Windows games with Proton.
+  • For the best performance, set a game's launch options to:
+        gamemoderun %command%
+    or with the FPS overlay:
+        mangohud gamemoderun %command%
+  • Want a console-like experience? Run: anarch-gaming game-mode on
+  • Log out and back in once so GameMode permissions apply.
+EOF
+}
+
+game_mode() {
+  case "${1:-}" in
+    on)
+      say "Adding the Steam Game Mode session"
+      echo "  This builds gamescope-session-steam from the AUR (a few minutes)."
+      local helper
+      helper=$(command -v yay || command -v paru || true)
+      [[ -n "$helper" ]] || die "An AUR helper (yay) is needed."
+      "$helper" -S --needed gamescope-session-steam-git
+      echo
+      echo "  ✓ At the login screen, press F3 and choose "Steam Big Picture"."
+      echo "    Inside Game Mode, use Steam → Power → Switch to Desktop to come back."
+      ;;
+    off)
+      sudo pacman -Rns --noconfirm gamescope-session-steam-git gamescope-session-git 2>/dev/null || true
+      echo "  Game Mode session removed."
+      ;;
+    *) die "usage: anarch-gaming game-mode on|off" ;;
+  esac
+}
+
+status() {
+  local p
+  for p in steam gamemode mangohud gamescope gamescope-session-steam-git; do
+    if pacman -Q "$p" >/dev/null 2>&1; then
+      printf '  \e[32m✓\e[0m %s\n' "$p"
+    else
+      printf '  \e[2m·\e[0m %s\n' "$p"
+    fi
+  done
+  grep -q '^\[multilib\]' /etc/pacman.conf && printf '  \e[32m✓\e[0m multilib\n' || printf '  \e[2m·\e[0m multilib\n'
+}
+
+case "${1:-install}" in
+  install) install_stack ;;
+  status) status ;;
+  game-mode) game_mode "${2:-}" ;;
+  -h | --help | help) sed -n '2,13s/^# \{0,1\}//p' "$0" ;;
+  *) die "Unknown command '$1'. See: anarch-gaming --help" ;;
+esac

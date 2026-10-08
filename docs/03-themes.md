@@ -12,7 +12,7 @@ Bundled themes:
 
 | Theme | Mood |
 | --- | --- |
-| `an4rch` | The signature look: deep indigo night, violet and cyan light (called `lumen` before 1.1.0; that name still works) |
+| `an4rch` | The signature look: deep indigo night, violet and cyan light (called `lumen` before 1.1.0) |
 | `cachy` | CachyOS-inspired: deep navy with teal-green and cyan |
 | `tokyo-night` | Neon city blues |
 | `catppuccin-mocha` | Soft pastels on dark |
@@ -61,7 +61,7 @@ an4rch remembers the wallpaper you chose for each theme, so switching themes bac
 - Images in `~/Pictures/Wallpapers/` are offered with every theme.
 - Images in `~/.config/lumen/backgrounds/<theme>/` are offered with that theme only.
 
-To repaint the generated set (for example after editing a theme's colours), run `anarch wallpaper generate` (every theme; takes a minute). For a different resolution use `lumen-wallgen --all --size 2560x1440 --out ~/.local/share/backgrounds/lumen`.
+To repaint the generated set (for example after editing a theme's colours), run `anarch wallpaper generate` (every theme; takes a minute). For a different resolution use `anarch-wallgen --all --size 2560x1440 --out ~/.local/share/backgrounds/lumen`.
 
 ## Making your own theme
 
@@ -138,7 +138,7 @@ In templates, `{{accent}}` becomes `#9d8cff`, `{{accent.hex}}` becomes `9d8cff` 
 
 ## Installing someone else's theme
 
-Themes can be shared as git repositories: `anarch theme install URL` downloads one and switches to it, and `anarch theme remove NAME` deletes it. See [Power tools](10-power-tools.md#sharing-themes-lumen-theme-install).
+Themes can be shared as git repositories: `anarch theme install URL` downloads one and switches to it, and `anarch theme remove NAME` deletes it. See [Power tools](10-power-tools.md#sharing-themes-anarch-theme-install).
 
 ## Fonts
 

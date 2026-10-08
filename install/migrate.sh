@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Run after `lumen-update` pulls a new version.
+# Run after `anarch-update` pulls a new version.
 #
 #   - installs config files that are new in this version (existing files are
 #     never touched — they're yours)

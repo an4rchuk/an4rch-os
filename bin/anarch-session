@@ -1,0 +1,233 @@
+#!/usr/bin/env bash
+# anarch-session — start session services and answer session questions.
+#
+#   anarch-session start          start bar, notifications, idle, clipboard, …
+#   anarch-session autostart      (re)write the login autostart entry for `start`
+#   anarch-session restart NAME   restart one of: bar, notifications, idle, wallpaper
+#   anarch-session watch-bars     restart the top bar and taskbar if they crash (started at login)
+#   anarch-session logout         end the session cleanly
+#   anarch-session can-suspend    exit 0 if idle suspend is allowed right now
+#   anarch-session lock-status    one-line status for the lock screen
+set -uo pipefail
+source "${LUMEN_PATH:-$HOME/.local/share/lumen}/lib/lumen.sh"
+
+start_once() {
+  # start_once PROCESS COMMAND... — start unless already running.
+  local proc="$1"
+  shift
+  pgrep -x "$proc" >/dev/null || launch "$@"
+}
+
+restart() {
+  case "$1" in
+    bar) pkill -fx '(/usr/bin/)?waybar'; sleep 0.2; launch waybar; "$LUMEN_PATH/bin/anarch-taskbar" restart ;;
+    notifications) pkill -x mako; sleep 0.2; launch mako ;;
+    idle) pkill -x hypridle; sleep 0.2; launch hypridle ;;
+    wallpaper) "$LUMEN_PATH/bin/anarch-wallpaper" restore ;;
+    *) die "Unknown service '$1' (bar, notifications, idle, wallpaper)" ;;
+  esac
+}
+
+start() {
+  # Only inside Hyprland (the autostart entry also runs in other desktops).
+  [[ -n "${HYPRLAND_INSTANCE_SIGNATURE:-}" ]] || exit 0
+  mkdir -p "$LUMEN_STATE" "$LUMEN_CACHE"
+  # Started both by Hyprland's start hook and by XDG autostart (whichever
+  # works first); the lock keeps the two from starting things twice.
+  exec 9>"$LUMEN_STATE/session.lock"
+  flock -n 9 || exit 0
+  # Keep a log of this session's startup, for troubleshooting.
+  exec >"$LUMEN_STATE/session.log" 2>&1
+  echo "an4rch session starting: $(date)"
+  set -x
+
+  # The touchpad is always on at login (the toggle only lasts a session).
+  rm -f "$LUMEN_STATE/touchpad-off"
+
+  # A theme must exist before the bar and notifications read it.
+  [[ -d "$LUMEN_CURRENT/theme" ]] || "$LUMEN_PATH/bin/anarch-theme" set lumen
+
+  "$LUMEN_PATH/bin/anarch-wallpaper" restore
+  "$LUMEN_PATH/bin/anarch-login" sync >/dev/null 2>&1 &
+  pgrep -fx '(/usr/bin/)?waybar' >/dev/null || launch waybar
+  "$LUMEN_PATH/bin/anarch-taskbar" start
+  pgrep -f 'anarch-session watch-bars' >/dev/null || launch "$LUMEN_PATH/bin/anarch-session" watch-bars
+  # Window title bars (hyprbars plugin) and minimise/restore support.
+  "$LUMEN_PATH/bin/anarch-titlebars" load &
+  pgrep -f 'anarch-window daemon' >/dev/null || launch "$LUMEN_PATH/bin/anarch-window" daemon
+  start_once mako mako
+  # Screen lock and sleep, except on the live USB: its user has no password
+  # (the lock screen couldn't be unlocked) and an install mustn't sleep.
+  [[ -d /run/archiso ]] || start_once hypridle hypridle
+  # The Start menu waits in the background so a Super tap opens it instantly.
+  pgrep -f 'lumen-start/lumen_start.py' >/dev/null || launch "$LUMEN_PATH/bin/anarch-start" --daemon
+  # So does the sound panel (the volume icon), started a moment later so it
+  # doesn't slow down the first seconds of the session.
+  (sleep 6 && { pgrep -f 'lumen-audio/lumen_audio.py' >/dev/null || launch "$LUMEN_PATH/bin/anarch-audio" --daemon; }) &
+  # And the Wi-Fi, Bluetooth and power panels.
+  (sleep 8 && { pgrep -f 'lumen-panels/lumen_panels.py' >/dev/null || launch "$LUMEN_PATH/bin/anarch-panel" --daemon; }) &
+
+  # Desktop icons (the live USB's "Install an4rch OS"), when there are any.
+  if [[ -s "${XDG_CONFIG_HOME:-$HOME/.config}/lumen/desktop-icons.json" ]]; then
+    pgrep -f 'lumen-desktop/lumen_desktop.py' >/dev/null || launch "$LUMEN_PATH/bin/anarch-desktop"
+  fi
+
+  # Clipboard history for text and images.
+  if has cliphist && has wl-paste; then
+    pgrep -f 'wl-paste --type text --watch' >/dev/null || launch wl-paste --type text --watch cliphist store
+    pgrep -f 'wl-paste --type image --watch' >/dev/null || launch wl-paste --type image --watch cliphist store
+  fi
+
+  # Low-battery warnings (does nothing on desktops).
+  pgrep -f 'anarch-battery watch' >/dev/null || launch "$LUMEN_PATH/bin/anarch-battery" watch
+
+  # Authentication agent for "this app wants admin rights" prompts.
+  if systemctl --user cat hyprpolkitagent.service >/dev/null 2>&1; then
+    systemctl --user start hyprpolkitagent.service
+  elif [[ -x /usr/lib/hyprpolkitagent/hyprpolkitagent ]]; then
+    start_once hyprpolkitagent /usr/lib/hyprpolkitagent/hyprpolkitagent
+  fi
+
+  # Bring back toggles that were on when the session ended.
+  [[ -f "$LUMEN_STATE/nightlight" ]] && "$LUMEN_PATH/bin/anarch-toggle" nightlight on
+  [[ -f "$LUMEN_STATE/dnd" ]] && makoctl mode -a do-not-disturb >/dev/null 2>&1
+
+  # Started without uwsm (the live USB's second try sets LUMEN_NO_UWSM):
+  # nothing runs the XDG autostart entries, e.g. the live USB's installer.
+  # (Not judged from graphical-session.target: under uwsm it may not be
+  # active yet at this point, and the apps would start twice.)
+  if [[ "${LUMEN_NO_UWSM:-}" == 1 ]]; then
+    for f in "${XDG_CONFIG_HOME:-$HOME/.config}"/autostart/*.desktop; do
+      [[ -f "$f" ]] || continue
+      grep -qiE '^Hidden=true|^X-GNOME-Autostart-enabled=false' "$f" && continue
+      grep -q 'anarch-session' "$f" && continue
+      launch gio launch "$f"
+    done
+  fi
+
+  # First login: open the welcome tour (falls back to a notification).
+  if [[ ! -f "$LUMEN_STATE/welcome-done" ]]; then
+    if python3 -c 'import gi; gi.require_version("Adw", "1")' 2>/dev/null; then
+      (sleep 2 && launch "$LUMEN_PATH/bin/anarch-welcome") &
+    elif [[ ! -f "$LUMEN_STATE/welcomed" ]]; then
+      touch "$LUMEN_STATE/welcomed"
+      (
+        sleep 3
+        notify "Welcome to an4rch" "Tap the Windows key for Start\nSUPER + ALT + SPACE  an4rch menu\nSUPER + /  all key bindings\nSUPER + F1  the manual" -i user-home -t 15000
+      ) &
+    fi
+  fi
+}
+
+# watch_bars — bring the top bar and the taskbar back if they crash (a
+# waybar crash otherwise leaves the desktop without its bar until the next
+# login). A bar has to be missing on two checks in a row, so a deliberate
+# restart isn't doubled; after 5 restarts in 10 minutes, once a minute.
+watch_bars() {
+  local sock="${XDG_RUNTIME_DIR:-/run/user/$UID}/hypr/${HYPRLAND_INSTANCE_SIGNATURE:-}"
+  [[ -n "${HYPRLAND_INSTANCE_SIGNATURE:-}" ]] || exit 0
+  # Per bar: checks missed in a row, restarts in the current run, last restart.
+  local top_missing=0 top_n=0 top_last=-999 task_missing=0 task_n=0 task_last=-999 now taskbar
+  # may_restart N LAST — up to 5 quick restarts, then once a minute; a bar
+  # that stayed up for 10 minutes starts a fresh count.
+  may_restart() { ((now - $2 >= 600 || $1 < 5 || now - $2 >= 60)); }
+  while [[ -d "$sock" ]]; do
+    sleep 5
+    now=$SECONDS
+    if pgrep -fx '(/usr/bin/)?waybar' >/dev/null; then top_missing=0; else ((top_missing++)); fi
+    taskbar=$(sed -n 's/^LUMEN_TASKBAR=//p' "$LUMEN_CONFIG/settings.conf" 2>/dev/null | tail -n1)
+    if [[ "${taskbar:-$LUMEN_TASKBAR}" != yes ]] || pgrep -f '^(/usr/bin/)?waybar -c .*taskbar.jsonc' >/dev/null; then
+      task_missing=0
+    else
+      ((task_missing++))
+    fi
+    if ((top_missing >= 2)) && may_restart "$top_n" "$top_last"; then
+      ((now - top_last >= 600)) && top_n=0
+      printf '%s  top bar stopped; started it again\n' "$(date '+%F %T')" >>"$LUMEN_STATE/apps.log"
+      launch waybar
+      top_n=$((top_n + 1)) top_last=$now top_missing=0
+    fi
+    if ((task_missing >= 2)) && may_restart "$task_n" "$task_last"; then
+      ((now - task_last >= 600)) && task_n=0
+      printf '%s  taskbar stopped; started it again\n' "$(date '+%F %T')" >>"$LUMEN_STATE/apps.log"
+      LUMEN_TASKBAR=yes "$LUMEN_PATH/bin/anarch-taskbar" start
+      task_n=$((task_n + 1)) task_last=$now task_missing=0
+    fi
+  done
+}
+
+# autostart — the XDG autostart entry uwsm runs once the session is up. A
+# second route besides Hyprland's start hook, with an4rch's absolute path.
+autostart() {
+  local dir="${XDG_CONFIG_HOME:-$HOME/.config}/autostart"
+  mkdir -p "$dir"
+  cat >"$dir/lumen-session.desktop" <<EOF
+[Desktop Entry]
+Type=Application
+Name=an4rch session
+Comment=Wallpaper, top bar, notifications, Start menu and other session services
+Exec=$LUMEN_PATH/bin/anarch-session start
+NoDisplay=true
+EOF
+}
+
+logout() {
+  if has hyprshutdown; then
+    hyprshutdown
+  elif has uwsm && systemctl --user is-active -q graphical-session.target; then
+    uwsm stop
+  else
+    hyprctl dispatch 'hl.dsp.exit()'
+  fi
+}
+
+can_suspend() {
+  case "${LUMEN_IDLE_SUSPEND:-always}" in
+    never) return 1 ;;
+    battery)
+      local ac
+      for ac in /sys/class/power_supply/{AC,ADP,ACAD}*/online; do
+        [[ -f "$ac" && "$(cat "$ac")" == 1 ]] && return 1
+      done
+      ;;
+  esac
+  # Stay awake while someone is connected over SSH…
+  if has ss && ss -Htn state established '( sport = :22 )' 2>/dev/null | grep -q .; then
+    return 1
+  fi
+  # …or while audio is playing.
+  if has pactl && pactl list short sinks 2>/dev/null | grep -q RUNNING; then
+    return 1
+  fi
+  return 0
+}
+
+lock_status() {
+  local out=() bat cap status layout
+  for bat in /sys/class/power_supply/BAT*; do
+    [[ -f "$bat/capacity" ]] || continue
+    cap=$(cat "$bat/capacity")
+    status=$(cat "$bat/status" 2>/dev/null)
+    if [[ "$status" == Charging ]]; then out+=("󰂄 $cap%"); else out+=("󰁹 $cap%"); fi
+    break
+  done
+  if has hyprctl && has jq; then
+    layout=$(hyprctl devices -j 2>/dev/null | jq -r '[.keyboards[] | select(.main == true)][0].active_keymap // empty')
+    [[ -n "$layout" ]] && out+=("󰌌 $layout")
+  fi
+  [[ ${#out[@]} -gt 0 ]] || return 0
+  local line
+  line=$(printf '%s     ' "${out[@]}")
+  printf '%s\n' "${line%     }"
+}
+
+case "${1:-}" in
+  start) start ;;
+  autostart) autostart ;;
+  watch-bars) watch_bars ;;
+  restart) restart "${2:?usage: anarch-session restart bar|notifications|idle|wallpaper}" ;;
+  logout) logout ;;
+  can-suspend) can_suspend ;;
+  lock-status) lock_status ;;
+  *) sed -n '2,11s/^# \{0,1\}//p' "$0"; exit 1 ;;
+esac

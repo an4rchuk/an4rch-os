@@ -31,9 +31,9 @@ Hyprland, Waybar's style and the theme files reload by themselves when you save.
 
 | After changing | Run |
 | --- | --- |
-| Waybar modules | `lumen-session restart bar` |
+| Waybar modules | `anarch-session restart bar` |
 | Notifications | `makoctl reload` |
-| `hypridle.conf` | `lumen-session restart idle` |
+| `hypridle.conf` | `anarch-session restart idle` |
 | `settings.conf` | nothing, it's read every time a command runs |
 | `uwsm/env` | log out and back in |
 
@@ -43,7 +43,7 @@ Hyprland, Waybar's style and the theme files reload by themselves when you save.
 LUMEN_TERMINAL=ghostty        # ghostty, alacritty, kitty, foot
 LUMEN_BROWSER=firefox         # any browser command
 LUMEN_EDITOR=code             # code, zed, nvim, helix, …
-LUMEN_FILES=nautilus          # nautilus, thunar, "lumen-term -- yazi"
+LUMEN_FILES=nautilus          # nautilus, thunar, "anarch-term -- yazi"
 LUMEN_SCREENSHOT_DIR="$HOME/Pictures/Screenshots"
 LUMEN_RECORDING_DIR="$HOME/Videos/Recordings"
 LUMEN_NIGHTLIGHT_TEMP=4300    # lower is warmer
@@ -73,9 +73,9 @@ hl.config({
 ```lua
 -- ~/.config/hypr/bindings.lua
 hl.unbind("SUPER + B")                                   -- drop a an4rch default
-hl.bind("SUPER + B", hl.dsp.exec_cmd("lumen-launch -- chromium"), { description = "Chromium" })
-hl.bind("SUPER + O", hl.dsp.exec_cmd("lumen-launch -- obsidian"), { description = "Notes" })
-hl.bind("SUPER + U", hl.dsp.exec_cmd("lumen-webapp https://web.whatsapp.com"), { description = "WhatsApp" })
+hl.bind("SUPER + B", hl.dsp.exec_cmd("anarch-launch -- chromium"), { description = "Chromium" })
+hl.bind("SUPER + O", hl.dsp.exec_cmd("anarch-launch -- obsidian"), { description = "Notes" })
+hl.bind("SUPER + U", hl.dsp.exec_cmd("anarch-webapp https://web.whatsapp.com"), { description = "WhatsApp" })
 ```
 
 The `description` is what <kbd>SUPER</kbd> + <kbd>/</kbd> shows. Bindings can run Lua too:
@@ -102,7 +102,7 @@ hl.window_rule({ match = { class = "^(com.mitchellh.ghostty)$" }, opacity = "0.9
 ```lua
 -- ~/.config/hypr/autostart.lua
 hl.on("hyprland.start", function()
-    hl.exec_cmd("lumen-launch -- signal-desktop --start-in-tray")
+    hl.exec_cmd("anarch-launch -- signal-desktop --start-in-tray")
 end)
 ```
 
@@ -122,7 +122,7 @@ Full reference: <https://wiki.hypr.land/configuring/>. Hyprland reports config e
 
 `~/.config/waybar/config.jsonc` lists the modules on the left, centre and right. Remove a name from `modules-right` to hide it. `style.css` styles every module as a soft pill and gets its colours from the theme via `@define-color` (`@bg`, `@fg`, `@accent`, …).
 
-an4rch's own modules show status from `lumen-status` and refresh instantly when something changes:
+an4rch's own modules show status from `anarch-status` and refresh instantly when something changes:
 
 | Module | Shows |
 | --- | --- |
@@ -142,8 +142,8 @@ an4rch sets up **zsh** with autosuggestions, syntax highlighting, a fast history
 | `ls`, `ll`, `la`, `lt` | `eza` with icons, git status and a tree view |
 | `cat` | `bat` with syntax highlighting |
 | `ff` | Fuzzy-find a file with preview |
-| `install` / `uninstall` | `lumen-pkg add` / `lumen-pkg rm` |
-| `update` | `lumen-update` |
+| `install` / `uninstall` | `anarch-pkg add` / `anarch-pkg rm` |
+| `update` | `anarch-update` |
 | <kbd>CTRL</kbd> + <kbd>R</kbd> | Fuzzy history search |
 | <kbd>CTRL</kbd> + <kbd>T</kbd> | Insert a file path |
 | <kbd>ALT</kbd> + <kbd>C</kbd> | Jump into a sub-folder |

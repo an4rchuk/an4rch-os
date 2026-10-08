@@ -1,7 +1,7 @@
 #!/bin/bash
-# lumen-live-preload — live USB only: read the apps people open first
+# anarch-live-preload — live USB only: read the apps people open first
 # (browser, files, terminal, settings tools, the installer's Python) into
-# memory, quietly in the background. Started by lumen-live-setup once the
+# memory, quietly in the background. Started by anarch-live-setup once the
 # desktop is up; without it each of these loads from the stick the first
 # time it opens, which takes several seconds on a USB 2 port.
 set -u

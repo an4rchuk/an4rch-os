@@ -6,7 +6,7 @@ After=systemd-sysusers.service local-fs.target
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-ExecStart=/usr/local/bin/lumen-live-setup
+ExecStart=/usr/local/bin/anarch-live-setup
 # Never hold up the boot (and the login prompt) for long.
 TimeoutStartSec=150
 

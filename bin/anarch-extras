@@ -1,0 +1,201 @@
+#!/usr/bin/env bash
+# anarch-extras — one-command setups for popular extras, like Bazzite's ujust.
+#
+#   anarch-extras             pick an extra from a menu
+#   anarch-extras list        list them all
+#   anarch-extras NAME        set one up, e.g. `anarch extras sunshine`
+#
+# Each recipe installs the packages, turns on the services, opens the
+# firewall where needed and tells you what to do next.
+set -euo pipefail
+source "${LUMEN_PATH:-$HOME/.local/share/lumen}/lib/lumen.sh"
+source "$LUMEN_PATH/install/packages.sh"
+
+# name|description — the order is the menu order.
+RECIPES=(
+  "sunshine|Stream games from this PC to phones, TVs and laptops (Moonlight)"
+  "decky|Decky Loader: plugins for Steam's Game Mode"
+  "controllers|Extra controller support (8BitDo, PlayStation, Switch, …)"
+  "handheld|Handheld Daemon: buttons, TDP and RGB on ROG Ally, Legion Go, …"
+  "openrgb|OpenRGB: control RGB lighting on every brand"
+  "lact|LACT: GPU fan curves, clocks and power limits"
+  "distrobox|Distrobox: other Linux distributions in containers (Ubuntu, Fedora…)"
+  "waydroid|Waydroid: run Android apps in a window"
+  "virt|Virtual machines: virt-manager with QEMU/KVM"
+  "tailscale|Tailscale: a private network between all your devices"
+  "phone|Phone link (KDE Connect): notifications, files and clipboard with your phone"
+  "localsend|LocalSend: send files to nearby phones and computers (like AirDrop)"
+  "backup|Backups (Déjà Dup): copy your files to a drive or the cloud on a schedule"
+  "office|LibreOffice: documents, spreadsheets and presentations (opens Word/Excel files)"
+)
+
+case "${1:-}" in
+  "" | pick | status | list | -h | --help | help) ;;
+  *) [[ -t 0 ]] || { term --float --hold --title "Extras" -- "$0" "$@"; exit 0; } ;;
+esac
+
+say() { printf '\n\e[1;35m󰐱  %s\e[0m\n' "$*"; }
+next() { printf '\n\e[1mNext:\e[0m\n'; printf '  • %s\n' "$@"; }
+add() { "$LUMEN_PATH/bin/anarch-pkg" add "$@"; }
+flathub() {
+  flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+  flatpak install --user -y --noninteractive flathub "$@"
+}
+firewall() {
+  # firewall RULE... — allow ports when ufw is on.
+  has ufw || return 0
+  local r
+  for r in "$@"; do sudo ufw allow "$r" >/dev/null; done
+}
+in_group() {
+  getent group "$1" >/dev/null || sudo groupadd -f "$1"
+  id -nG "$USER" | grep -qw "$1" || sudo usermod -aG "$1" "$USER"
+}
+
+recipe_sunshine() {
+  say "Sunshine game streaming"
+  has flatpak || add flatpak
+  flathub dev.lizardbyte.app.Sunshine
+  firewall 47984:47990/tcp 48010/tcp 47998:48000/udp
+  next "Open Sunshine from Start, then visit https://localhost:47990 to set a password." \
+    "Install Moonlight on the device you want to play on and pair it with this PC." \
+    "For Sunshine to start with every login, enable it in its web settings."
+}
+
+recipe_decky() {
+  say "Decky Loader"
+  pacman -Q steam >/dev/null 2>&1 || die "Install Steam first: anarch gaming"
+  echo "  This runs the official Decky installer from github.com/SteamDeckHomebrew."
+  curl -fsSL https://github.com/SteamDeckHomebrew/decky-installer/releases/latest/download/install_release.sh | sh
+  next "Turn on Steam's developer mode (Settings → System → Enable Developer Mode)." \
+    "Decky's menu is under the … button in Game Mode (anarch gaming game-mode on)."
+}
+
+recipe_controllers() {
+  say "Controller support"
+  add "${PKGS_X_CONTROLLERS[@]}"
+  sudo udevadm control --reload-rules
+  sudo udevadm trigger
+  next "Unplug and re-plug your controller." \
+    "In Steam, Settings → Controller lets you remap any controller."
+}
+
+recipe_handheld() {
+  say "Handheld Daemon"
+  add "${PKGS_X_HANDHELD[@]}"
+  sudo systemctl enable --now "hhd@$USER.service"
+  next "Open the overlay with the device's extra button (or Ctrl + 3 on a keyboard)." \
+    "Restart once so all buttons are picked up."
+}
+
+recipe_openrgb() {
+  say "OpenRGB"
+  add "${PKGS_X_OPENRGB[@]}"
+  sudo modprobe i2c-dev 2>/dev/null || true
+  echo i2c-dev | sudo tee /etc/modules-load.d/lumen-i2c.conf >/dev/null
+  next "Open OpenRGB from Start. Restart once if some devices are missing (udev rules)."
+}
+
+recipe_lact() {
+  say "LACT GPU control"
+  add "${PKGS_X_LACT[@]}"
+  sudo systemctl enable --now lactd.service
+  next "Open LACT from Start to set fan curves, clocks and power limits." \
+    "On AMD, overclocking must be switched on in LACT's settings first (it adds a kernel option; restart after)."
+}
+
+recipe_distrobox() {
+  say "Distrobox"
+  add "${PKGS_X_DISTROBOX[@]}"
+  has flatpak && flathub io.github.dvlv.boxbuddyrs || true
+  next "Make a container:  distrobox create --name ubuntu --image ubuntu:24.04" \
+    "Enter it:          distrobox enter ubuntu" \
+    "Apps you install inside can be added to Start with: distrobox-export --app NAME" \
+    "BoxBuddy (in Start) does all of this with a few clicks."
+}
+
+recipe_waydroid() {
+  say "Waydroid"
+  [[ -e /dev/binderfs || -d /sys/module/binder_linux || "$(uname -r)" == *zen* ]] ||
+    grep -q 'CONFIG_ANDROID_BINDER_IPC=y' <(zcat /proc/config.gz 2>/dev/null) ||
+    echo "  ! This kernel may lack Android binder support; the zen kernel has it (anarch tune kernel zen)."
+  add "${PKGS_X_WAYDROID[@]}"
+  sudo waydroid init
+  sudo systemctl enable --now waydroid-container.service
+  next "Open Waydroid from Start (the first start takes a minute)." \
+    "Install apps with: waydroid app install some-app.apk"
+}
+
+recipe_virt() {
+  say "Virtual machines"
+  add "${PKGS_X_VIRT[@]}"
+  sudo systemctl enable --now libvirtd.socket
+  in_group libvirt
+  sudo virsh net-autostart default >/dev/null 2>&1 || true
+  sudo virsh net-start default >/dev/null 2>&1 || true
+  next "Log out and back in once (libvirt group)." \
+    "Open Virtual Machine Manager from Start and create a VM from any ISO."
+}
+
+recipe_tailscale() {
+  say "Tailscale"
+  add "${PKGS_X_TAILSCALE[@]}"
+  sudo systemctl enable --now tailscaled.service
+  sudo tailscale up --operator="$USER"
+  next "Your devices on the same Tailscale account can now reach this one." \
+    "Status: tailscale status"
+}
+
+recipe_phone() {
+  say "Phone link (KDE Connect)"
+  add "${PKGS_X_PHONE[@]}"
+  firewall 1714:1764/tcp 1714:1764/udp
+  next "Install KDE Connect on your phone (Android: Play Store or F-Droid; iPhone: App Store)." \
+    "Open KDE Connect from Start on both, on the same Wi-Fi, and pair them."
+}
+
+recipe_localsend() {
+  say "LocalSend"
+  has flatpak || add flatpak
+  flathub org.localsend.localsend_app
+  firewall 53317/tcp 53317/udp
+  next "Install LocalSend on your phone or other computer (it's free on every platform)." \
+    "Open LocalSend on both, on the same Wi-Fi, and send files either way."
+}
+
+recipe_backup() {
+  say "Backups (Déjà Dup)"
+  add "${PKGS_X_BACKUP[@]}"
+  next "Open Backups from Start, pick what to save and where (a USB drive, a network share or Google Drive)." \
+    "Turn on automatic backups there; restoring is in the same app." \
+    "System snapshots (anarch snapshot) protect the system; this protects your own files."
+}
+
+recipe_office() {
+  say "LibreOffice"
+  add "${PKGS_X_OFFICE[@]}"
+  next "Writer, Calc and Impress are in Start; they open and save Word, Excel and PowerPoint files."
+}
+
+list() {
+  local r
+  for r in "${RECIPES[@]}"; do printf '  \e[36m%-12s\e[0m %s\n' "${r%%|*}" "${r#*|}"; done
+}
+
+pick() {
+  local choice
+  choice=$(for r in "${RECIPES[@]}"; do printf '%-12s %s\n' "${r%%|*}" "${r#*|}"; done |
+    menu "Extras" --width 80 --lines "${#RECIPES[@]}") || exit 0
+  if [[ -n "$choice" ]]; then exec "$0" "${choice%% *}"; fi
+}
+
+case "${1:-pick}" in
+  pick) pick ;;
+  list) list ;;
+  -h | --help | help) sed -n '2,9s/^# \{0,1\}//p' "$0"; echo; list ;;
+  *)
+    declare -F "recipe_$1" >/dev/null || die "No extra called '$1'. See: anarch-extras list"
+    "recipe_$1"
+    notify "Extras" "$1 is set up" -i system-software-install
+    ;;
+esac

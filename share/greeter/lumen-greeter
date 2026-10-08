@@ -1,9 +1,9 @@
 #!/bin/bash
 # lumen-greeter — an4rch's login screen, started by greetd as the "greeter"
-# user (installed to /usr/local/bin by `lumen-login setup`).
+# user (installed to /usr/local/bin by `anarch-login setup`).
 #
 # ReGreet, a graphical login screen, runs in the cage kiosk compositor with
-# your wallpaper and theme (copied to /var/lib/lumen/login by `lumen-login
+# your wallpaper and theme (copied to /var/lib/lumen/login by `anarch-login
 # sync`). If it can't start on this computer, the text login screen
 # (tuigreet) takes over, so you can always log in.
 dir=/var/lib/lumen/login

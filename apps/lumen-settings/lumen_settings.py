@@ -3,14 +3,14 @@
 windows and effects, sound, network, displays, keyboard and mouse, power,
 default apps and the system.
 
-Most pages drive an4rch's own commands (lumen-theme, lumen-taskbar, …), so
+Most pages drive an4rch's own commands (anarch-theme, anarch-taskbar, …), so
 the Settings app, the an4rch menu and the command line always agree. Window
 and input choices are saved to ~/.config/lumen/desktop.json and written out
 as ~/.config/lumen/desktop.lua, which Hyprland loads after an4rch's defaults.
 
-    lumen-settings [PAGE]          open (at PAGE: look, desktop, windows, sound,
+    anarch-settings [PAGE]          open (at PAGE: look, desktop, windows, sound,
                                    network, displays, input, power, apps, system)
-    lumen-settings --write-desktop regenerate desktop.lua from desktop.json
+    anarch-settings --write-desktop regenerate desktop.lua from desktop.json
 """
 
 from __future__ import annotations
@@ -149,11 +149,11 @@ def lumen_cmd(name: str) -> str:
 
 def tool(*argv: str) -> None:
     """Start a an4rch command (or any program) in the background."""
-    cmd = [lumen_cmd(argv[0]), *argv[1:]] if argv[0].startswith("lumen") else list(argv)
+    cmd = [lumen_cmd(argv[0]), *argv[1:]] if argv[0].startswith("anarch") else list(argv)
     try:
         subprocess.Popen(cmd, start_new_session=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     except OSError as err:
-        print(f"lumen-settings: {err}", file=sys.stderr)
+        print(f"anarch-settings: {err}", file=sys.stderr)
 
 
 def edit_file(path: Path) -> None:
@@ -162,7 +162,7 @@ def edit_file(path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.touch(exist_ok=True)
     if editor.split()[0] in ("nvim", "vim", "hx", "helix", "nano"):
-        tool("lumen-term", "--", editor, str(path))
+        tool("anarch-term", "--", editor, str(path))
     elif has(editor.split()[0]):
         tool(editor, str(path))
     else:
@@ -443,9 +443,9 @@ class Settings(Adw.ApplicationWindow):
 
         more = Adw.PreferencesGroup(title="Make it yours")
         more.add(button_row("Make my own theme", "Copy the current theme and change its colours", "applications-graphics-symbolic",
-                            lambda: tool("lumen-menu", "style")))
+                            lambda: tool("anarch-menu", "style")))
         more.add(button_row("Install a theme", "From any git repository with a theme.conf", "folder-download-symbolic",
-                            lambda: tool("lumen-menu", "style")))
+                            lambda: tool("anarch-menu", "style")))
         more.add(button_row("Edit the top bar", "Waybar's modules and style", "document-edit-symbolic",
                             lambda: edit_file(HOME / ".config/waybar/config.jsonc")))
         more.add(button_row("Edit window look by hand", "Everything Hyprland can do: ~/.config/hypr/looks.lua",
@@ -459,7 +459,7 @@ class Settings(Adw.ApplicationWindow):
 
     def pick_theme(self, slug: str) -> None:
         self.mark_theme(slug)
-        tool("lumen-theme", "set", slug)
+        tool("anarch-theme", "set", slug)
         GLib.timeout_add(900, lambda: (self.load_style(), self.fill_wallpapers(), False)[2])
 
     def fill_wallpapers(self) -> bool:
@@ -468,7 +468,7 @@ class Settings(Adw.ApplicationWindow):
             nxt = child.get_next_sibling()
             self.wall_flow.remove(child)
             child = nxt
-        files = [f for f in out(lumen_cmd("lumen-wallpaper"), "list").splitlines() if f][:16]
+        files = [f for f in out(lumen_cmd("anarch-wallpaper"), "list").splitlines() if f][:16]
         for f in files:
             try:
                 pix = GdkPixbuf.Pixbuf.new_from_file_at_scale(f, 200, 112, False)
@@ -477,7 +477,7 @@ class Settings(Adw.ApplicationWindow):
             pic = Gtk.Picture.new_for_paintable(Gdk.Texture.new_for_pixbuf(pix))
             pic.set_size_request(160, 90)
             b = Gtk.Button(child=pic, css_classes=["wall-tile"], tooltip_text=Path(f).name)
-            b.connect("clicked", lambda _b, p=f: tool("lumen-wallpaper", "set", p))
+            b.connect("clicked", lambda _b, p=f: tool("anarch-wallpaper", "set", p))
             self.wall_flow.append(b)
         return False
 
@@ -495,7 +495,7 @@ class Settings(Adw.ApplicationWindow):
             except GLib.Error:
                 return
             if f and f.get_path():
-                tool("lumen-wallpaper", "set", f.get_path())
+                tool("anarch-wallpaper", "set", f.get_path())
         dialog.open(self, None, done)
 
     # --- Desktop ------------------------------------------------------------------------------
@@ -505,37 +505,37 @@ class Settings(Adw.ApplicationWindow):
         bars = Adw.PreferencesGroup(title="Bars")
         top_running = any("taskbar" not in l for l in out("pgrep", "-af", "waybar").splitlines() if l)
         bars.add(switch_row("Top bar", "Clock, Wi-Fi, sound, battery and more", top_running,
-                            lambda on: tool("lumen-toggle", "bar")))
+                            lambda on: tool("anarch-toggle", "bar")))
         bars.add(switch_row("Taskbar along the bottom", "Your open windows; click to switch or minimise",
                             s.get("LUMEN_TASKBAR", "no") == "yes",
-                            lambda on: tool("lumen-taskbar", "on" if on else "off")))
+                            lambda on: tool("anarch-taskbar", "on" if on else "off")))
         page.add(bars)
 
         wins = Adw.PreferencesGroup(title="Windows")
         wins.add(switch_row("Title bars with buttons", "Close, maximise and minimise on every window",
                             s.get("LUMEN_TITLEBARS", "yes") == "yes",
-                            lambda on: tool("lumen-titlebars", "on" if on else "off")))
+                            lambda on: tool("anarch-titlebars", "on" if on else "off")))
         layout = out("hyprctl", "getoption", "general:layout", "-j")
         wins.add(combo_row("Window layout", "Tiling splits the screen; scrolling lines windows up side by side",
                            ["Tiling", "Scrolling"], 1 if '"scrolling"' in layout else 0,
-                           lambda i: tool("lumen-toggle", "layout")))
+                           lambda i: tool("anarch-toggle", "layout")))
         page.add(wins)
 
         evening = Adw.PreferencesGroup(title="Night light and notifications")
         evening.add(switch_row("Night light", "Warmer colours, easier on the eyes in the evening",
                                bool(out("pgrep", "-x", "hyprsunset")),
-                               lambda on: tool("lumen-toggle", "nightlight", "on" if on else "off")))
+                               lambda on: tool("anarch-toggle", "nightlight", "on" if on else "off")))
         temp = int(s.get("LUMEN_NIGHTLIGHT_TEMP", "4300") or 4300)
         evening.add(spin_row("Night light warmth", "Lower is warmer (kelvin)", 2500, 6000, 100, temp,
                              lambda v: self.set_nightlight_temp(int(v))))
         evening.add(switch_row("Do Not Disturb", "Silence notifications (reminders still show)",
                                "do-not-disturb" in out("makoctl", "mode"),
-                               lambda on: tool("lumen-toggle", "dnd", "on" if on else "off")))
+                               lambda on: tool("anarch-toggle", "dnd", "on" if on else "off")))
         page.add(evening)
 
         start = Adw.PreferencesGroup(title="Start menu and shortcuts")
         start.add(button_row("Keyboard shortcuts", "Every key binding, searchable", "preferences-desktop-keyboard-shortcuts-symbolic",
-                             lambda: tool("lumen-keys")))
+                             lambda: tool("anarch-keys")))
         start.add(button_row("Edit key bindings", "Add or change your own", "document-edit-symbolic",
                              lambda: edit_file(HOME / ".config/hypr/bindings.lua")))
         start.add(button_row("Apps that start when you log in", "~/.config/hypr/autostart.lua", "system-run-symbolic",
@@ -547,7 +547,7 @@ class Settings(Adw.ApplicationWindow):
         self.set_conf("LUMEN_NIGHTLIGHT_TEMP", str(k))
         if out("pgrep", "-x", "hyprsunset"):
             subprocess.run(["pkill", "-x", "hyprsunset"], check=False)
-            GLib.timeout_add(300, lambda: (tool("lumen-toggle", "nightlight", "on"), False)[1])
+            GLib.timeout_add(300, lambda: (tool("anarch-toggle", "nightlight", "on"), False)[1])
 
     # --- Windows and effects ------------------------------------------------------------------
     def page_windows(self) -> Gtk.Widget:
@@ -618,7 +618,7 @@ class Settings(Adw.ApplicationWindow):
             page.add(group)
         more = Adw.PreferencesGroup()
         more.add(button_row("Volume for each app", "The full mixer", "multimedia-volume-control-symbolic",
-                            lambda: tool("lumen-audio", "mixer")))
+                            lambda: tool("anarch-audio", "mixer")))
         page.add(more)
         return page
 
@@ -632,9 +632,9 @@ class Settings(Adw.ApplicationWindow):
         wifi.add(switch_row("Wi-Fi", f"Connected to {current[0]}" if current else "Not connected", radio,
                             lambda on: ok("nmcli", "radio", "wifi", "on" if on else "off")))
         wifi.add(button_row("Choose a network", "Also: click the Wi-Fi icon in the top bar", "network-wireless-symbolic",
-                            lambda: tool("lumen-wifi")))
+                            lambda: tool("anarch-wifi")))
         wifi.add(button_row("Advanced network settings", "VPNs, static addresses, hotspots", "preferences-system-network-symbolic",
-                            lambda: tool("nm-connection-editor") if has("nm-connection-editor") else tool("lumen-term", "--float", "--", "nmtui")))
+                            lambda: tool("nm-connection-editor") if has("nm-connection-editor") else tool("anarch-term", "--float", "--", "nmtui")))
         page.add(wifi)
 
         bt = Adw.PreferencesGroup(title="Bluetooth")
@@ -649,7 +649,7 @@ class Settings(Adw.ApplicationWindow):
         else:
             bt.set_description("No Bluetooth adapter found (it may be off in this computer's BIOS settings).")
         bt.add(button_row("Pair a new device", "Headphones, mice, keyboards, controllers", "bluetooth-symbolic",
-                          lambda: tool("lumen-bluetooth")))
+                          lambda: tool("anarch-bluetooth")))
         page.add(bt)
         return page
 
@@ -666,7 +666,7 @@ class Settings(Adw.ApplicationWindow):
                           f'{m.get("width")}×{m.get("height")} at {round(m.get("refreshRate", 0))} Hz, '
                           f'scale {m.get("scale")}', "video-display-symbolic"))
         group.add(button_row("Resolution, scale and arrangement", "If a change goes wrong, the old layout comes back "
-                             "after 15 seconds", "preferences-desktop-display-symbolic", lambda: tool("lumen-display")))
+                             "after 15 seconds", "preferences-desktop-display-symbolic", lambda: tool("anarch-display")))
         page.add(group)
         night = Adw.PreferencesGroup()
         night.add(button_row("Night light", "On the Desktop page", "night-light-symbolic", lambda: self.show_page("desktop")))
@@ -679,7 +679,7 @@ class Settings(Adw.ApplicationWindow):
         d = self.desktop
         kb = Adw.PreferencesGroup(title="Keyboard")
         kb.add(button_row("Keyboard layout", "Languages and layouts", "input-keyboard-symbolic",
-                          lambda: tool("lumen-setup", "keyboard")))
+                          lambda: tool("anarch-setup", "keyboard")))
         kb.add(spin_row("Repeat delay", "Milliseconds before a held key repeats", 150, 1000, 10, d["repeat_delay"],
                         lambda v: self.set_desktop("repeat_delay", v)))
         kb.add(spin_row("Repeat rate", "Characters per second while held", 10, 80, 1, d["repeat_rate"],
@@ -722,8 +722,8 @@ class Settings(Adw.ApplicationWindow):
                             lambda i: self.set_conf("LUMEN_IDLE_SUSPEND", modes[i])))
         group.add(switch_row("Keep awake", "Pause the screen lock and sleep for now",
                              not out("pgrep", "-x", "hypridle"),
-                             lambda on: tool("lumen-toggle", "idle", "on" if on else "off")))
-        bat = out(lumen_cmd("lumen-battery"))
+                             lambda on: tool("anarch-toggle", "idle", "on" if on else "off")))
+        bat = out(lumen_cmd("anarch-battery"))
         if bat:
             group.add(row("Battery", bat, "battery-good-symbolic"))
         page.add(group)
@@ -751,7 +751,7 @@ class Settings(Adw.ApplicationWindow):
                                 lambda i, k=key, f=found: self.set_default(k, f[i])))
         page.add(group)
         store = Adw.PreferencesGroup()
-        store.add(button_row("App Store", "Install apps and games", "system-software-install-symbolic", lambda: tool("lumen-store")))
+        store.add(button_row("App Store", "Install apps and games", "system-software-install-symbolic", lambda: tool("anarch-store")))
         page.add(store)
         return page
 
@@ -809,24 +809,24 @@ class Settings(Adw.ApplicationWindow):
 
         upkeep = Adw.PreferencesGroup(title="Keep it running well")
         upkeep.add(button_row("Update everything", "an4rch takes a snapshot first, so updates can be undone",
-                              "software-update-available-symbolic", lambda: tool("lumen-update")))
+                              "software-update-available-symbolic", lambda: tool("anarch-update")))
         upkeep.add(button_row("Snapshots and rollback", "Go back to how things were", "document-revert-symbolic",
-                              lambda: tool("lumen-snapshot", "menu")))
+                              lambda: tool("anarch-snapshot", "menu")))
         upkeep.add(button_row("Health check", "Find and fix common problems", "emblem-ok-symbolic",
-                              lambda: tool("lumen-term", "--float", "--hold", "--title", "an4rch doctor", "--", lumen_cmd("lumen-doctor"))))
+                              lambda: tool("anarch-term", "--float", "--hold", "--title", "an4rch doctor", "--", lumen_cmd("anarch-doctor"))))
         upkeep.add(button_row("Performance tuning", "Gaming and responsiveness tweaks", "power-profile-performance-symbolic",
-                              lambda: tool("lumen-tune")))
+                              lambda: tool("anarch-tune")))
         page.add(upkeep)
 
         more = Adw.PreferencesGroup(title="More")
         for title, sub, icon, argv in (
-            ("Gaming", "Steam, Proton, GameMode, MangoHud and drivers", "input-gaming-symbolic", ["lumen-gaming"]),
-            ("Extras", "Streaming, RGB, Android, virtual machines…", "list-add-symbolic", ["lumen-extras"]),
-            ("Time zone", "", "preferences-system-time-symbolic", ["lumen-setup", "timezone"]),
-            ("Fingerprint login", "", "fingerprint-symbolic", ["lumen-term", "--float", "--hold", "--", lumen_cmd("lumen-setup"), "fingerprint"]),
-            ("Printers", "", "printer-symbolic", ["lumen-term", "--float", "--hold", "--", lumen_cmd("lumen-setup"), "printing"]),
-            ("Welcome tour and tips", "", "help-about-symbolic", ["lumen-welcome"]),
-            ("an4rch manual", "", "help-browser-symbolic", ["lumen-manual"]),
+            ("Gaming", "Steam, Proton, GameMode, MangoHud and drivers", "input-gaming-symbolic", ["anarch-gaming"]),
+            ("Extras", "Streaming, RGB, Android, virtual machines…", "list-add-symbolic", ["anarch-extras"]),
+            ("Time zone", "", "preferences-system-time-symbolic", ["anarch-setup", "timezone"]),
+            ("Fingerprint login", "", "fingerprint-symbolic", ["anarch-term", "--float", "--hold", "--", lumen_cmd("anarch-setup"), "fingerprint"]),
+            ("Printers", "", "printer-symbolic", ["anarch-term", "--float", "--hold", "--", lumen_cmd("anarch-setup"), "printing"]),
+            ("Welcome tour and tips", "", "help-about-symbolic", ["anarch-welcome"]),
+            ("an4rch manual", "", "help-browser-symbolic", ["anarch-manual"]),
         ):
             more.add(button_row(title, sub, icon, lambda a=argv: tool(*a)))
         page.add(more)

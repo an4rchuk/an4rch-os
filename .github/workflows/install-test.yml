@@ -10,10 +10,10 @@ on:
     paths:
       - install.sh
       - install/**
-      - bin/lumen-gaming
-      - bin/lumen-tune
-      - bin/lumen-extras
-      - bin/lumen-dev
+      - bin/anarch-gaming
+      - bin/anarch-tune
+      - bin/anarch-extras
+      - bin/anarch-dev
       - lib/**
       - .github/workflows/install-test.yml
 

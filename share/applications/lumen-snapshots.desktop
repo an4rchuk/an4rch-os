@@ -2,7 +2,7 @@
 Type=Application
 Name=System Snapshots
 Comment=Undo updates and restore earlier versions of your system
-Exec=lumen-snapshot menu
+Exec=anarch-snapshot menu
 Icon=document-revert
 Terminal=false
 Categories=System;

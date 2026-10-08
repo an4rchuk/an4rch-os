@@ -93,11 +93,11 @@ sleep 2
 shot 10-clean-desktop
 
 # --- Health check ---------------------------------------------------------------------
-cli "anarch doctor" lumen-doctor
+cli "anarch doctor" anarch-doctor
 
 # --- Apps from an4rch's launcher ------------------------------------------------------
-as_user lumen-launch terminal
-if wait_window "terminal opens (lumen-launch)" 'ghostty|alacritty|kitty' 30; then
+as_user anarch-launch terminal
+if wait_window "terminal opens (anarch-launch)" 'ghostty|alacritty|kitty' 30; then
   type_text "fastfetch"
   keys ret
   sleep 3
@@ -105,7 +105,7 @@ if wait_window "terminal opens (lumen-launch)" 'ghostty|alacritty|kitty' 30; the
 fi
 
 # --- Themes --------------------------------------------------------------------------
-task "theme switch to nord" as_user lumen-theme set nord
+task "theme switch to nord" as_user anarch-theme set nord
 if [[ "$(cat "$home/.config/lumen/current/theme.name" 2>/dev/null)" == nord ]]; then
   result "theme files rendered" PASS
 else
@@ -113,14 +113,14 @@ else
 fi
 sleep 3
 shot 12-theme-nord
-task "next wallpaper" as_user lumen-wallpaper next
+task "next wallpaper" as_user anarch-wallpaper next
 
 # --- Notifications, reminders, clipboard, screenshots --------------------------------
 task "notification" as_user notify-send -a an4rch "Hello from the test" "Notifications work"
 sleep 1
 shot 13-notification
-task "reminder scheduled" as_user lumen-remind 30m "Test reminder"
-if as_user lumen-remind list --plain 2>/dev/null | grep -q "Test reminder"; then
+task "reminder scheduled" as_user anarch-remind 30m "Test reminder"
+if as_user anarch-remind list --plain 2>/dev/null | grep -q "Test reminder"; then
   result "reminder listed" PASS
 else
   result "reminder listed" FAIL
@@ -136,7 +136,7 @@ fi
 
 marker=$(mktemp)
 sleep 1
-task "screenshot (lumen-screenshot screen)" as_user lumen-screenshot screen
+task "screenshot (anarch-screenshot screen)" as_user anarch-screenshot screen
 sleep 2
 if find "$home/Pictures/Screenshots" -name '*.png' -newer "$marker" 2>/dev/null | grep -q .; then
   result "screenshot saved" PASS "$(find "$home/Pictures/Screenshots" -name '*.png' -newer "$marker" | head -n1)"
@@ -146,7 +146,7 @@ fi
 rm -f "$marker"
 
 # --- Menus and keyboard ----------------------------------------------------------------
-as_user lumen-menu >/dev/null 2>&1 &
+as_user anarch-menu >/dev/null 2>&1 &
 sleep 4
 if pgrep -x fuzzel >/dev/null; then result "anarch menu opens" PASS; else result "anarch menu opens" FAIL; fi
 shot 14-lumen-menu
@@ -176,7 +176,7 @@ elif as_user hyprctl plugin list 2>/dev/null | grep -q hyprbars; then
 else
   result "title bars plugin loaded" FAIL "$(as_user hyprctl plugin list 2>&1 | head -n 3 | tr '\n' ' ')"
   say "--- title bars diagnostics"
-  as_user lumen-titlebars status 2>&1
+  as_user anarch-titlebars status 2>&1
   say "stamp: $(cat /var/lib/lumen/hyprbars-hyprland 2>&1) installed: $(pacman -Q hyprland 2>&1)"
   ls -la /usr/lib/lumen 2>&1
   say "login load log:"; cat "$home/.local/state/lumen/titlebars.log" 2>&1 | tail -n 20
@@ -184,31 +184,31 @@ else
   say "install log:"; grep -n -i -A12 'title bars\|hyprbars' /var/log/lumen-os-install.log 2>/dev/null | tail -n 60
 fi
 shot 17b-titlebars
-task "minimise the calculator" as_user lumen-window minimize
+task "minimise the calculator" as_user anarch-window minimize
 sleep 2
-if as_user lumen-window list | grep -qi calculator; then result "minimised window is hidden" PASS; else result "minimised window is hidden" FAIL "$(as_user lumen-window list | tr '\n' ' ')"; fi
-task "taskbar on" as_user lumen-taskbar on
+if as_user anarch-window list | grep -qi calculator; then result "minimised window is hidden" PASS; else result "minimised window is hidden" FAIL "$(as_user anarch-window list | tr '\n' ' ')"; fi
+task "taskbar on" as_user anarch-taskbar on
 sleep 4
 if pgrep -f '^(/usr/bin/)?waybar -c .*taskbar.jsonc' >/dev/null; then result "taskbar running" PASS; else result "taskbar running" FAIL; fi
 shot 17c-taskbar
-task "restore the calculator" as_user lumen-window restore
+task "restore the calculator" as_user anarch-window restore
 sleep 2
-if as_user lumen-window list | grep -qi calculator; then result "restored window is back" FAIL; else result "restored window is back" PASS; fi
+if as_user anarch-window list | grep -qi calculator; then result "restored window is back" FAIL; else result "restored window is back" PASS; fi
 shot 17d-restored
 
 # --- Bigger apps -------------------------------------------------------------------------
-as_user lumen-store --search "video editor" >/dev/null 2>&1 &
+as_user anarch-store --search "video editor" >/dev/null 2>&1 &
 sleep 20
 shot 18-store-search
 pkill -f lumen_store.py
 
-as_user lumen-launch files
+as_user anarch-launch files
 wait_window "file manager opens" 'nautilus' 40 && { sleep 3; shot 19-files; }
 
-as_user lumen-launch monitor
+as_user anarch-launch monitor
 wait_window "Task Manager opens" 'SystemMonitor' 40 && { sleep 3; shot 19b-task-manager; }
 
-as_user lumen-launch browser https://archlinux.org
+as_user anarch-launch browser https://archlinux.org
 if wait_window "browser opens" 'firefox|chromium|brave|zen' 90; then
   sleep 15; shot 20-browser
 else
@@ -300,7 +300,7 @@ if findmnt -n /efi >/dev/null 2>&1; then
 fi
 
 # --- Settings, the sound panel and the login screen ------------------------------------------
-as_user lumen-settings windows >/dev/null 2>&1 &
+as_user anarch-settings windows >/dev/null 2>&1 &
 if wait_window "Settings opens" 'lumen.Settings' 40; then
   sleep 3
   shot 21a-settings
@@ -320,28 +320,28 @@ as_user rm -f "$home/.config/lumen/desktop.json" "$home/.config/lumen/desktop.lu
 as_user hyprctl reload >/dev/null 2>&1
 pkill -f lumen_settings.py
 
-as_user lumen-audio >/dev/null 2>&1 &
+as_user anarch-audio >/dev/null 2>&1 &
 sleep 6
-if as_user hyprctl layers -j 2>/dev/null | grep -q '"lumen-audio"'; then
+if as_user hyprctl layers -j 2>/dev/null | grep -q '"anarch-audio"'; then
   result "sound panel opens" PASS
 else
   result "sound panel opens" FAIL "$(pgrep -af lumen_audio | head -n 2 | tr '\n' ' ')"
 fi
 shot 21b-sound-panel
-as_user lumen-audio >/dev/null 2>&1
+as_user anarch-audio >/dev/null 2>&1
 sleep 2
 
 # The Wi-Fi, Bluetooth and power panels under the top bar.
 for panel in network bluetooth power; do
-  as_user lumen-panel "$panel" >/dev/null 2>&1 &
+  as_user anarch-panel "$panel" >/dev/null 2>&1 &
   sleep 6
-  if as_user hyprctl layers -j 2>/dev/null | grep -q '"lumen-panel"'; then
+  if as_user hyprctl layers -j 2>/dev/null | grep -q '"anarch-panel"'; then
     result "$panel panel opens" PASS
   else
     result "$panel panel opens" FAIL "$(pgrep -af lumen_panels | head -n 2 | tr '\n' ' ')"
   fi
   shot "21c-$panel-panel"
-  as_user lumen-panel "$panel" >/dev/null 2>&1
+  as_user anarch-panel "$panel" >/dev/null 2>&1
   sleep 2
 done
 
@@ -355,7 +355,7 @@ if [[ -s /var/lib/lumen/login/wallpaper && -s /var/lib/lumen/login/regreet.css ]
 else
   result "login screen has the theme and wallpaper" FAIL "$(ls -la /var/lib/lumen/login 2>&1 | tr '\n' ' ')"
 fi
-as_user lumen-login preview >/dev/null 2>&1
+as_user anarch-login preview >/dev/null 2>&1
 if wait_window "login screen preview" 'regreet' 30; then
   sleep 3
   shot 21c-login-screen
@@ -376,7 +376,7 @@ keys ret
 sleep 5
 if pgrep -x hyprlock >/dev/null; then result "unlock with password" FAIL; else result "unlock with password" PASS; fi
 
-as_user lumen-theme set an4rch >/dev/null 2>&1
+as_user anarch-theme set an4rch >/dev/null 2>&1
 sleep 3
 shot 22-final
 
@@ -390,7 +390,7 @@ else
 fi
 
 # The bar watcher brings a crashed top bar back (waybar has crashed in VMs).
-if pgrep -f 'lumen-session watch-bars' >/dev/null; then
+if pgrep -f 'anarch-session watch-bars' >/dev/null; then
   pkill -KILL -fx '(/usr/bin/)?waybar'
   back=0
   for i in $(seq 40); do
@@ -407,7 +407,7 @@ if pgrep -f 'lumen-session watch-bars' >/dev/null; then
     ls -d "$run/hypr/"* 2>/dev/null
   fi
 else
-  result "top bar comes back after a crash" FAIL "lumen-session watch-bars isn't running"
+  result "top bar comes back after a crash" FAIL "anarch-session watch-bars isn't running"
 fi
 
 say "E2E-SUMMARY $pass passed, $fail failed"

@@ -1,21 +1,4 @@
 #!/usr/bin/env bash
-# lumen-calc — quick calculator with units and currencies (SUPER + =).
-# Type "20% of 85", "3 ft to cm", "sqrt(2)*pi", "100 usd to eur" …
-set -euo pipefail
-source "${LUMEN_PATH:-$HOME/.local/share/lumen}/lib/lumen.sh"
-
-expr=$(ask "=" "2^10, 5 km to miles, 18% of 240…") || exit 0
-[[ -n "$expr" ]] || exit 0
-
-if has qalc; then
-  result=$(qalc -t -- "$expr" 2>/dev/null | tail -n1)
-else
-  result=$(python3 -c 'import math,sys; print(eval(sys.argv[1], {"__builtins__": {}}, vars(math)))' "$expr" 2>/dev/null) || result=""
-fi
-
-if [[ -z "$result" ]]; then
-  notify "Can't calculate that" "$expr" -i dialog-warning
-  exit 1
-fi
-printf '%s' "$result" | wl-copy
-notify "$result" "$expr  ·  copied" -i accessories-calculator -h string:x-canonical-private-synchronous:lumen-calc
+# lumen-calc — obsolete name (before an4rch OS 1.1.0) of anarch-calc; kept so old configs still work.
+[[ -t 2 ]] && printf '\e[33m!\e[0m lumen-calc is obsolete: use anarch-calc (or: anarch calc)\n' >&2
+exec "${LUMEN_PATH:-$HOME/.local/share/lumen}/bin/anarch-calc" "$@"

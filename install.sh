@@ -254,7 +254,7 @@ install_configs() {
   update-desktop-database -q "$data/applications" 2>/dev/null || true
   gtk-update-icon-cache -q -t "$data/icons/hicolor" 2>/dev/null || true
   ok "App Store, Start menu and Welcome launchers"
-  "$LUMEN_PATH/bin/lumen-session" autostart
+  "$LUMEN_PATH/bin/anarch-session" autostart
 
   mkdir -p "$HOME/.config/lumen"
   local settings="$HOME/.config/lumen/settings.conf"
@@ -366,7 +366,7 @@ setup_system() {
     # download fails, the desktop still installs and gaming is set up later.
     if [[ "${LUMEN_OFFLINE:-0}" == 1 ]]; then
       warn "No internet: gaming (Steam, Proton tools…) is set up later with: anarch gaming install"
-    elif ! (run "Installing the gaming stack" env LUMEN_YES=1 "$LUMEN_PATH/bin/lumen-gaming" install); then
+    elif ! (run "Installing the gaming stack" env LUMEN_YES=1 "$LUMEN_PATH/bin/anarch-gaming" install); then
       warn "Gaming couldn't be set up right now; run 'anarch gaming install' later (the desktop is fine)"
     fi
   fi
@@ -393,7 +393,7 @@ setup_greeter() {
   fi
 
   # The graphical login screen in an4rch's theme (text login as a fallback).
-  run "Setting up the login screen" "$LUMEN_PATH/bin/lumen-login" setup
+  run "Setting up the login screen" "$LUMEN_PATH/bin/anarch-login" setup
   if [[ $AUTOLOGIN -eq 1 ]] && ! grep -q '^\[initial_session\]' /etc/greetd/config.toml; then
     printf '\n[initial_session]\ncommand = "uwsm start -- hyprland.desktop"\nuser = "%s"\n' "$USER" | sudo tee -a /etc/greetd/config.toml >/dev/null
     ok "Auto-login enabled"
@@ -411,7 +411,7 @@ setup_greeter() {
 setup_look() {
   if [[ "$TITLEBARS" == yes ]]; then
     # shellcheck disable=SC2024  # the log is the user's
-    try "Window title bars (the hyprbars plugin)" "$LUMEN_PATH/bin/lumen-titlebars" setup </dev/null
+    try "Window title bars (the hyprbars plugin)" "$LUMEN_PATH/bin/anarch-titlebars" setup </dev/null
   fi
 
   step "Styling"
@@ -447,13 +447,13 @@ setup_look() {
   # Wallpapers first (switching theme picks one). The other themes get
   # theirs the first time they're picked.
   if python3 -c 'import PIL' 2>/dev/null; then
-    try "Painting wallpapers for the theme" python3 "$LUMEN_PATH/bin/lumen-wallgen" --theme "$THEME" --out "${XDG_DATA_HOME:-$HOME/.local/share}/backgrounds/lumen"
+    try "Painting wallpapers for the theme" python3 "$LUMEN_PATH/bin/anarch-wallgen" --theme "$THEME" --out "${XDG_DATA_HOME:-$HOME/.local/share}/backgrounds/lumen"
   else
-    warn "python-pillow missing: run 'lumen-wallpaper generate' later"
+    warn "python-pillow missing: run 'anarch-wallpaper generate' later"
   fi
 
   local theme_out
-  if theme_out=$("$LUMEN_PATH/bin/lumen-theme" set "$THEME" 2>&1); then
+  if theme_out=$("$LUMEN_PATH/bin/anarch-theme" set "$THEME" 2>&1); then
     ok "Theme: $THEME"
   else
     warn "Theme could not be applied: $(tail -n 1 <<<"$theme_out")"

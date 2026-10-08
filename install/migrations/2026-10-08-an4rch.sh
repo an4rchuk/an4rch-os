@@ -27,7 +27,7 @@ done
 theme=$(theme_current)
 if python3 -c 'import PIL' 2>/dev/null; then
   echo "  Painting this theme's new wallpapers"
-  python3 "$LUMEN_PATH/bin/lumen-wallgen" --theme "$theme" --out "$LUMEN_WALLPAPERS" >/dev/null 2>&1 || true
+  python3 "$LUMEN_PATH/bin/anarch-wallgen" --theme "$theme" --out "$LUMEN_WALLPAPERS" >/dev/null 2>&1 || true
 fi
 # The remembered wallpaper may have been one of the old ones.
 if [[ -f "$LUMEN_STATE/wallpaper-$theme" && ! -f "$(cat "$LUMEN_STATE/wallpaper-$theme")" ]]; then
@@ -37,5 +37,5 @@ if [[ -L "$LUMEN_CURRENT/wallpaper" && ! -e "$LUMEN_CURRENT/wallpaper" ]]; then
   rm -f "$LUMEN_CURRENT/wallpaper"
 fi
 if [[ -n "${WAYLAND_DISPLAY:-}" ]]; then
-  "$LUMEN_PATH/bin/lumen-wallpaper" theme >/dev/null 2>&1 || true
+  "$LUMEN_PATH/bin/anarch-wallpaper" theme >/dev/null 2>&1 || true
 fi

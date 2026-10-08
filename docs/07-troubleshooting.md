@@ -31,7 +31,7 @@ Shows the computer's model, graphics, Wi-Fi and Bluetooth chips with the driver 
 ## Common problems
 
 **The bar is missing, or shows old colours.**
-`lumen-session restart bar`. If it doesn't appear, run `waybar` in a terminal to see the error. A JSON mistake in `config.jsonc` is the usual cause.
+`anarch-session restart bar`. If it doesn't appear, run `waybar` in a terminal to see the error. A JSON mistake in `config.jsonc` is the usual cause.
 
 **Clicking a workspace in the bar does nothing.**
 Waybar releases up to 0.15.0 send old-style commands that Hyprland's Lua config ignores. The installer offers to build `waybar-git`, which has the fix. You can do it later with `anarch pkg add waybar-git`. Keyboard shortcuts work either way.
@@ -50,10 +50,10 @@ cp ~/.local/share/lumen/config/hypr/bindings.lua ~/.config/hypr/
 Every file in `~/.local/share/lumen/config/` is the pristine version of a file in your `~/.config`. To reset *all* configs, run `~/.local/share/lumen/install.sh --configs-only` after removing `~/.config/lumen/.installed`; your current files are backed up first.
 
 **Notifications don't appear.**
-Check Do Not Disturb (a bell in the bar, <kbd>SUPER</kbd> + <kbd>CTRL</kbd> + <kbd>D</kbd>). Then `lumen-session restart notifications`.
+Check Do Not Disturb (a bell in the bar, <kbd>SUPER</kbd> + <kbd>CTRL</kbd> + <kbd>D</kbd>). Then `anarch-session restart notifications`.
 
 **The screen doesn't lock or sleep.**
-Check *keep awake* (a coffee cup in the bar). A browser tab playing video also keeps the screen on; that's intentional. `lumen-session restart idle` restarts the idle daemon.
+Check *keep awake* (a coffee cup in the bar). A browser tab playing video also keeps the screen on; that's intentional. `anarch-session restart idle` restarts the idle daemon.
 
 **No sound.**
 `systemctl --user status pipewire wireplumber`. Pick the right output in **an4rch menu → Setup → Audio output**. Some laptops need `sof-firmware` (`anarch pkg add sof-firmware`, then reboot).

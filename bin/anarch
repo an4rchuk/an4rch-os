@@ -11,16 +11,16 @@ set -euo pipefail
 source "${LUMEN_PATH:-$HOME/.local/share/lumen}/lib/lumen.sh"
 
 if [[ $# -eq 0 ]]; then
-  exec "$LUMEN_PATH/bin/lumen-menu"
+  exec "$LUMEN_PATH/bin/anarch-menu"
 fi
 
 case "$1" in
   help | -h | --help)
     printf '\e[1man4rch OS\e[0m %s\n\n' "$(cat "$LUMEN_PATH/VERSION" 2>/dev/null || echo dev)"
     printf 'Usage: anarch <command> [args]\n\n'
-    for f in "$LUMEN_PATH"/bin/lumen-*; do
-      name="${f##*/lumen-}"
-      summary=$(sed -n '2s/^# lumen-[a-z-]* — //p' "$f")
+    for f in "$LUMEN_PATH"/bin/anarch-*; do
+      name="${f##*/anarch-}"
+      summary=$(sed -n '2s/^# anarch-[a-z-]* — //p' "$f")
       printf '  \e[36m%-15s\e[0m %s\n' "$name" "$summary"
     done
     printf '  \e[36m%-15s\e[0m %s\n' anarch "add the anarchism theme pack (12 themes, gradient wallpapers)"
@@ -31,15 +31,15 @@ case "$1" in
     ;;
   anarch | anarchism)
     shift
-    exec "$LUMEN_PATH/bin/lumen-theme" get anarchism "$@"
+    exec "$LUMEN_PATH/bin/anarch-theme" get anarchism "$@"
     ;;
   themes)
     shift
-    if [[ $# -eq 0 ]]; then exec "$LUMEN_PATH/bin/lumen-theme" packs; fi
-    exec "$LUMEN_PATH/bin/lumen-theme" "$@"
+    if [[ $# -eq 0 ]]; then exec "$LUMEN_PATH/bin/anarch-theme" packs; fi
+    exec "$LUMEN_PATH/bin/anarch-theme" "$@"
     ;;
   *)
-    sub="$LUMEN_PATH/bin/lumen-$1"
+    sub="$LUMEN_PATH/bin/anarch-$1"
     [[ -x "$sub" ]] || die "Unknown command '$1'. Try: anarch help"
     shift
     exec "$sub" "$@"

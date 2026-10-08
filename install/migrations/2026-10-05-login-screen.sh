@@ -6,4 +6,4 @@ LUMEN_PATH="${LUMEN_PATH:-$HOME/.local/share/lumen}"
 conf=/etc/greetd/config.toml
 grep -q "Welcome to an4rch" "$conf" 2>/dev/null || exit 0
 echo "  Setting up the new login screen (your theme and wallpaper)"
-"$LUMEN_PATH/bin/lumen-login" setup
+"$LUMEN_PATH/bin/anarch-login" setup

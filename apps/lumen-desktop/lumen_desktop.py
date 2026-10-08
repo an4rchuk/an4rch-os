@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""lumen-desktop — icons on the desktop (top left, under the windows).
+"""anarch-desktop — icons on the desktop (top left, under the windows).
 
 The icons are listed in ~/.config/lumen/desktop-icons.json:
     [{"id": "lumen-installer.desktop", "label": "Install an4rch OS"}, ...]
@@ -30,7 +30,7 @@ LUMEN_PATH = Path(os.environ.get("LUMEN_PATH", Path.home() / ".local/share/lumen
 CONFIG = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "lumen" / "desktop-icons.json"
 
 CSS = b"""
-window.lumen-desktop { background: transparent; }
+window.anarch-desktop { background: transparent; }
 .icon-button {
   background: transparent; border: none; border-radius: 12px; padding: 8px 6px;
   min-width: 96px; transition: background 120ms;
@@ -61,22 +61,22 @@ def load_icons() -> list[dict]:
 def open_app(info: Gio.DesktopAppInfo) -> None:
     path = info.get_filename() or info.get_id()
     env = {**os.environ, "LUMEN_LAUNCH_NAME": info.get_display_name() or path}
-    tool = LUMEN_PATH / "bin" / "lumen-launch"
+    tool = LUMEN_PATH / "bin" / "anarch-launch"
     argv = [str(tool), "--", "gio", "launch", path] if tool.exists() else ["gio", "launch", path]
     try:
         subprocess.Popen(argv, start_new_session=True, env=env,
                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     except OSError as err:
-        print(f"lumen-desktop: {err}", file=sys.stderr)
+        print(f"anarch-desktop: {err}", file=sys.stderr)
 
 
 class Desktop(Gtk.ApplicationWindow):
     def __init__(self, app: Gtk.Application):
         super().__init__(application=app, title="an4rch desktop")
-        self.add_css_class("lumen-desktop")
+        self.add_css_class("anarch-desktop")
         if LayerShell is not None and LayerShell.is_supported():
             LayerShell.init_for_window(self)
-            LayerShell.set_namespace(self, "lumen-desktop")
+            LayerShell.set_namespace(self, "anarch-desktop")
             # Above the wallpaper, below every window; out of the bars' way.
             LayerShell.set_layer(self, LayerShell.Layer.BOTTOM)
             LayerShell.set_anchor(self, LayerShell.Edge.TOP, True)

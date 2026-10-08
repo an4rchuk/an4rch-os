@@ -2,13 +2,13 @@
 --
 -- Replace a default:
 --   hl.unbind("SUPER + B")
---   hl.bind("SUPER + B", hl.dsp.exec_cmd("lumen-launch -- chromium"), { description = "Chromium" })
+--   hl.bind("SUPER + B", hl.dsp.exec_cmd("anarch-launch -- chromium"), { description = "Chromium" })
 --
--- Launch an app (lumen-launch runs it as a proper systemd scope):
---   hl.bind("SUPER + O", hl.dsp.exec_cmd("lumen-launch -- obsidian"), { description = "Notes" })
+-- Launch an app (anarch-launch runs it as a proper systemd scope):
+--   hl.bind("SUPER + O", hl.dsp.exec_cmd("anarch-launch -- obsidian"), { description = "Notes" })
 --
 -- Open a website as an app window:
---   hl.bind("SUPER + SHIFT + M", hl.dsp.exec_cmd("lumen-webapp https://music.youtube.com"), { description = "Music" })
+--   hl.bind("SUPER + SHIFT + M", hl.dsp.exec_cmd("anarch-webapp https://music.youtube.com"), { description = "Music" })
 --
 -- Run Lua directly:
 --   hl.bind("SUPER + CTRL + O", function()

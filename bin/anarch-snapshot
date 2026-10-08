@@ -1,0 +1,180 @@
+#!/usr/bin/env bash
+# anarch-snapshot — system snapshots: undo an update or roll back the whole system.
+#
+#   anarch-snapshot                 list snapshots
+#   anarch-snapshot menu            choose what to do from a menu
+#   anarch-snapshot create [TEXT]   take a snapshot now
+#   anarch-snapshot undo            roll back to just before the last update
+#   anarch-snapshot restore N       roll back to snapshot N (applies on restart)
+#
+# an4rch OS keeps the system on btrfs with snapper. A snapshot is taken
+# automatically before and after every package change (snap-pac), so any
+# update can be undone. Your home folder is a separate subvolume and is never
+# rolled back.
+#
+# A rollback keeps the current system as @broken-<date>, makes the chosen
+# snapshot the new root, and puts back the matching kernel on the boot
+# partition so the restored system boots with its own kernel modules.
+set -euo pipefail
+source "${LUMEN_PATH:-$HOME/.local/share/lumen}/lib/lumen.sh"
+
+# Snapper allows the wheel group to read snapshots, so listing needs no password.
+snap() { snapper -c root "$@" 2>/dev/null || sudo snapper -c root "$@"; }
+
+need_snapper() {
+  has snapper || die "Snapshots need snapper on a btrfs system (an4rch OS installs this for you)."
+  [[ "$(findmnt -no FSTYPE /)" == btrfs ]] || die "The root filesystem isn't btrfs, so snapshots aren't available."
+  snap list >/dev/null 2>&1 || die "No snapper config for /. Create one: sudo snapper -c root create-config /"
+}
+
+# Interactive commands run in a floating terminal when started from the desktop.
+if [[ ! -t 0 && "${1:-}" != menu ]]; then
+  term --float --hold --title "Snapshots" -- "$0" "$@"
+  exit 0
+fi
+
+list() {
+  need_snapper
+  snap list --columns number,date,description,userdata | sed 's/^/  /'
+}
+
+create() {
+  need_snapper
+  local n
+  n=$(sudo snapper -c root create --print-number --cleanup-algorithm number --description "${1:-Manual snapshot}")
+  echo "Created snapshot $n."
+  notify "Snapshot $n taken" "${1:-Manual snapshot}" -i document-save
+}
+
+# restore N — make snapshot N the root filesystem from the next boot.
+restore() {
+  local n="$1"
+  need_snapper
+  [[ "$n" =~ ^[0-9]+$ ]] || die "Snapshot numbers are digits, e.g. anarch-snapshot restore 42"
+  local desc
+  desc=$(snap list --columns number,description | awk -F'│|\\|' -v n="$n" '$1+0 == n {gsub(/^ +| +$/, "", $2); print $2}')
+  [[ -n "$desc" ]] || die "There is no snapshot $n. See: anarch-snapshot"
+
+  local root_src root_dev subvol
+  root_src=$(findmnt -no SOURCE /)               # /dev/mapper/cryptroot[/@]
+  root_dev="${root_src%%\[*}"
+  subvol=$(findmnt -no OPTIONS / | tr ',' '\n' | sed -n 's/^subvol=\/\{0,1\}//p')
+  [[ "$subvol" == "@" ]] || die "Rollback expects the root subvolume to be '@' (found '$subvol')."
+
+  printf '\nRoll back the system to snapshot %s (“%s”)?\n' "$n" "$desc"
+  printf 'Your files in /home are not affected. The current system is kept as a backup.\n\n'
+  read -rp "Type yes to continue: " answer
+  [[ "$answer" == yes ]] || { echo "Cancelled."; exit 1; }
+
+  local top
+  top=$(mktemp -d)
+  sudo mount -o subvolid=5 "$root_dev" "$top"
+  trap 'sudo umount -R "$top" 2>/dev/null; rmdir "$top" 2>/dev/null' EXIT
+
+  local snap="$top/@snapshots/$n/snapshot"
+  sudo test -d "$snap" || die "Snapshot data not found at @snapshots/$n"
+
+  local stamp
+  stamp=$(date +%Y%m%d-%H%M%S)
+  echo "• Keeping the current system as @broken-$stamp"
+  sudo mv "$top/@" "$top/@broken-$stamp"
+  echo "• Restoring snapshot $n as the new system"
+  sudo btrfs subvolume snapshot "$snap" "$top/@" >/dev/null
+
+  # The boot partition isn't part of snapshots: put back the kernels the
+  # restored system expects, from the package cache.
+  local new="$top/@" k ver pkgfile
+  sudo mount --bind /boot "$new/boot"
+  sudo mount --bind /var/cache/pacman/pkg "$new/var/cache/pacman/pkg" 2>/dev/null || true
+  for k in linux linux-lts linux-zen; do
+    ver=$(pacman --root "$new" --dbpath "$new/var/lib/pacman" -Q "$k" 2>/dev/null | awk '{print $2}') || true
+    [[ -n "$ver" ]] || continue
+    if [[ "$ver" == "$(pacman -Q "$k" 2>/dev/null | awk '{print $2}')" ]]; then
+      continue
+    fi
+    pkgfile=$(find /var/cache/pacman/pkg -maxdepth 1 -name "$k-$ver-*.pkg.tar.zst" | head -n1)
+    if [[ -n "$pkgfile" ]]; then
+      echo "• Restoring kernel $k $ver"
+      sudo arch-chroot "$new" pacman -U --noconfirm --overwrite '/boot/*' "/var/cache/pacman/pkg/$(basename "$pkgfile")" >/dev/null
+    else
+      echo "! Kernel package $k $ver isn't in the cache; the restored system will boot the current kernel." >&2
+      echo "  If it fails to start, pick 'an4rch OS (LTS kernel)' in the boot menu." >&2
+    fi
+  done
+  sudo umount "$new/var/cache/pacman/pkg" 2>/dev/null || true
+  sudo umount "$new/boot"
+
+  echo
+  echo "✓ Done. Restart to use the restored system."
+  echo "  Changed your mind? Before restarting, run 'anarch-snapshot restore' again"
+  echo "  with a newer snapshot."
+  echo "  Old systems are kept as @broken-<date>; remove them later with: anarch-snapshot clean"
+  notify "Rollback ready" "Restart to use snapshot $n." -i system-reboot -u critical
+}
+
+undo() {
+  need_snapper
+  # snap-pac labels pre-transaction snapshots with the pacman command.
+  local n
+  n=$(snap list --columns number,type,description | awk -F'│|\\|' '$2 ~ /pre/ {gsub(/ /, "", $1); last=$1} END {print last}')
+  [[ -n "$n" ]] || die "No update snapshot found yet."
+  echo "The last update started from snapshot $n."
+  restore "$n"
+}
+
+clean() {
+  local root_dev top
+  root_dev=$(findmnt -no SOURCE / | sed 's/\[.*//')
+  top=$(mktemp -d)
+  sudo mount -o subvolid=5 "$root_dev" "$top"
+  mapfile -t old < <(sudo find "$top" -maxdepth 1 -name '@broken-*' -printf '%f\n')
+  if [[ ${#old[@]} -eq 0 ]]; then
+    echo "Nothing to clean."
+  else
+    printf 'Delete %d old system(s): %s? [y/N] ' "${#old[@]}" "${old[*]}"
+    read -r yn
+    if [[ "$yn" == [yY]* ]]; then
+      for o in "${old[@]}"; do sudo btrfs subvolume delete -R "$top/$o" >/dev/null 2>&1 || sudo btrfs subvolume delete "$top/$o"; done
+      echo "Removed."
+    fi
+  fi
+  sudo umount "$top"
+  rmdir "$top"
+}
+
+menu_ui() {
+  local choice
+  choice=$(printf '%s\n' "󰁯  Undo the last update" "󰆓  Take a snapshot now" "󰋚  Restore an earlier snapshot" "󰈙  Show all snapshots" |
+    menu "Snapshots" --lines 4 --width 36) || exit 0
+  case "$choice" in
+    *Undo*) term --float --hold --title "Undo update" -- "$0" undo ;;
+    *"Take"*)
+      local text
+      text=$(ask "Describe it" "Before trying something new") || exit 0
+      term --float --hold --title "Snapshot" -- "$0" create "${text:-Manual snapshot}"
+      ;;
+    *Restore*)
+      local rows n
+      mapfile -t rows < <(snapper -c root list --columns number,date,description 2>/dev/null | tail -n +3 | tac | head -n 30)
+      if [[ ${#rows[@]} -eq 0 ]]; then
+        term --float --hold --title "Snapshots" -- "$0" list
+        exit 0
+      fi
+      n=$(printf '%s\n' "${rows[@]}" | menu "Restore" --width 70 --lines 12) || exit 0
+      n=$(awk -F'│|\\|' '{gsub(/ /, "", $1); print $1}' <<<"$n")
+      term --float --hold --title "Restore" -- "$0" restore "$n"
+      ;;
+    *Show*) term --float --hold --title "Snapshots" -- "$0" list ;;
+  esac
+}
+
+case "${1:-list}" in
+  list) list ;;
+  menu) menu_ui ;;
+  create) shift; create "${*:-}" ;;
+  undo) undo ;;
+  restore) restore "${2:?usage: anarch-snapshot restore N}" ;;
+  clean) clean ;;
+  -h | --help | help) sed -n '2,19s/^# \{0,1\}//p' "$0" ;;
+  *) die "Unknown command '$1'. See: anarch-snapshot --help" ;;
+esac

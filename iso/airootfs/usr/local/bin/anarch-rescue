@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# lumen-rescue — roll back an installed an4rch OS that no longer starts.
+# anarch-rescue — roll back an installed an4rch OS that no longer starts.
 #
 # Run from the an4rch OS live USB. Unlocks the disk if needed, lists the
 # system snapshots, and makes the one you choose the active system again —
-# the same as `lumen-snapshot restore` on a running system. /home is never
+# the same as `anarch-snapshot restore` on a running system. /home is never
 # touched; the broken system is kept as @broken-<date>.
 set -euo pipefail
 ACCENT="#9d8cff"

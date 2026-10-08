@@ -73,9 +73,9 @@ alias paste='wl-paste'
 alias ff='fzf --preview "bat --color=always --style=numbers {}"'
 
 # Quick install / remove through an4rch's package helper.
-alias install='lumen-pkg add'
-alias uninstall='lumen-pkg rm'
-alias update='lumen-update'
+alias install='anarch-pkg add'
+alias uninstall='anarch-pkg rm'
+alias update='anarch-update'
 
 # --- Plugins (last, as their docs ask) -------------------------------------------
 for _p in /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh \
