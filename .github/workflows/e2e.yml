@@ -152,16 +152,19 @@ jobs:
             # simple: a 1 GB EFI partition and one for an4rch; split: a small
             # EFI partition that already holds another system's boot files, a
             # 1 GB boot partition and one for an4rch.
-            sudo apt-get install -y -q gdisk dosfstools mtools >/dev/null
-            export MTOOLS_SKIP_CHECK=1
+            sudo apt-get install -y -q gdisk dosfstools >/dev/null
             truncate -s 40G man.raw
             if [ "$PREPART" = split ]; then
               sgdisk -n1:0:+300M -t1:ef00 -c1:"EFI system partition" -n2:0:+1G -t2:8300 -c2:boot -n3:0:0 -t3:8300 -c3:linux man.raw
-              start=$(sgdisk -i 1 man.raw | sed -n 's/^First sector: \([0-9]*\).*/\1/p')
-              mkfs.fat -F32 -n SYSTEM --offset "$start" man.raw $((300 * 1024)) >/dev/null
-              echo other-boot-loader >other.efi
-              mmd -i "man.raw@@$((start * 512))" ::/EFI ::/EFI/Other
-              mcopy -i "man.raw@@$((start * 512))" other.efi ::/EFI/Other/other.efi
+              # Formatted on the partition itself, like a real disk: written
+              # into the image file at an offset, firmware didn't recognise it.
+              loop=$(sudo losetup -fP --show man.raw)
+              sudo mkfs.fat -F32 -n SYSTEM "${loop}p1" >/dev/null
+              sudo mkdir -p /mnt/esp && sudo mount "${loop}p1" /mnt/esp
+              sudo mkdir -p /mnt/esp/EFI/Other
+              echo other-boot-loader | sudo tee /mnt/esp/EFI/Other/other.efi >/dev/null
+              sudo umount /mnt/esp
+              sudo losetup -d "$loop"
             else
               sgdisk -n1:0:+1G -t1:ef00 -c1:"EFI system partition" -n2:0:0 -t2:8300 -c2:linux man.raw
             fi
@@ -367,6 +370,9 @@ jobs:
             echo "--- installed system boot console (end) ---"
             tr -d '\r' <boot-serial.log 2>/dev/null | sed 's/\x1b\[[0-9;?]*[a-zA-Z]//g' | grep -av '^\s*$' | tail -n 120 || true
           fi
+          # Live USB and partition checks passing isn't enough: the installed
+          # system has to boot and run its tasks.
+          grep -q E2E-DONE tasks.log 2>/dev/null || echo "E2E-RESULT installed system booted and ran its tasks FAIL" >>results.txt
           echo
           [ -s results.txt ] || { echo "::error::No task results (the task runner never reported)"; exit 1; }
           sed -e 's/^E2E-RESULT //' results.txt | awk '{ s=($0 ~ / PASS/)?"✓":"✗"; print "  " s " " $0 }'
