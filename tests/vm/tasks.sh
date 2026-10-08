@@ -94,6 +94,8 @@ k=$(choice kernel)
 case "${k:-linux}" in
   lts) want='-lts$' ;; zen) want='-zen' ;; hardened) want='-hardened' ;; *) want='-arch[0-9]' ;;
 esac
+# Installed with lumen.bootlts=1: the LTS fallback kernel starts by default.
+[[ "$(choice boot)" == fallback ]] && want='-lts$' && k="${k:-linux}, starting the LTS fallback"
 # Offline installs fall back to the standard kernel when the chosen one isn't on the stick.
 if uname -r | grep -qE -- "$want"; then
   result "kernel ($k) is running" PASS "$(uname -r)"

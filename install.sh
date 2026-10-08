@@ -414,8 +414,14 @@ setup_system() {
       try "Turning on the firewall (SSH allowed)" bash -c '
         sudo sed -i -e "s/^DEFAULT_INPUT_POLICY=.*/DEFAULT_INPUT_POLICY=\"DROP\"/" -e "s/^DEFAULT_OUTPUT_POLICY=.*/DEFAULT_OUTPUT_POLICY=\"ACCEPT\"/" /etc/default/ufw &&
         sudo sed -i "s/^ENABLED=.*/ENABLED=yes/" /etc/ufw/ufw.conf &&
-        printf "\n### tuple ### allow tcp 22 0.0.0.0/0 any 0.0.0.0/0 in\n-A ufw-user-input -p tcp --dport 22 -j ACCEPT\n" | sudo tee -a /etc/ufw/user.rules >/dev/null &&
-        printf "\n### tuple ### allow tcp 22 ::/0 any ::/0 in\n-A ufw6-user-input -p tcp --dport 22 -j ACCEPT\n" | sudo tee -a /etc/ufw/user6.rules >/dev/null &&
+        for v in "" 6; do
+          f=/etc/ufw/user$v.rules
+          grep -q -- "--dport 22 -j ACCEPT" "$f" && continue
+          any=0.0.0.0/0; [[ -n $v ]] && any=::/0
+          # Inside the RULES section: anything after COMMIT stops ufw loading.
+          sudo sed -i "/^### RULES ###\$/a ### tuple ### allow tcp 22 $any any $any in\n-A ufw$v-user-input -p tcp --dport 22 -j ACCEPT\n" "$f"
+        done &&
+        grep -q -- "--dport 22" /etc/ufw/user.rules &&
         sudo systemctl enable ufw'
     fi
     set_login_shell

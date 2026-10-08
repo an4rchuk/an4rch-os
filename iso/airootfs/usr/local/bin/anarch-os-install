@@ -868,6 +868,8 @@ gum style --foreground "#9fdc9b" "  ✓ Configured the system and boot loader"
 install -d "$MNT/etc/lumen"
 printf 'edition=%s\nkernel=%s\nshell=%s\nmode=%s\napps=%s\nversion=%s\n' "$EDITION" "$KERNEL" "$SHELL_CHOICE" "$MODE" "$EXTRA_APPS" \
   "$(cat "$LUMEN_SRC/VERSION" 2>/dev/null || echo dev)" >"$MNT/etc/lumen/install.conf"
+# lumen.bootlts=1 starts the second (LTS) kernel by default.
+[[ "${K[bootlts]:-0}" == 1 ]] && echo "boot=fallback" >>"$MNT/etc/lumen/install.conf"
 
 # Passwords never go through the log.
 printf '%s:%s\n' "$USERNAME" "$USER_PASS" | arch-chroot "$MNT" chpasswd
