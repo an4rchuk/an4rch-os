@@ -2,7 +2,7 @@
 # anarch-menu — everything in one place (SUPER + ALT + SPACE).
 #
 #   anarch-menu [section]   open the menu, optionally straight at a section:
-#                          capture, toggle, style, setup, install, system, learn
+#                          capture, toggle, style, setup, install, privacy, system, learn
 set -euo pipefail
 source "${LUMEN_PATH:-$HOME/.local/share/lumen}/lib/lumen.sh"
 
@@ -25,6 +25,7 @@ main_menu() {
     "󰏘  Style" \
     "󰒓  Setup" \
     "󰏗  Install" \
+    "󰒃  Privacy and safety" \
     "󰆴  Remove" \
     "󰚰  Update" \
     "󰋗  Learn" \
@@ -37,6 +38,7 @@ main_menu() {
     *Style) style_menu ;;
     *Setup) setup_menu ;;
     *Install) install_menu ;;
+    *"Privacy and safety") privacy_menu ;;
     *Remove) "$bin/anarch-pkg" remove ;;
     *Update) "$bin/anarch-update" ;;
     *Learn) learn_menu ;;
@@ -77,7 +79,8 @@ toggle_menu() {
     "󰍜  Top bar" \
     "󰍝  Taskbar at the bottom" \
     "󰖯  Window title bars and buttons" \
-    "󰖰  Restore a minimised window") in
+    "󰖰  Restore a minimised window" \
+    "󰀘  Focus session (25 min)") in
     *awake) "$bin/anarch-toggle" idle ;;
     *Night*) "$bin/anarch-toggle" nightlight ;;
     *Disturb) "$bin/anarch-toggle" dnd ;;
@@ -87,6 +90,7 @@ toggle_menu() {
     *Taskbar*) "$bin/anarch-taskbar" toggle ;;
     *"title bars"*) "$bin/anarch-titlebars" toggle ;;
     *minimised*) "$bin/anarch-window" restore-menu ;;
+    *"Focus session"*) "$bin/anarch-focus" ;;
   esac
 }
 
@@ -138,7 +142,10 @@ setup_menu() {
     "󰏘  Default apps" \
     "󰒓  an4rch settings" \
     "󰈙  Edit key bindings" \
+    "󰗅  Accessibility" \
+    "󰁯  Move my setup elsewhere" \
     "󰩟  Health check" \
+    "󰓙  Computer health" \
     "󰍹  Hardware report") in
     *Wi-Fi) "$bin/anarch-wifi" ;;
     *Bluetooth) "$bin/anarch-bluetooth" ;;
@@ -157,6 +164,9 @@ setup_menu() {
     *"Default apps") "$bin/anarch-setup" defaults ;;
     *"an4rch settings") "$bin/anarch-settings" ;;
     *"key bindings") edit "$HOME/.config/hypr/bindings.lua" ;;
+    *Accessibility) "$bin/anarch-a11y" menu ;;
+    *"setup elsewhere") carry_menu ;;
+    *"Computer health") "$bin/anarch-health" ;;
     *"Health check") term --float --hold --title "an4rch doctor" -- "$bin/anarch-doctor" ;;
     *"Hardware report") term --float --hold --title "Hardware report" -- "$bin/anarch-doctor" hardware ;;
   esac
@@ -180,6 +190,40 @@ install_menu() {
     *"Development environment") "$bin/anarch-dev" ;;
     *"Development tools"*) "$bin/anarch-pkg" bundle dev ;;
     *"  Gaming") "$bin/anarch-gaming" ;;
+  esac
+}
+
+privacy_menu() {
+  case $(show "Privacy and safety" \
+    "󰒃  Privacy settings" \
+    "󰌾  Vaults (encrypted folders)" \
+    "󰒘  Run an app sandboxed" \
+    "󰖟  Browser that forgets" \
+    "󰃢  Remove hidden data" \
+    "󱐋  Panic: hide and lock now") in
+    *"Privacy settings") "$bin/anarch-privacy" menu ;;
+    *Vaults*) "$bin/anarch-vault" menu ;;
+    *"Run an app sandboxed") "$bin/anarch-sandbox" ;;
+    *"Browser that forgets") "$bin/anarch-sandbox" browser ;;
+    *"hidden data"*)
+      # Cleaning is a right-click in Files (the script is added if it's missing).
+      [[ -x "${XDG_DATA_HOME:-$HOME/.local/share}/nautilus/scripts/Remove hidden data" ]] || "$bin/anarch-scrub" setup >/dev/null
+      notify "Remove hidden data" "Select files, then right-click → Scripts → Remove hidden data" -i edit-clear -t 8000
+      launch "$LUMEN_FILES" "$HOME/Pictures"
+      ;;
+    *Panic*) sleep 0.2; "$bin/anarch-panic" ;;
+  esac
+}
+
+carry_menu() {
+  case $(show "Move my setup" \
+    "󰁯  Save my setup to a file" \
+    "󰋺  Bring in a setup from a file") in
+    *Save*) term --float --hold --title "Save my setup" -- "$bin/anarch-carry" export ;;
+    *"Bring in"*)
+      f=$(ask "Setup file" "$HOME/an4rch-carry-….tar.gz") || exit 0
+      [[ -n "$f" ]] && term --float --hold --title "Bring in a setup" -- "$bin/anarch-carry" import "${f/#\~/$HOME}"
+      ;;
   esac
 }
 
@@ -217,6 +261,7 @@ case "${1:-}" in
   style) style_menu ;;
   setup) setup_menu ;;
   install) install_menu ;;
+  privacy) privacy_menu ;;
   learn) learn_menu ;;
   system) "$bin/anarch-power" ;;
   -h | --help) sed -n '2,6s/^# \{0,1\}//p' "$0" ;;

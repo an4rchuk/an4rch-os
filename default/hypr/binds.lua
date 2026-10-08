@@ -152,6 +152,7 @@ bind("SUPER + CTRL + period",  exec("makoctl invoke"),             "Open notific
 -- System (SUPER + CTRL)
 ---------------------------------------------------------------------------
 bind("SUPER + Escape",         exec(cmd("power")),                 "Power menu")
+bind("SUPER + SHIFT + Escape", exec(cmd("panic")),                 "Panic: hide everything, close vaults, lock")
 bind("SUPER + CTRL + L",       exec("loginctl lock-session"),      "Lock screen")
 bind("SUPER + CTRL + T",       exec(cmd("theme")),                 "Pick a theme")
 bind("SUPER + CTRL + SHIFT + T", exec(cmd("theme", "next")),       "Next theme")
@@ -160,6 +161,7 @@ bind("SUPER + CTRL + SHIFT + W", exec(cmd("wallpaper", "pick")),   "Pick a wallp
 bind("SUPER + CTRL + N",       exec(cmd("toggle", "nightlight")),  "Toggle night light")
 bind("SUPER + CTRL + I",       exec(cmd("toggle", "idle")),        "Keep awake (pause screen lock)")
 bind("SUPER + CTRL + D",       exec(cmd("toggle", "dnd")),         "Toggle Do Not Disturb")
+bind("SUPER + CTRL + F",       exec(cmd("focus")),                 "Start / stop a 25-minute focus session")
 bind("SUPER + CTRL + B",       exec(cmd("toggle", "bar")),         "Show or hide the top bar")
 bind("SUPER + CTRL + G",       exec(cmd("toggle", "gaps")),        "Toggle gaps and rounding")
 bind("SUPER + CTRL + S",       exec(cmd("toggle", "layout")),      "Switch tiling / scrolling layout")
@@ -179,6 +181,8 @@ bind("SUPER + ALT + D", exec(cmd("display")),    "Displays")
 bind("SUPER + ALT + T", exec(launch("monitor")), "System monitor")
 bind("SUPER + ALT + I", exec(cmd("pkg", "install")), "Install apps")
 bind("SUPER + ALT + U", exec(cmd("update")),     "Update the system")
+bind("SUPER + ALT + R", exec(cmd("a11y", "reader")), "Screen reader on / off")
+bind("SUPER + ALT + P", exec(cmd("privacy")),    "Privacy (hidden MAC, encrypted DNS, tracker blocking)")
 
 ---------------------------------------------------------------------------
 -- Hardware keys (work on the lock screen too)

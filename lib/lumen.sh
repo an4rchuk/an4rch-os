@@ -38,6 +38,24 @@ LUMEN_TASKBAR=no      # taskbar along the bottom of the screen
 # --- small helpers -------------------------------------------------------------
 has() { command -v "$1" >/dev/null 2>&1; }
 
+# need PKG... — install the packages a feature uses if they're missing
+# (pacman asks first; AUR names go through the AUR helper).
+need() {
+  local missing=() p
+  for p in "$@"; do pacman -Q "$p" >/dev/null 2>&1 || missing+=("$p"); done
+  [[ ${#missing[@]} -eq 0 ]] && return 0
+  printf '\e[2mThis needs: %s\e[0m\n' "${missing[*]}"
+  "$LUMEN_PATH/bin/anarch-pkg" add "${missing[@]}"
+}
+
+# in_terminal "$0" "$@" — rerun in a floating terminal when started from a
+# menu or key (no terminal to ask questions in).
+in_terminal() {
+  [[ -t 0 ]] && return 0
+  term --float --hold --title "an4rch" -- "$@"
+  exit 0
+}
+
 # is_server — installed as an4rch Server (no desktop).
 is_server() { [[ "$(cat "$LUMEN_CONFIG/edition" 2>/dev/null)" == server ]]; }
 
@@ -202,6 +220,7 @@ bar_signal() {
     record) n=10 ;;
     nightlight) n=11 ;;
     updates) n=12 ;;
+    focus) n=14 ;;
     *) return ;;
   esac
   pkill -RTMIN+"$n" waybar 2>/dev/null || true

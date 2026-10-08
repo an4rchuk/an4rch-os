@@ -135,10 +135,10 @@ def add(where, cmd):
 for f in [root / "bin/anarch-menu", *root.glob("apps/*/*.py"), root / "config/waybar/config.jsonc",
           root / "config/waybar/taskbar.jsonc", root / "default/hypr/binds.lua"]:
     text = f.read_text()
-    for m in re.finditer(r'\$bin/(anarch-[a-z-]+)', text): add(f.name, m.group(1))
-    for m in re.finditer(r'["\[]\s*"?(anarch-[a-z-]+)"', text): add(f.name, m.group(1))
-    for m in re.finditer(r'"on-click[a-z-]*":\s*"(anarch-[a-z-]+)', text): add(f.name, m.group(1))
-    for m in re.finditer(r'(?<![\w.])cmd\("([a-z-]+)"', text): add(f.name, "anarch-" + m.group(1))
+    for m in re.finditer(r'\$bin/(anarch-[a-z0-9-]+)', text): add(f.name, m.group(1))
+    for m in re.finditer(r'["\[]\s*"?(anarch-[a-z0-9-]+)"', text): add(f.name, m.group(1))
+    for m in re.finditer(r'"on-click[a-z-]*":\s*"(anarch-[a-z0-9-]+)', text): add(f.name, m.group(1))
+    for m in re.finditer(r'(?<![\w.])cmd\("([a-z0-9-]+)"', text): add(f.name, "anarch-" + m.group(1))
 for f in root.glob("share/applications/*.desktop"):
     m = re.search(r"^Exec=(\S+)", f.read_text(), re.M)
     if m: add(f.name, m.group(1))
@@ -226,6 +226,54 @@ if python3 -c 'import PIL' 2>/dev/null; then
 else
   printf '  - skipped (Pillow not installed)\n'
 fi
+
+step "Privacy, safety and other an4rch tools"
+# anarch carry: export, change a setting, import, and the setting is back.
+mkdir -p "$HOME/.config/lumen" "$HOME/.config/hypr"
+echo 'LUMEN_BROWSER=carry-test' >"$HOME/.config/lumen/settings.conf"
+echo '-- monitors here' >"$HOME/.config/hypr/monitors.lua"
+if "$root/bin/anarch-carry" export "$tmp/carry.tar.gz" >/dev/null 2>&1 &&
+  echo 'LUMEN_BROWSER=changed' >"$HOME/.config/lumen/settings.conf" &&
+  echo '-- this machine' >"$HOME/.config/hypr/monitors.lua" &&
+  script -qefc "$root/bin/anarch-carry import $tmp/carry.tar.gz" /dev/null </dev/null >/dev/null 2>&1 &&
+  grep -q carry-test "$HOME/.config/lumen/settings.conf" && grep -q 'this machine' "$HOME/.config/hypr/monitors.lua" &&
+  ls "$HOME"/.local/state/lumen/before-carry-*/.config/lumen/settings.conf >/dev/null 2>&1; then
+  ok "anarch carry: export and import round-trip (screen layout kept, old settings backed up)"
+else
+  bad "anarch carry round-trip"
+fi
+# An unsafe carry file is refused.
+mkdir -p "$tmp/evil/meta" && touch "$tmp/evil/meta/carry.conf" "$tmp/evil/escape"
+tar -C "$tmp/evil" -czf "$tmp/evil.tar.gz" meta escape
+if ! "$root/bin/anarch-carry" show "$tmp/evil.tar.gz" >/dev/null 2>&1; then ok "anarch carry refuses files outside home/ and meta/"; else bad "anarch carry accepted an unsafe file"; fi
+rm -f "$HOME/.config/lumen/settings.conf"
+
+# anarch a11y: text size steps, saved for the next login.
+if "$root/bin/anarch-a11y" text bigger >/dev/null && "$root/bin/anarch-a11y" text bigger >/dev/null &&
+  grep -qx 'TEXT=1.5' "$HOME/.config/lumen/a11y.conf" && "$root/bin/anarch-a11y" text reset >/dev/null &&
+  grep -qx 'TEXT=1.0' "$HOME/.config/lumen/a11y.conf"; then
+  ok "anarch a11y text sizes"
+else
+  bad "anarch a11y text sizes"
+fi
+if "$root/bin/anarch-a11y" contrast on >/dev/null 2>&1 && [[ "$("$root/bin/anarch-theme" current)" == high-contrast ]] &&
+  "$root/bin/anarch-a11y" contrast off >/dev/null 2>&1 && [[ "$("$root/bin/anarch-theme" current)" == an4rch ]]; then
+  ok "anarch a11y contrast on/off returns to the theme you had"
+else
+  bad "anarch a11y contrast"
+fi
+
+# The status JSON the top bar reads.
+for m in camera focus; do
+  if "$root/bin/anarch-status" "$m" | jq -e 'has("text") and has("class")' >/dev/null 2>&1; then ok "anarch-status $m"; else bad "anarch-status $m: not JSON"; fi
+done
+# Every new command has --help.
+for c in privacy panic vault sandbox scrub focus health carry a11y; do
+  if [[ -n "$("$root/bin/anarch-$c" --help 2>/dev/null | head -n1)" ]]; then :; else bad "anarch-$c --help"; fi
+done
+ok "--help for privacy, panic, vault, sandbox, scrub, focus, health, carry, a11y"
+# Vault names can't escape ~/.vaults.
+if ! "$root/bin/anarch-vault" open ../../etc >/dev/null 2>&1; then ok "anarch vault rejects odd names"; else bad "anarch vault accepted '../../etc'"; fi
 
 printf '\n'
 if [[ $failures -eq 0 ]]; then

@@ -131,4 +131,15 @@ else
   echo "Snapshots: skipped (root filesystem is not btrfs)"
 fi
 
+# --- Disk health ------------------------------------------------------------------------
+# smartd watches the drives for signs of failure (anarch health shows them);
+# on btrfs a monthly scrub finds and repairs silently damaged data.
+if pacman -S --needed --noconfirm smartmontools >/dev/null 2>&1; then
+  bash "$LUMEN_PATH/install/smartd.sh"
+  systemctl enable smartd.service >/dev/null 2>&1 || true
+fi
+if [[ "$(findmnt -no FSTYPE /)" == btrfs ]]; then
+  systemctl enable btrfs-scrub@-.timer >/dev/null 2>&1 || true
+fi
+
 echo "an4rch OS system layer applied."

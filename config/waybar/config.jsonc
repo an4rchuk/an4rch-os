@@ -15,6 +15,7 @@
   "modules-center": ["clock", "custom/reminders"],
   "modules-right": [
     "privacy",
+    "custom/camera",
     "custom/recording",
     "mpris",
     "group/status",
@@ -108,6 +109,22 @@
     ]
   },
 
+  // A camera indicator to sit with the microphone and screen-sharing ones.
+  "custom/camera": {
+    "exec": "anarch-status camera",
+    "return-type": "json",
+    "interval": 3,
+    "tooltip": true
+  },
+
+  "custom/focus": {
+    "exec": "anarch-status focus",
+    "return-type": "json",
+    "interval": 30,
+    "signal": 14,
+    "on-click": "anarch-focus stop"
+  },
+
   "custom/recording": {
     "exec": "anarch-status record",
     "return-type": "json",
@@ -130,7 +147,7 @@
 
   "group/status": {
     "orientation": "inherit",
-    "modules": ["custom/idle", "custom/nightlight", "custom/dnd", "custom/updates"]
+    "modules": ["custom/focus", "custom/idle", "custom/nightlight", "custom/dnd", "custom/updates"]
   },
 
   "custom/idle": {

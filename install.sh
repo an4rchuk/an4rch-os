@@ -330,6 +330,9 @@ install_configs() {
     return 0
   fi
   ok "Configs in ~/.config (hypr, waybar, fuzzel, mako, ghostty, …)"
+  # "Remove hidden data" in the file manager's right-click menu, and the daily health check.
+  "$LUMEN_PATH/bin/anarch-scrub" setup >/dev/null 2>&1 || true
+  "$LUMEN_PATH/bin/anarch-health" timer >/dev/null 2>&1 || true
 
   # Launchers and icons for an4rch's own apps (Start, App Store, Welcome, …).
   local data="${XDG_DATA_HOME:-$HOME/.local/share}"

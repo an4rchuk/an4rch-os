@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # anarch-status — JSON status for the custom top-bar modules.
 #
-#   anarch-status idle | nightlight | dnd | record | updates | reminders
+#   anarch-status idle | nightlight | dnd | record | updates | reminders | camera | focus
 set -uo pipefail
 source "${LUMEN_PATH:-$HOME/.local/share/lumen}/lib/lumen.sh"
 
@@ -46,5 +46,13 @@ case "${1:-}" in
       out "" none ""
     fi
     ;;
-  *) echo "usage: anarch-status idle|nightlight|dnd|record|updates|reminders" >&2; exit 1 ;;
+  camera)
+    # Which of your apps has a camera open right now.
+    users=$(find /proc/[0-9]*/fd -maxdepth 1 -lname '/dev/video*' 2>/dev/null | cut -d/ -f3 | sort -u |
+      while read -r pid; do cat "/proc/$pid/comm" 2>/dev/null; done | sort -u | tr '\n' ' ')
+    if [[ -n "${users// /}" ]]; then out "󰄀" on "Camera in use by: ${users% }"
+    else out "" off ""; fi
+    ;;
+  focus) exec "$LUMEN_PATH/bin/anarch-focus" status ;;
+  *) echo "usage: anarch-status idle|nightlight|dnd|record|updates|reminders|camera|focus" >&2; exit 1 ;;
 esac

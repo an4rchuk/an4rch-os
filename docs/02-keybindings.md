@@ -109,6 +109,7 @@ The modifiers follow one pattern: <kbd>SUPER</kbd> alone for apps and windows, <
 | Keys | Action |
 | --- | --- |
 | <kbd>SUPER</kbd> + <kbd>Esc</kbd> | Power menu |
+| <kbd>SUPER</kbd> + <kbd>SHIFT</kbd> + <kbd>Esc</kbd> | Panic: hide everything, close vaults, lock |
 | <kbd>SUPER</kbd> + <kbd>CTRL</kbd> + <kbd>L</kbd> | Lock screen |
 | <kbd>SUPER</kbd> + <kbd>CTRL</kbd> + <kbd>T</kbd> | Pick a theme |
 | <kbd>SUPER</kbd> + <kbd>CTRL</kbd> + <kbd>SHIFT</kbd> + <kbd>T</kbd> | Next theme |
@@ -117,6 +118,7 @@ The modifiers follow one pattern: <kbd>SUPER</kbd> alone for apps and windows, <
 | <kbd>SUPER</kbd> + <kbd>CTRL</kbd> + <kbd>N</kbd> | Toggle night light |
 | <kbd>SUPER</kbd> + <kbd>CTRL</kbd> + <kbd>I</kbd> | Keep awake (pause screen lock) |
 | <kbd>SUPER</kbd> + <kbd>CTRL</kbd> + <kbd>D</kbd> | Toggle Do Not Disturb |
+| <kbd>SUPER</kbd> + <kbd>CTRL</kbd> + <kbd>F</kbd> | Start / stop a 25-minute focus session |
 | <kbd>SUPER</kbd> + <kbd>CTRL</kbd> + <kbd>B</kbd> | Show or hide the top bar |
 | <kbd>SUPER</kbd> + <kbd>CTRL</kbd> + <kbd>G</kbd> | Toggle gaps and rounding |
 | <kbd>SUPER</kbd> + <kbd>CTRL</kbd> + <kbd>S</kbd> | Switch tiling / scrolling layout |
@@ -134,6 +136,8 @@ The modifiers follow one pattern: <kbd>SUPER</kbd> alone for apps and windows, <
 | <kbd>SUPER</kbd> + <kbd>ALT</kbd> + <kbd>T</kbd> | System monitor |
 | <kbd>SUPER</kbd> + <kbd>ALT</kbd> + <kbd>I</kbd> | Install apps |
 | <kbd>SUPER</kbd> + <kbd>ALT</kbd> + <kbd>U</kbd> | Update the system |
+| <kbd>SUPER</kbd> + <kbd>ALT</kbd> + <kbd>R</kbd> | Screen reader on / off |
+| <kbd>SUPER</kbd> + <kbd>ALT</kbd> + <kbd>P</kbd> | Privacy (hidden MAC, encrypted DNS, tracker blocking) |
 
 ## Hardware keys (work on the lock screen too)
 

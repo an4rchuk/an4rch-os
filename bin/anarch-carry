@@ -1,0 +1,176 @@
+#!/usr/bin/env bash
+# anarch-carry — take your whole setup to another computer in one file.
+#
+#   anarch-carry export [FILE]   save settings, themes, key bindings, web apps
+#                                and your list of installed apps
+#                                (default ~/an4rch-carry-HOST-DATE.tar.gz)
+#   anarch-carry import FILE     bring them in on this computer (what's here is
+#                                backed up first) and offer to install the apps
+#   anarch-carry show FILE       what's inside, without changing anything
+#
+# Not included: passwords, keys (~/.ssh, ~/.gnupg) and your documents —
+# copy those yourself. Screen layout (monitors.lua) is skipped on import
+# unless you add --all.
+set -euo pipefail
+source "${LUMEN_PATH:-$HOME/.local/share/lumen}/lib/lumen.sh"
+
+cfg="${XDG_CONFIG_HOME:-$HOME/.config}"
+data="${XDG_DATA_HOME:-$HOME/.local/share}"
+work=$(mktemp -d)
+trap 'rm -rf "$work"' EXIT
+
+# Paths relative to $HOME that go in the file (when they exist).
+carried() {
+  local f rel
+  (cd "$LUMEN_PATH/config" && find . -type f) | while read -r rel; do
+    rel="${rel#./}"
+    case "$rel" in
+      zsh/zshrc) echo ".zshrc" ;;
+      zsh/zprofile) echo ".zprofile" ;;
+      bash/bashrc) echo ".bashrc" ;;
+      bash/bash_profile) echo ".bash_profile" ;;
+      *) echo "${cfg#"$HOME/"}/$rel" ;;
+    esac
+  done
+  # User additions next to the shipped files.
+  for f in "$cfg"/hypr/*.lua "$cfg"/hypr/*.conf; do [[ -f "$f" ]] && echo "${f#"$HOME/"}"; done
+  (cd "$HOME" && find "${cfg#"$HOME/"}/lumen" -type f \
+    -not -path '*/current/theme/*' -not -name '*.lock' 2>/dev/null) || true
+  for f in "$data"/applications/lumen-webapp-*.desktop "$data"/icons/lumen-webapps/* "$HOME/.gitconfig" \
+    "$data/nautilus/scripts/Remove hidden data"; do
+    [[ -f "$f" ]] && echo "${f#"$HOME/"}"
+  done
+  return 0
+}
+
+export_() {
+  local out="${1:-$HOME/an4rch-carry-$(hostname -s 2>/dev/null || cat /etc/hostname)-$(date +%Y%m%d).tar.gz}"
+  local stage="$work/out"
+  mkdir -p "$stage/home" "$stage/meta"
+  carried | sort -u | while read -r rel; do
+    [[ -f "$HOME/$rel" ]] || continue
+    mkdir -p "$stage/home/$(dirname "$rel")"
+    cp -p "$HOME/$rel" "$stage/home/$rel"
+  done
+  # Apps you installed yourself (not ones that came with another package).
+  pacman -Qqen 2>/dev/null >"$stage/meta/packages.txt" || true
+  pacman -Qqem 2>/dev/null >"$stage/meta/aur.txt" || true
+  if has flatpak; then flatpak list --app --columns=application 2>/dev/null >"$stage/meta/flatpaks.txt" || true; fi
+  {
+    echo "an4rch=$(cat "$LUMEN_PATH/VERSION" 2>/dev/null || echo dev)"
+    echo "made=$(date -Is)"
+    echo "host=$(hostname 2>/dev/null || cat /etc/hostname)"
+    echo "theme=$(theme_current)"
+    echo "edition=$(cat "$cfg/lumen/edition" 2>/dev/null || echo desktop)"
+  } >"$stage/meta/carry.conf"
+  tar -C "$stage" -czf "$out" home meta
+  echo "✓ Saved $(find "$stage/home" -type f | wc -l) settings files and $(cat "$stage/meta/"*.txt 2>/dev/null | wc -l) app names"
+  echo "  $out"
+  echo "  On the other computer: anarch carry import $(basename "$out")"
+}
+
+# unpack FILE — into $work/in, checked.
+unpack() {
+  local file="$1" dir="$work/in"
+  [[ -f "$file" ]] || die "No such file: $file"
+  # Nothing may land outside the home folder: check before extracting.
+  tar -tzf "$file" >"$work/list" 2>/dev/null || die "That isn't an an4rch carry file"
+  if grep -qvE '^(\./)?(home|meta)(/|$)' "$work/list" || grep -qE '(^|/)\.\.(/|$)' "$work/list"; then
+    die "This file contains unsafe paths; not using it"
+  fi
+  mkdir -p "$dir"
+  tar -C "$dir" --no-same-owner -xzf "$file" || die "That isn't an an4rch carry file"
+  [[ -f "$dir/meta/carry.conf" ]] || die "That isn't an an4rch carry file"
+  if find "$dir" -type l -o -type b -o -type c -o -type p | grep -q .; then
+    die "This file contains links or devices; not using it"
+  fi
+}
+
+show() {
+  local dir="$work/in"
+  unpack "$1"
+  sed 's/^/  /' "$dir/meta/carry.conf"
+  echo
+  echo "Settings files:"
+  (cd "$dir/home" && find . -type f | sed 's|^\./|  ~/|' | sort)
+  echo
+  printf 'Apps: %s from the repositories, %s from the AUR, %s Flatpaks\n' \
+    "$(wc -l <"$dir/meta/packages.txt" 2>/dev/null || echo 0)" \
+    "$(wc -l <"$dir/meta/aur.txt" 2>/dev/null || echo 0)" \
+    "$(wc -l <"$dir/meta/flatpaks.txt" 2>/dev/null || echo 0)"
+}
+
+import_() {
+  local file="" all=0 yes=0 a
+  for a in "$@"; do
+    case "$a" in
+      --all) all=1 ;;
+      --yes) yes=1 ;;
+      *) file="$a" ;;
+    esac
+  done
+  [[ -n "$file" ]] || die "usage: anarch-carry import FILE [--all] [--yes]"
+  local dir="$work/in" backup rel n=0
+  unpack "$file"
+  backup="$LUMEN_STATE/before-carry-$(date +%Y%m%d-%H%M%S)"
+  while IFS= read -r -d '' rel; do
+    rel="${rel#./}"
+    [[ $all -eq 0 && "$rel" == */hypr/monitors.lua ]] && continue
+    if [[ -f "$HOME/$rel" ]]; then
+      mkdir -p "$backup/$(dirname "$rel")"
+      cp -p "$HOME/$rel" "$backup/$rel"
+    fi
+    mkdir -p "$HOME/$(dirname "$rel")"
+    cp "$dir/home/$rel" "$HOME/$rel"
+    n=$((n + 1))
+  done < <(cd "$dir/home" && find . -type f -print0)
+  echo "✓ $n settings files brought in (what was here is in $backup)"
+  [[ -x "$data/nautilus/scripts/Remove hidden data" ]] || chmod +x "$data/nautilus/scripts/Remove hidden data" 2>/dev/null || true
+  update-desktop-database -q "$data/applications" 2>/dev/null || true
+
+  # The apps.
+  local want=() missing=() p
+  [[ -f "$dir/meta/packages.txt" ]] && mapfile -t want <"$dir/meta/packages.txt"
+  [[ -f "$dir/meta/aur.txt" ]] && mapfile -t -O "${#want[@]}" want <"$dir/meta/aur.txt"
+  for p in "${want[@]}"; do [[ -n "$p" ]] && ! pacman -Q "$p" >/dev/null 2>&1 && missing+=("$p"); done
+  local flat=()
+  if [[ -s "$dir/meta/flatpaks.txt" ]]; then
+    while read -r p; do
+      [[ -n "$p" ]] || continue
+      flatpak info "$p" >/dev/null 2>&1 || flat+=("$p")
+    done <"$dir/meta/flatpaks.txt"
+  fi
+  if ((${#missing[@]} + ${#flat[@]})); then
+    echo
+    echo "Apps from the other computer that aren't here: ${#missing[@]} packages, ${#flat[@]} Flatpaks"
+    printf '  %s\n' "${missing[@]}" "${flat[@]}" | head -n 40
+    local go=$yes
+    if ((!yes)) && [[ -t 0 ]]; then
+      read -rp "Install them now? [Y/n] " a
+      [[ "${a,,}" != n* ]] && go=1
+    fi
+    if ((go)); then
+      # One at a time would be slow; but one missing name mustn't stop the rest.
+      ((${#missing[@]})) && { "$LUMEN_PATH/bin/anarch-pkg" add "${missing[@]}" || echo "! some packages couldn't be installed"; }
+      if ((${#flat[@]})) && has flatpak; then
+        flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+        flatpak install --user -y --noninteractive flathub "${flat[@]}" || echo "! some Flatpaks couldn't be installed"
+      fi
+    fi
+  fi
+
+  # Apply the look.
+  if ! is_server && [[ -n "${WAYLAND_DISPLAY:-}" ]]; then
+    "$LUMEN_PATH/bin/anarch-theme" set "$(theme_current)" >/dev/null 2>&1 || true
+    hyprctl reload >/dev/null 2>&1 || true
+  fi
+  echo "✓ Done. Log out and back in to be sure everything is picked up."
+}
+
+case "${1:-}" in
+  export) shift; export_ "$@" ;;
+  import) shift; in_terminal "$0" import "$@"; import_ "$@" ;;
+  show) shift; [[ $# -gt 0 ]] || die "usage: anarch-carry show FILE"; show "$1" ;;
+  "" | -h | --help | help) sed -n '2,14s/^# \{0,1\}//p' "$0" ;;
+  *) die "Unknown option '$1'. See: anarch-carry --help" ;;
+esac

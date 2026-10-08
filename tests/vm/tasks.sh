@@ -320,6 +320,77 @@ if nmcli -t -f STATE general 2>/dev/null | grep -q '^connected'; then
 fi
 task "text editor and camera installed" bash -c 'command -v gnome-text-editor && command -v snapshot'
 
+# --- Privacy, safety and the other an4rch tools ------------------------------------------
+# root_cli NAME CMD... — like cli, as root (the commands use sudo).
+root_cli() {
+  local name="$1"
+  shift
+  task "$name" script -qefc "env LUMEN_PATH=$lumen HOME=/root $(printf '%q ' "$@")" /dev/null
+}
+cli "anarch health" anarch health
+if ! systemctl is-failed -q smartd 2>/dev/null; then result "drive monitoring (smartd) not failed" PASS "$(systemctl is-active smartd)"; else result "drive monitoring (smartd) not failed" FAIL; fi
+if [[ "$(findmnt -no FSTYPE /)" == btrfs ]]; then
+  task "monthly btrfs scrub timer" systemctl is-enabled btrfs-scrub@-.timer
+fi
+task "daily health check timer" as_user systemctl --user is-enabled lumen-health.timer
+task "'Remove hidden data' in Files" test -x "$home/.local/share/nautilus/scripts/Remove hidden data"
+
+# Remove hidden data: a PNG with an author in it comes out without it.
+as_user python3 -c '
+from PIL import Image, PngImagePlugin
+info = PngImagePlugin.PngInfo(); info.add_text("Author", "secret-author")
+Image.new("RGB", (64, 64), "red").save("/tmp/scrub.png", pnginfo=info)'
+task "anarch scrub removes hidden data" as_user bash -c 'anarch scrub --show /tmp/scrub.png | grep -q secret-author && anarch scrub --inplace /tmp/scrub.png && ! anarch scrub --show /tmp/scrub.png | grep -q secret-author'
+
+# Vaults: make one, put a file in, close it: only scrambled names remain.
+printf 'vm-vault-password\n' >/tmp/vault-pass && chmod 644 /tmp/vault-pass
+task "anarch vault new + open" as_user env LUMEN_VAULT_PASSFILE=/tmp/vault-pass bash -c 'anarch vault new vmtest && anarch vault open vmtest && echo hello >~/Vaults/vmtest/note.txt && mountpoint -q ~/Vaults/vmtest'
+task "anarch vault close (encrypted at rest)" as_user bash -c 'anarch vault close vmtest && ! mountpoint -q ~/Vaults/vmtest && ! ls ~/Vaults/vmtest/note.txt 2>/dev/null && ! grep -rq hello ~/.vaults/vmtest && ! find ~/.vaults/vmtest -name "note.txt" | grep -q .'
+as_user env LUMEN_VAULT_PASSFILE=/tmp/vault-pass anarch vault open vmtest >/dev/null 2>&1
+
+# Carry: save the setup, change a setting, bring the setup back.
+task "anarch carry export + import" as_user script -qefc 'anarch carry export /tmp/carry.tar.gz && cp ~/.config/hypr/looks.lua /tmp/looks.before && echo "-- changed" >>~/.config/hypr/looks.lua && anarch carry import /tmp/carry.tar.gz --yes && cmp -s ~/.config/hypr/looks.lua /tmp/looks.before' /dev/null
+
+# Focus: notifications off with a countdown, then back on.
+cli "anarch focus 1" anarch focus 1
+sleep 3
+if as_user anarch-status focus | grep -q '1m' && as_user makoctl mode | grep -qx do-not-disturb; then
+  result "focus session: countdown and Do Not Disturb" PASS
+else
+  result "focus session: countdown and Do Not Disturb" FAIL "$(as_user anarch-status focus) / $(as_user makoctl mode | tr '\n' ' ')"
+fi
+shot 19a-focus
+cli "anarch focus stop" anarch focus stop
+if ! as_user makoctl mode | grep -qx do-not-disturb; then result "focus session ends cleanly" PASS; else result "focus session ends cleanly" FAIL; fi
+
+# Accessibility: bigger text and cursor, then the high contrast theme.
+cli "anarch a11y text bigger" anarch a11y text bigger
+cli "anarch a11y cursor big" anarch a11y cursor big
+if [[ "$(as_user gsettings get org.gnome.desktop.interface text-scaling-factor)" == 1.25 ]]; then result "text size 125%" PASS; else result "text size 125%" FAIL; fi
+cli "anarch a11y contrast on" anarch a11y contrast on
+sleep 3
+shot 19b-high-contrast
+cli "anarch a11y contrast off" anarch a11y contrast off
+as_user anarch a11y text reset >/dev/null 2>&1
+as_user anarch a11y cursor normal >/dev/null 2>&1
+
+# Privacy (needs the internet for the blocklist and encrypted DNS).
+if nmcli -t -f STATE general 2>/dev/null | grep -q '^connected'; then
+  root_cli "anarch privacy on" "$lumen/bin/anarch-privacy" on
+  sleep 3
+  task "privacy: encrypted DNS in use" bash -c 'resolvectl status | grep -q "+DNSOverTLS" && getent hosts archlinux.org'
+  task "privacy: trackers blocked" bash -c 'getent hosts doubleclick.net | grep -q "^0\.0\.0\.0"'
+  task "privacy: hidden hardware address set" test -f /etc/NetworkManager/conf.d/50-lumen-privacy-mac.conf
+  cli "anarch privacy status" anarch privacy status
+  root_cli "anarch privacy off" "$lumen/bin/anarch-privacy" off
+  sleep 3
+  task "privacy off: names still resolve" bash -c '! grep -q "an4rch blocklist" /etc/hosts && getent hosts archlinux.org'
+  # A sandboxed app sees an empty home and, offline, no network.
+  if pacman -S --needed --noconfirm firejail >/dev/null 2>&1; then
+    cli "anarch sandbox (no files, no network)" anarch sandbox --offline bash -c 'test ! -e ~/.config/lumen && ! curl -s --max-time 5 https://archlinux.org >/dev/null'
+  fi
+fi
+
 # --- NVIDIA driver (installed with lumen.gpu=nvidia; this VM has no NVIDIA card) ----------
 # Without an NVIDIA card, NVIDIA's libraries must not have been pulled in.
 if ! pacman -Q nvidia-open-dkms >/dev/null 2>&1; then
@@ -425,6 +496,21 @@ pkill -x firefox
 pkill -x nautilus
 pkill -f gnome-calculator
 sleep 2
+# The panic key: locks, closes vaults, wipes the clipboard and mutes.
+as_user wl-copy "panic-clipboard-test"
+keys meta_l-shift-esc
+sleep 6
+if pgrep -x hyprlock >/dev/null; then result "panic key locks the screen" PASS; else result "panic key locks the screen" FAIL; fi
+if ! mountpoint -q "$home/Vaults/vmtest"; then result "panic key closes vaults" PASS; else result "panic key closes vaults" FAIL; fi
+if [[ "$(as_user wl-paste -n 2>/dev/null)" != panic-clipboard-test ]]; then result "panic key wipes the clipboard" PASS; else result "panic key wipes the clipboard" FAIL; fi
+if as_user wpctl get-volume @DEFAULT_AUDIO_SOURCE@ 2>/dev/null | grep -q MUTED || ! as_user wpctl status 2>/dev/null | grep -q Sources; then result "panic key mutes the microphone" PASS; else result "panic key mutes the microphone" FAIL "$(as_user wpctl get-volume @DEFAULT_AUDIO_SOURCE@ 2>&1)"; fi
+shot 20b-panic
+type_text "lumen"
+keys ret
+sleep 5
+as_user wpctl set-mute @DEFAULT_AUDIO_SINK@ 0 2>/dev/null
+as_user wpctl set-mute @DEFAULT_AUDIO_SOURCE@ 0 2>/dev/null
+
 loginctl lock-sessions
 sleep 6
 if pgrep -x hyprlock >/dev/null; then result "lock screen" PASS; else result "lock screen" FAIL; fi

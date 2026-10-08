@@ -84,6 +84,7 @@ PKGS_OPTIONAL=(
   loupe mpv evince gnome-calculator gnome-disk-utility gnome-system-monitor gnome-text-editor snapshot
   flatpak fwupd pacman-contrib pciutils
   gtk4-layer-shell
+  gocryptfs mat2 smartmontools lm_sensors
   bibata-cursor-theme-bin
 )
 
@@ -126,6 +127,10 @@ PKGS_X_BACKUP=(deja-dup)
 PKGS_X_OFFICE=(libreoffice-fresh hunspell-en_gb hunspell-en_us)
 PKGS_X_HANDHELD=(hhd)
 PKGS_X_CONTROLLERS=(game-devices-udev)
+
+# Privacy, safety and accessibility (anarch sandbox, anarch a11y)
+PKGS_FEAT_SANDBOX=(firejail)
+PKGS_FEAT_A11Y=(orca)
 
 # anarch-dev (development environment)
 PKGS_DEV_BASE=(mise github-cli lazygit)

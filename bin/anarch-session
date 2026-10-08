@@ -48,6 +48,8 @@ start() {
   [[ -d "$LUMEN_CURRENT/theme" ]] || "$LUMEN_PATH/bin/anarch-theme" set lumen
 
   "$LUMEN_PATH/bin/anarch-wallpaper" restore
+  # Accessibility choices (text and cursor size, screen reader…).
+  "$LUMEN_PATH/bin/anarch-a11y" apply &
   "$LUMEN_PATH/bin/anarch-login" sync >/dev/null 2>&1 &
   pgrep -fx '(/usr/bin/)?waybar' >/dev/null || launch waybar
   "$LUMEN_PATH/bin/anarch-taskbar" start

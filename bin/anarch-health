@@ -1,0 +1,187 @@
+#!/usr/bin/env bash
+# anarch-health — is this computer healthy? Drives, filesystem, space, battery, services.
+#
+#   anarch-health           a report, with a verdict for each part
+#   anarch-health setup     turn on drive monitoring (smartd), the monthly
+#                           btrfs scrub and the daily check below
+#   anarch-health timer     only the daily check (no administrator rights needed)
+#   anarch-health check     check quietly; a notification only if something's wrong
+#                           (runs daily once set up)
+#
+# Drive details need administrator rights; the report asks for your password
+# once (or shows what it can without).
+set -uo pipefail
+source "${LUMEN_PATH:-$HOME/.local/share/lumen}/lib/lumen.sh"
+
+good() { printf '  \e[32m✓\e[0m %-18s %s\n' "$1" "$2"; }
+warn() { printf '  \e[33m!\e[0m %-18s %s\n' "$1" "$2"; problems+=("$1: $2"); }
+info() { printf '  \e[2m·\e[0m %-18s %s\n' "$1" "$2"; }
+problems=()
+
+# Run as root when we can without asking (report: we ask once up front).
+asroot() { if [[ $EUID -eq 0 ]]; then "$@"; else sudo -n "$@"; fi; }
+
+disks() { lsblk -dno NAME,TYPE 2>/dev/null | awk '$2=="disk" && $1 !~ /^(zram|loop|sr)/ {print $1}'; }
+
+check_drives() {
+  local d out
+  if ! has smartctl; then info "Drives" "drive monitoring isn't installed (anarch health setup)"; return; fi
+  for d in $(disks); do
+    if ! out=$(asroot smartctl -H -A "/dev/$d" 2>/dev/null) && [[ -z "$out" ]]; then
+      info "/dev/$d" "needs administrator rights to read"
+      continue
+    fi
+    if grep -qiE 'SMART overall-health self-assessment test result: PASSED|SMART Health Status: OK' <<<"$out"; then
+      local wear
+      wear=$(sed -n 's/^Percentage Used:[[:space:]]*\([0-9]*\)%.*/\1/p' <<<"$out")
+      if [[ -n "$wear" ]] && ((wear >= 90)); then warn "/dev/$d" "worn out ($wear% of its rated life used): back it up and replace it soon"
+      elif [[ -n "$wear" ]]; then good "/dev/$d" "healthy ($wear% of its rated life used)"
+      else good "/dev/$d" "healthy"; fi
+      local realloc
+      realloc=$(awk '$2=="Reallocated_Sector_Ct" {print $10}' <<<"$out")
+      [[ -n "$realloc" && "$realloc" != 0 ]] && warn "/dev/$d" "$realloc bad sectors replaced: watch this drive"
+    elif grep -qiE 'FAILED|FAILING' <<<"$out"; then
+      warn "/dev/$d" "THE DRIVE REPORTS IT IS FAILING: back up now"
+    else
+      info "/dev/$d" "doesn't report health (virtual drive or USB adapter)"
+    fi
+  done
+}
+
+check_filesystem() {
+  local fs
+  fs=$(findmnt -no FSTYPE /)
+  if [[ "$fs" != btrfs ]]; then info "Filesystem" "$fs (no checksums to verify)"; return; fi
+  local stats errs scrub
+  if stats=$(asroot btrfs device stats / 2>/dev/null); then
+    errs=$(awk '{s += $2} END {print s+0}' <<<"$stats")
+    if ((errs > 0)); then warn "Filesystem" "btrfs has recorded $errs errors (sudo btrfs device stats /)"
+    else good "Filesystem" "btrfs, no errors recorded"; fi
+  else
+    info "Filesystem" "btrfs (errors need administrator rights to read)"
+  fi
+  scrub=$(asroot btrfs scrub status / 2>/dev/null | sed -n 's/^Scrub started:[[:space:]]*//p')
+  if [[ -n "$scrub" ]]; then info "Last scrub" "$scrub"
+  elif systemctl is-enabled -q btrfs-scrub@-.timer 2>/dev/null; then info "Last scrub" "not yet (monthly)"
+  else info "Last scrub" "never — turn it on: anarch health setup"; fi
+}
+
+check_space() {
+  local used avail target
+  while read -r target used avail; do
+    [[ -n "$target" ]] || continue
+    used=${used%\%}
+    if ((used >= 95)); then warn "Space $target" "$used% full ($avail free): clean up (anarch pkg clean, empty Trash)"
+    elif ((used >= 85)); then warn "Space $target" "$used% full ($avail free)"
+    else good "Space $target" "$used% used, $avail free"; fi
+  done < <(df -h --output=target,pcent,avail / /home 2>/dev/null | tail -n +2 | sort -u)
+}
+
+check_battery() {
+  local b full design pct cycles
+  for b in /sys/class/power_supply/BAT*; do
+    [[ -d "$b" ]] || continue
+    full=$(cat "$b/energy_full" 2>/dev/null || cat "$b/charge_full" 2>/dev/null) || continue
+    design=$(cat "$b/energy_full_design" 2>/dev/null || cat "$b/charge_full_design" 2>/dev/null) || continue
+    ((design > 0)) || continue
+    pct=$((full * 100 / design))
+    cycles=$(cat "$b/cycle_count" 2>/dev/null || echo "?")
+    if ((pct < 60)); then warn "Battery ${b##*/}" "holds $pct% of its original charge ($cycles cycles): consider replacing"
+    else good "Battery ${b##*/}" "holds $pct% of its original charge ($cycles cycles)"; fi
+  done
+}
+
+check_services() {
+  local failed
+  failed=$(systemctl --failed --no-legend --plain 2>/dev/null | awk '{print $1}' | tr '\n' ' ')
+  if [[ -n "${failed// /}" ]]; then warn "Services" "failed: $failed(journalctl -u NAME)"
+  else good "Services" "none failed"; fi
+  failed=$(systemctl --user --failed --no-legend --plain 2>/dev/null | awk '{print $1}' | tr '\n' ' ')
+  [[ -n "${failed// /}" ]] && warn "Your services" "failed: $failed"
+  if has journalctl && journalctl -b -u smartd --no-pager -q 2>/dev/null | grep -qiE 'FAILED|prefail|Currently unreadable'; then
+    warn "smartd" "warnings this boot: journalctl -u smartd"
+  fi
+}
+
+check_temps() {
+  has sensors || return 0
+  local hot
+  hot=$(sensors 2>/dev/null | awk '/°C/ {gsub(/[+°C]/,"",$2); if ($2+0 >= 90) print $1 " " $2 "°C"}' | head -n 3 | tr '\n' ' ')
+  [[ -n "$hot" ]] && warn "Temperature" "running hot: $hot"
+}
+
+report() {
+  printf '\e[1man4rch health\e[0m  %s\n\n' "$(date '+%F %H:%M')"
+  if [[ $EUID -ne 0 ]] && [[ -t 0 ]]; then sudo -v 2>/dev/null || true; fi
+  check_drives
+  check_filesystem
+  check_space
+  check_battery
+  check_services
+  check_temps
+  echo
+  if ((${#problems[@]})); then printf '\e[33m%d thing(s) need attention.\e[0m\n' "${#problems[@]}"
+  else printf '\e[32mAll good.\e[0m\n'; fi
+}
+
+# The daily check, as a systemd user timer.
+timer() {
+  local units="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user"
+  mkdir -p "$units"
+  cat >"$units/lumen-health.service" <<EOF
+[Unit]
+Description=an4rch daily health check
+
+[Service]
+Type=oneshot
+ExecStart=$LUMEN_PATH/bin/anarch-health check
+EOF
+  cat >"$units/lumen-health.timer" <<'EOF'
+[Unit]
+Description=an4rch daily health check
+
+[Timer]
+OnStartupSec=15min
+OnUnitActiveSec=1d
+
+[Install]
+WantedBy=timers.target
+EOF
+  systemctl --user daemon-reload 2>/dev/null
+  systemctl --user enable --now lumen-health.timer >/dev/null 2>&1 ||
+    { mkdir -p "$units/timers.target.wants" && ln -sf ../lumen-health.timer "$units/timers.target.wants/lumen-health.timer"; }
+}
+
+setup() {
+  need smartmontools
+  sudo bash "$LUMEN_PATH/install/smartd.sh"
+  sudo systemctl enable --now smartd.service
+  if [[ "$(findmnt -no FSTYPE /)" == btrfs ]]; then sudo systemctl enable --now btrfs-scrub@-.timer; fi
+  sudo systemctl enable --now fstrim.timer 2>/dev/null || true
+  timer
+  echo "✓ Drive monitoring, monthly scrub and a daily check are on"
+}
+
+case "${1:-}" in
+  "" | report)
+    [[ -t 1 ]] || { term --float --hold --title "an4rch health" -- "$0"; exit 0; }
+    report
+    ;;
+  check)
+    check_space >/dev/null
+    check_battery >/dev/null
+    check_services >/dev/null
+    check_temps >/dev/null
+    check_drives >/dev/null
+    check_filesystem >/dev/null
+    if ((${#problems[@]})); then
+      notify "Your computer needs attention" "$(printf '%s\n' "${problems[@]}" | head -n 4)
+Details: anarch health" -u critical -i dialog-warning
+    fi
+    # (Not an error exit: that would list this check itself as a failed service.)
+    ;;
+  setup) setup ;;
+  timer) timer ;;
+  -h | --help | help) sed -n '2,12s/^# \{0,1\}//p' "$0" ;;
+  *) die "Unknown option '$1'. See: anarch-health --help" ;;
+esac

@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+# anarch-focus — a focus session: notifications off and a countdown in the top bar.
+#
+#   anarch-focus [MINUTES]   start one (default 25), or end the one running
+#   anarch-focus stop        end it early
+#   anarch-focus status      minutes left (for the top bar)
+#
+# When it ends, notifications come back and a chime tells you to take a break.
+set -euo pipefail
+source "${LUMEN_PATH:-$HOME/.local/share/lumen}/lib/lumen.sh"
+
+mkdir -p "$LUMEN_STATE"
+end_file="$LUMEN_STATE/focus-until"
+unit=lumen-focus
+
+running() { [[ -f "$end_file" ]] && (($(cat "$end_file") > $(date +%s))); }
+
+start() {
+  local min="$1"
+  if ! [[ "$min" =~ ^[0-9]+$ ]] || ((min < 1 || min > 600)); then die "Minutes must be 1 to 600 (got '$min')"; fi
+  systemctl --user stop "$unit.timer" "$unit.service" >/dev/null 2>&1 || true
+  echo $(($(date +%s) + min * 60)) >"$end_file"
+  "$LUMEN_PATH/bin/anarch-toggle" dnd on >/dev/null 2>&1 || true
+  systemd-run --user --quiet --unit "$unit" --on-active="${min}m" --timer-property=AccuracySec=1s \
+    "$LUMEN_PATH/bin/anarch-focus" over >/dev/null 2>&1 ||
+    die "Couldn't start the timer"
+  bar_signal focus
+  echo "✓ Focus for $min minutes (until $(date -d "@$(cat "$end_file")" +%H:%M))"
+}
+
+finish() {
+  local how="$1"
+  rm -f "$end_file"
+  [[ "$how" == over ]] || systemctl --user stop "$unit.timer" >/dev/null 2>&1 || true
+  "$LUMEN_PATH/bin/anarch-toggle" dnd off >/dev/null 2>&1 || true
+  bar_signal focus
+  if [[ "$how" == over ]]; then
+    notify "Focus session done" "Nice work. Stand up, stretch, look at something far away." -i alarm -u critical
+    local chime=/usr/share/sounds/freedesktop/stereo/complete.oga
+    [[ -f "$chime" ]] && has pw-play && pw-play "$chime" 2>/dev/null &
+  else
+    echo "✓ Focus session ended"
+  fi
+  return 0
+}
+
+case "${1:-}" in
+  "")
+    if running; then finish stop; else start 25; fi
+    ;;
+  stop | end) finish stop ;;
+  over) finish over ;;
+  status)
+    if running; then
+      left=$((($(cat "$end_file") - $(date +%s) + 59) / 60))
+      jq -cn --arg t "󰀘 ${left}m" --arg tt "Focus: $left min left — click to stop" '{text: $t, class: "on", alt: "on", tooltip: $tt}'
+    else
+      jq -cn '{text: "", class: "off", alt: "off", tooltip: ""}'
+    fi
+    ;;
+  -h | --help | help) sed -n '2,8s/^# \{0,1\}//p' "$0" ;;
+  *) start "$1" ;;
+esac
