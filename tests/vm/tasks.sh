@@ -23,7 +23,14 @@ pass=0 fail=0
 say() { printf '%s\n' "$*"; }
 shot() { say "E2E-SHOT $1"; sleep 9; }
 keys() { say "E2E-KEYS $*"; sleep 4; }
-type_text() { say "E2E-TYPE $1"; sleep $((${#1} / 3 + 4)); }
+# QEMU types US key positions, so typing needs a US layout for the moment
+# (Dvorak would turn "calc" into something else); the installed layout is
+# checked from the config files, and comes back with the next config reload.
+type_text() {
+  as_user hyprctl eval 'hl.config({ input = { kb_layout = "us", kb_variant = "" } })' >/dev/null 2>&1 || true
+  say "E2E-TYPE $1"
+  sleep $((${#1} / 3 + 4))
+}
 result() {
   if [[ "$2" == PASS ]]; then pass=$((pass + 1)); else fail=$((fail + 1)); fi
   say "E2E-RESULT $1 $2 ${3:-}"
