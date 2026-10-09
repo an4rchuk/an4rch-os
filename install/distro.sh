@@ -19,6 +19,27 @@ bash "$LUMEN_PATH/install/branding.sh"
 bash "$LUMEN_PATH/install/enable-multilib.sh"
 pacman -S --needed --noconfirm plymouth zram-generator pacman-contrib arch-install-scripts >/dev/null
 
+# --- Automatic recovery from a bad kernel update ---------------------------------------
+# systemd-boot boot counting: after a kernel update the main entry gets three
+# tries; if they all fail, the fallback (LTS) entry starts instead.
+install -Dm755 "$LUMEN_PATH/share/recover/arm-bootcount" /usr/local/lib/lumen/arm-bootcount
+install -d /etc/pacman.d/hooks
+cat >/etc/pacman.d/hooks/95-lumen-bootcount.hook <<'HOOK'
+[Trigger]
+Operation = Install
+Operation = Upgrade
+Type = Package
+Target = linux
+Target = linux-lts
+Target = linux-zen
+Target = linux-hardened
+
+[Action]
+Description = Giving the updated kernel three tries before falling back...
+When = PostTransaction
+Exec = /usr/local/lib/lumen/arm-bootcount
+HOOK
+
 # --- Boot splash --------------------------------------------------------------------
 # The an4rch logo on black, and the disk password in the same style.
 bash "$LUMEN_PATH/install/plymouth.sh"

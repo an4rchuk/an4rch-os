@@ -1,0 +1,23 @@
+#!/bin/bash
+# lumen-recover — undo the last update when the login screen asks (after the
+# desktop failed to start twice and an administrator confirmed with their
+# password). Run as root by lumen-recover.service when the login screen
+# writes /var/cache/lumen-greeter/undo-request.
+set -uo pipefail
+req=/var/cache/lumen-greeter/undo-request
+[[ -f "$req" ]] || exit 0
+user=$(sed -n 's/^user=//p' "$req" | head -n1)
+when=$(sed -n 's/^time=//p' "$req" | head -n1)
+rm -f "$req"
+# A fresh request, from an administrator of this computer.
+[[ "$user" =~ ^[a-z_][a-z0-9_-]*$ && "$when" =~ ^[0-9]+$ ]] || exit 1
+(($(date +%s) - when < 120)) || exit 1
+id -nG "$user" 2>/dev/null | grep -qw wheel || exit 1
+home=$(getent passwd "$user" | cut -d: -f6)
+lumen="$home/.local/share/lumen"
+[[ -x "$lumen/bin/anarch-snapshot" ]] || exit 1
+echo "Undoing the last update for $user"
+if LUMEN_YES=1 LUMEN_PATH="$lumen" HOME=/root "$lumen/bin/anarch-snapshot" undo; then
+  echo "Rolled back; restarting"
+  systemctl reboot
+fi

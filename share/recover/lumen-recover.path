@@ -1,0 +1,8 @@
+[Unit]
+Description=an4rch: undo the last update when the login screen asks
+
+[Path]
+PathExists=/var/cache/lumen-greeter/undo-request
+
+[Install]
+WantedBy=multi-user.target

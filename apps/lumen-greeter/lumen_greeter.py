@@ -11,12 +11,14 @@ password together: type the password, press Enter.
 """
 from __future__ import annotations
 
+import grp
 import json
 import os
 import pwd
 import subprocess
 import sys
 import threading
+import time
 from configparser import ConfigParser
 from pathlib import Path
 
@@ -75,6 +77,19 @@ def remembered() -> dict:
         return {}
 
 
+# The desktop "crashed" when the login screen is back within this many
+# seconds of starting it; twice in a row, it offers to undo the last update.
+CRASH_SECONDS = 30
+
+
+def crashes_so_far() -> int:
+    state = remembered()
+    started = state.get("started", 0)
+    n = state.get("crashes", 0) + 1 if started and time.time() - started < CRASH_SECONDS else 0
+    remember(crashes=n, started=0)
+    return n
+
+
 def remember(**kv) -> None:
     try:
         state = remembered() | kv
@@ -89,6 +104,7 @@ class Greeter(Gtk.ApplicationWindow):
         super().__init__(application=app, title="an4rch")
         self.people = people()
         self.sessions = sessions()
+        self.crashes = 0 if DEMO and "--crashed" not in sys.argv else (2 if DEMO else crashes_so_far())
         self.state = remembered()
         self.greetd: Greetd | None = None
         self.busy = False
@@ -133,6 +149,18 @@ class Greeter(Gtk.ApplicationWindow):
             self.user.set_tooltip_text("People on this computer: " + ", ".join(completion_names))
         self.user.connect("activate", lambda *_: self.password.grab_focus())
         self.user.connect("changed", lambda *_: self.who.set_label(self.display_name()))
+
+        # The desktop didn't start, twice: offer the way back.
+        if self.crashes >= 2:
+            box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=int(8 * self.k), css_classes=["trouble"])
+            box.append(Gtk.Label(label="The desktop didn't start.", css_classes=["who"]))
+            box.append(Gtk.Label(label="If this began after an update, you can undo it: type an administrator's "
+                                       "password below, then choose Undo update. Your files are kept.",
+                                 wrap=True, justify=Gtk.Justification.CENTER, css_classes=["message"]))
+            self.undo = Gtk.Button(label="Undo update", css_classes=["go"], halign=Gtk.Align.CENTER)
+            self.undo.connect("clicked", self.undo_update)
+            box.append(self.undo)
+            card.append(box)
 
         self.who = Gtk.Label(css_classes=["who"])
         self.who.set_label(self.display_name())
@@ -222,6 +250,56 @@ class Greeter(Gtk.ApplicationWindow):
         self.go.set_label("Logging in…" if busy else "Log in")
 
     # --- logging in ----------------------------------------------------------
+    # --- undoing an update --------------------------------------------------
+    def undo_update(self, *_):
+        login, secret = self.user.get_text().strip(), self.password.get_text()
+        if not login or not secret:
+            self.say("Type an administrator's user name and password first.")
+            return
+        try:
+            admins = grp.getgrnam("wheel").gr_mem
+        except KeyError:
+            admins = []
+        if login not in admins:
+            self.say(f"{login} isn't an administrator of this computer.")
+            return
+        self.set_busy(True)
+        self.undo.set_sensitive(False)
+        threading.Thread(target=self.undo_check, args=(login, secret), daemon=True).start()
+
+    def undo_check(self, login: str, secret: str) -> None:
+        try:
+            if DEMO:
+                result = Result(ok=secret != "wrong", error="Wrong password. Try again.")
+            else:
+                if self.greetd is None:
+                    self.greetd = Greetd()
+                result = self.greetd.login(login, secret)
+                if result.ok:
+                    self.greetd.cancel()      # the password is right; no session
+        except (OSError, GreetdError, ValueError) as err:
+            result = Result(error=f"The login service didn't answer ({err}).")
+            self.greetd = None
+        GLib.idle_add(self.undo_go, login, result)
+
+    def undo_go(self, login: str, result: Result) -> bool:
+        if not result.ok:
+            self.set_busy(False)
+            self.undo.set_sensitive(True)
+            self.password.set_text("")
+            self.say(result.error or "Couldn't confirm the password.")
+            return False
+        try:
+            CACHE.mkdir(parents=True, exist_ok=True)
+            (CACHE / "undo-request").write_text(f"user={login}\ntime={int(time.time())}\n")
+        except OSError as err:
+            self.set_busy(False)
+            self.say(f"Couldn't ask for the undo ({err}).")
+            return False
+        remember(crashes=0)
+        self.say("Undoing the last update… the computer restarts by itself in a minute.", error=False)
+        return False
+
     def chosen_session(self) -> tuple[str, list[str]]:
         if self.session is None:
             return self.sessions[0]
@@ -258,7 +336,7 @@ class Greeter(Gtk.ApplicationWindow):
         self.pending_prompt = False
         if result.ok:
             name, cmd = self.chosen_session()
-            remember(user=login, session=name)
+            remember(user=login, session=name, started=time.time())
             if DEMO:
                 self.say(f"Logged in: {name} would start now.", error=False)
                 self.set_busy(False)

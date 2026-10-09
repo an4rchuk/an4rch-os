@@ -22,3 +22,4 @@ button.go { background: @g_accent; color: @g_accent_fg; font-weight: 700; }
 button.go:hover { background: shade(@g_accent, 1.1); }
 button.power { background: alpha(@g_card, 0.8); color: @g_dim; }
 dropdown > button { background: alpha(@g_field, 0.92); }
+.trouble { padding-bottom: 6px; border-bottom: 1px solid alpha(@g_accent, 0.3); }
