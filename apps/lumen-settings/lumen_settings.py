@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-"""an4rch Settings — one window for everything you can change: look, desktop,
+"""an4rch Hub — one window for everything you can change: look, desktop,
 windows and effects, sound, network, displays, keyboard and mouse, power,
-default apps and the system.
+default apps, privacy and safety, backups, your phone, accessibility,
+wellbeing, hardware and the system.
 
 Most pages drive an4rch's own commands (anarch-theme, anarch-taskbar, …), so
 the Settings app, the an4rch menu and the command line always agree. Window
@@ -9,7 +10,8 @@ and input choices are saved to ~/.config/lumen/desktop.json and written out
 as ~/.config/lumen/desktop.lua, which Hyprland loads after an4rch's defaults.
 
     anarch-settings [PAGE]          open (at PAGE: look, desktop, windows, sound,
-                                   network, displays, input, power, apps, system)
+                                   network, displays, input, power, apps, privacy,
+                                   backups, phone, a11y, wellbeing, hardware, system)
     anarch-settings --write-desktop regenerate desktop.lua from desktop.json
 """
 
@@ -299,13 +301,34 @@ PAGES = [
     ("input", "Keyboard, mouse and touchpad", "input-keyboard-symbolic"),
     ("power", "Power", "battery-good-symbolic"),
     ("apps", "Default apps", "applications-other-symbolic"),
+    ("privacy", "Privacy and safety", "security-high-symbolic"),
+    ("backups", "Backups", "drive-harddisk-symbolic"),
+    ("phone", "Phone", "phone-symbolic"),
+    ("a11y", "Accessibility", "preferences-desktop-accessibility-symbolic"),
+    ("wellbeing", "Focus and wellbeing", "alarm-symbolic"),
+    ("hardware", "Hardware and drivers", "cpu-symbolic"),
     ("system", "System", "computer-symbolic"),
 ]
 
 
+def in_term(title: str, *argv: str) -> None:
+    """Run an an4rch command in a small terminal (for questions and passwords)."""
+    tool("anarch-term", "--float", "--hold", "--title", title, "--", lumen_cmd(argv[0]), *argv[1:])
+
+
+def status_lines(*cmd: str) -> dict[str, str]:
+    """'  Name   value' lines from an an4rch status command, as a dict."""
+    found = {}
+    for line in out(lumen_cmd(cmd[0]), *cmd[1:]).splitlines():
+        m = re.match(r"^\s+(\S.*?)\s{2,}(\S.*)$", line)
+        if m:
+            found[m.group(1).strip()] = m.group(2).strip()
+    return found
+
+
 class Settings(Adw.ApplicationWindow):
     def __init__(self, app: Adw.Application, page: str):
-        super().__init__(application=app, title="Settings", default_width=980, default_height=700)
+        super().__init__(application=app, title="an4rch Hub", default_width=980, default_height=700)
         self.desktop = load_desktop()
         self.settings = read_settings()
         self.reload_source = 0
@@ -327,7 +350,7 @@ class Settings(Adw.ApplicationWindow):
         sidebar_list.connect("row-selected", lambda _l, r: r and self.show_page(r.page_key))
 
         sidebar_view = Adw.ToolbarView()
-        sidebar_view.add_top_bar(Adw.HeaderBar(title_widget=Gtk.Label(label="Settings", css_classes=["heading"])))
+        sidebar_view.add_top_bar(Adw.HeaderBar(title_widget=Gtk.Label(label="an4rch Hub", css_classes=["heading"])))
         sidebar_view.set_content(Gtk.ScrolledWindow(child=sidebar_list, hscrollbar_policy=Gtk.PolicyType.NEVER))
 
         self.content_title = Adw.WindowTitle(title="")
@@ -336,8 +359,8 @@ class Settings(Adw.ApplicationWindow):
         content_view.set_content(self.stack)
 
         split = Adw.NavigationSplitView(min_sidebar_width=250, max_sidebar_width=290)
-        split.set_sidebar(Adw.NavigationPage(title="Settings", child=sidebar_view))
-        split.set_content(Adw.NavigationPage(title="Settings", child=content_view))
+        split.set_sidebar(Adw.NavigationPage(title="an4rch Hub", child=sidebar_view))
+        split.set_content(Adw.NavigationPage(title="an4rch Hub", child=content_view))
         self.set_content(split)
 
         keys = Gtk.EventControllerKey()
@@ -829,7 +852,165 @@ class Settings(Adw.ApplicationWindow):
             ("an4rch manual", "", "help-browser-symbolic", ["anarch-manual"]),
         ):
             more.add(button_row(title, sub, icon, lambda a=argv: tool(*a)))
+        more.add(button_row("Report a problem", "Collects what's needed to fix it (private details removed)",
+                            "dialog-warning-symbolic", lambda: in_term("Report a problem", "anarch-report")))
         page.add(more)
+        return page
+
+    # --- Privacy and safety ---------------------------------------------------------------
+    def page_privacy(self) -> Gtk.Widget:
+        page = Adw.PreferencesPage()
+        st = status_lines("anarch-privacy", "status")
+        net = Adw.PreferencesGroup(title="Network privacy",
+                                   description="Each needs your password once; they stay on until you turn them off.")
+        for key, title, sub, arg in (
+            ("Hidden hardware address", "Hidden hardware address", "A made-up address on every network", "mac"),
+            ("Encrypted DNS", "Encrypted DNS", "The network can't see or change which sites you look up", "dns"),
+            ("Tracker blocking", "Block ads and trackers", "For every app, from a list of tens of thousands of sites", "block"),
+        ):
+            on = st.get(key, "off").startswith("on")
+            r = row(title, f"{sub} · {st.get(key, 'off')}", "security-high-symbolic")
+            b = Gtk.Button(label="Turn off" if on else "Turn on", valign=Gtk.Align.CENTER)
+            b.connect("clicked", lambda _b, a=arg, o=on: in_term("Privacy", "anarch-privacy", a, "off" if o else "on"))
+            r.add_suffix(b)
+            net.add(r)
+        page.add(net)
+        safe = Adw.PreferencesGroup(title="Keeping things safe")
+        safe.add(row("Panic key: ⊞ + Shift + Esc", "Locks the screen on an empty desktop, closes vaults, mutes, "
+                     "pauses media and clears the clipboard", "system-lock-screen-symbolic"))
+        safe.add(button_row("Vaults", "Encrypted folders that open with a password", "folder-locked-symbolic",
+                            lambda: in_term("Vaults", "anarch-vault")))
+        safe.add(button_row("Run an app in a sandbox", "It can't see your files and forgets everything it saved",
+                            "applications-system-symbolic", lambda: in_term("Sandbox", "anarch-sandbox", "--help")))
+        safe.add(button_row("Remove hidden data from files", "Where a photo was taken, a document's author… "
+                            "(also when you right-click files in Files)", "edit-clear-all-symbolic",
+                            lambda: in_term("Remove hidden data", "anarch-scrub", "--help")))
+        page.add(safe)
+        return page
+
+    # --- Backups -------------------------------------------------------------------------------
+    def page_backups(self) -> Gtk.Widget:
+        page = Adw.PreferencesPage()
+        info = out(lumen_cmd("anarch-backup"), "status", timeout=15)
+        on = info.startswith("Backups: on")
+        group = Adw.PreferencesGroup(title="Backups",
+                                     description="Your home folder, every hour, encrypted, to a drive you choose. "
+                                                 "Versions are kept for up to a year.")
+        group.add(row("Status", info.replace("\n", " · ").replace("  ", " ") or "Off", "drive-harddisk-symbolic"))
+        if on:
+            group.add(button_row("Back up now", "", "document-save-symbolic", lambda: in_term("Backup", "anarch-backup", "now")))
+            group.add(button_row("Browse old versions", "Opens them in Files, by date", "folder-open-symbolic",
+                                 lambda: tool("anarch-backup", "browse")))
+            group.add(button_row("Restore everything", "Into ~/Restored (nothing is overwritten)", "document-revert-symbolic",
+                                 lambda: in_term("Restore", "anarch-backup", "restore")))
+            group.add(button_row("Show the recovery key", "Needed to read the backups on another computer",
+                                 "dialog-password-symbolic", lambda: in_term("Recovery key", "anarch-backup", "key")))
+            group.add(button_row("Stop backing up", "The backups already made stay on the drive", "process-stop-symbolic",
+                                 lambda: in_term("Backup", "anarch-backup", "off")))
+        else:
+            group.add(button_row("Set up backups", "Plug in a drive first", "list-add-symbolic",
+                                 lambda: in_term("Set up backups", "anarch-backup", "setup")))
+        page.add(group)
+        snaps = Adw.PreferencesGroup(title="System snapshots",
+                                     description="Separate from backups: taken before every update, so an update can be undone.")
+        snaps.add(button_row("Snapshots and rollback", "", "document-revert-symbolic", lambda: tool("anarch-snapshot", "menu")))
+        page.add(snaps)
+        return page
+
+    # --- Phone ---------------------------------------------------------------------------------
+    def page_phone(self) -> Gtk.Widget:
+        page = Adw.PreferencesPage()
+        info = out(lumen_cmd("anarch-phone"), "status", timeout=10)
+        on = info.startswith("Phone link: on")
+        group = Adw.PreferencesGroup(title="Your phone",
+                                     description="Notifications, files both ways and a shared clipboard, over your "
+                                                 "Wi-Fi (KDE Connect; the phone needs its app).")
+        for line in info.splitlines()[1:] or ["Off"]:
+            group.add(row(line.strip(), "", "phone-symbolic"))
+        if on:
+            group.add(button_row("Pair a phone", "", "list-add-symbolic", lambda: in_term("Pair a phone", "anarch-phone", "pair")))
+            group.add(button_row("Make the phone ring", "To find it", "audio-volume-high-symbolic",
+                                 lambda: tool("anarch-phone", "ring")))
+            group.add(button_row("Turn off", "", "process-stop-symbolic", lambda: in_term("Phone", "anarch-phone", "off")))
+        else:
+            group.add(button_row("Set up", "Installs it and shows where to get the phone app", "list-add-symbolic",
+                                 lambda: in_term("Phone link", "anarch-phone", "setup")))
+        page.add(group)
+        return page
+
+    # --- Accessibility -------------------------------------------------------------------------
+    def page_a11y(self) -> Gtk.Widget:
+        page = Adw.PreferencesPage()
+        st = status_lines("anarch-a11y", "status")
+        group = Adw.PreferencesGroup(title="Seeing and hearing")
+        group.add(switch_row("Screen reader", "Reads out what's on screen (also ⊞ + Alt + R)",
+                             st.get("Screen reader") == "on",
+                             lambda on: tool("anarch-a11y", "reader", "on" if on else "off")))
+        group.add(switch_row("High contrast", "Black and white with bright yellow", st.get("High contrast") == "on",
+                             lambda on: tool("anarch-a11y", "contrast", "on" if on else "off")))
+        group.add(switch_row("Reduce motion", "No window animations", st.get("Animations") == "off",
+                             lambda on: tool("anarch-a11y", "motion", "reduce" if on else "normal")))
+        sizes = ["normal", "big", "huge"]
+        cur = st.get("Cursor size", "normal")
+        group.add(combo_row("Pointer size", "", ["Normal", "Big", "Huge"], sizes.index(cur) if cur in sizes else 0,
+                            lambda i: tool("anarch-a11y", "cursor", sizes[i])))
+        text = Adw.ActionRow(title="Text size", subtitle=st.get("Text size", "100%"))
+        for label, arg in (("Smaller", "smaller"), ("Bigger", "bigger"), ("Reset", "reset")):
+            b = Gtk.Button(label=label, valign=Gtk.Align.CENTER)
+            b.connect("clicked", lambda _b, a=arg: tool("anarch-a11y", "text", a))
+            text.add_suffix(b)
+        group.add(text)
+        page.add(group)
+        return page
+
+    # --- Focus and wellbeing -------------------------------------------------------------------
+    def page_wellbeing(self) -> Gtk.Widget:
+        page = Adw.PreferencesPage()
+        focus = Adw.PreferencesGroup(title="Focus", description="No notifications, with a countdown in the top bar "
+                                                                 "(also ⊞ + Ctrl + F).")
+        for mins in (25, 50, 90):
+            focus.add(button_row(f"Focus for {mins} minutes", "", "alarm-symbolic",
+                                 lambda m=mins: tool("anarch-focus", str(m))))
+        focus.add(button_row("Stop focusing", "", "process-stop-symbolic", lambda: tool("anarch-focus", "stop")))
+        page.add(focus)
+        st = Adw.PreferencesGroup(title="Screen time")
+        st.add(button_row("Today and this week", "Time per app, with optional daily limits", "view-list-symbolic",
+                          lambda: in_term("Screen time", "anarch-screentime", "week")))
+        page.add(st)
+        auto_on = out(lumen_cmd("anarch-auto")).startswith("Automatic light/dark: on")
+        day = Adw.PreferencesGroup(title="Light and dark")
+        day.add(switch_row("Light by day, dark at night", "Follows sunrise and sunset where you are, with night light",
+                           bool(auto_on), lambda on: tool("anarch-auto", "on" if on else "off")))
+        page.add(day)
+        return page
+
+    # --- Hardware and drivers ------------------------------------------------------------------
+    def page_hardware(self) -> Gtk.Widget:
+        page = Adw.PreferencesPage()
+        gfx = Adw.PreferencesGroup(title="Graphics")
+        report = out(lumen_cmd("anarch-drivers"), timeout=10)
+        rec = next((l for l in report.splitlines() if l.startswith(("Recommended", "✓ No NVIDIA"))), "")
+        gfx.add(row("Graphics driver", rec or "Intel and AMD drivers are built in", "video-display-symbolic"))
+        if not ok(lumen_cmd("anarch-drivers"), "check"):
+            gfx.add(button_row("Install the recommended driver", "", "software-update-available-symbolic",
+                               lambda: in_term("Graphics driver", "anarch-drivers", "install")))
+        gfx.add(button_row("Details", "", "dialog-information-symbolic", lambda: in_term("Graphics", "anarch-drivers")))
+        page.add(gfx)
+        health = Adw.PreferencesGroup(title="Health")
+        health.add(button_row("Health report", "Drives, filesystem, space, battery and temperatures",
+                              "emblem-ok-symbolic", lambda: in_term("an4rch health", "anarch-health")))
+        health.add(button_row("Free up space", "Old downloads of updates, caches, old Trash", "edit-clear-symbolic",
+                              lambda: in_term("Tidy up", "anarch-tidy")))
+        page.add(health)
+        bat = Adw.PreferencesGroup(title="Battery")
+        bat.add(switch_row("Stop charging at 80%", "So the battery lasts years longer (on laptops that support it)",
+                           "80" in out(lumen_cmd("anarch-battery"), "limit"),
+                           lambda on: in_term("Battery", "anarch-battery", "limit", "80" if on else "off")))
+        page.add(bat)
+        sb = Adw.PreferencesGroup(title="Secure Boot", description="Needed by some anti-cheat games and work laptops.")
+        sb.add(button_row("Secure Boot", "Check it, or set it up with your own keys", "security-high-symbolic",
+                          lambda: in_term("Secure Boot", "anarch-secureboot")))
+        page.add(sb)
         return page
 
 
