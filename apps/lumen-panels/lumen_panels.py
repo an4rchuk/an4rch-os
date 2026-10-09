@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""an4rch quick panels — drop down from the top bar's icons, like the sound
+"""An4rch quick panels — drop down from the top bar's icons, like the sound
 panel: Networks (Wi-Fi, airplane mode, hotspot, the connected network with
 its download and upload speed, networks to join), Bluetooth (on/off,
 devices to connect or pair) and Power (battery, power mode, brightness,
@@ -884,7 +884,7 @@ class Panels(Gtk.ApplicationWindow):
             self.open_panel(page)
 
     def leave(self, *argv: str) -> None:
-        """Close the panel and open a an4rch tool (settings, full menus)."""
+        """Close the panel and open an An4rch tool (settings, full menus)."""
         self.close_panel()
         lumen(*argv)
 

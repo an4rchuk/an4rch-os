@@ -179,9 +179,9 @@ list_packs() {
 # get PACK|THEME — copy the themes in, paint their wallpapers.
 get_themes() {
   local want="$1" dirs=() d slug size i=0
-  # The anarchism themes were a pack before 1.1.1; now they come with an4rch.
+  # The anarchism themes were a pack before 1.1.1; now they come with An4rch.
   if [[ "$want" == anarchism ]]; then
-    echo "The anarchism themes come with an4rch now: pick one with SUPER + CTRL + T (or: anarch theme)."
+    echo "The anarchism themes come with An4rch now: pick one with SUPER + CTRL + T (or: anarch theme)."
     return 0
   fi
   if [[ -f "$LUMEN_PATH/themes/$want/theme.conf" ]]; then
@@ -288,7 +288,7 @@ case "${1:-pick}" in
     tmp=$(mktemp -d)
     trap 'rm -rf "$tmp"' EXIT
     git clone -q --depth 1 "$url" "$tmp/theme" || die "Couldn't download $url"
-    [[ -f "$tmp/theme/theme.conf" ]] || die "$url has no theme.conf, so it isn't a an4rch theme (see: anarch manual themes)"
+    [[ -f "$tmp/theme/theme.conf" ]] || die "$url has no theme.conf, so it isn't an An4rch theme (see: anarch manual themes)"
     rm -rf "$dest"
     mv "$tmp/theme" "$dest"
     # Themes without their own wallpapers get painted ones.

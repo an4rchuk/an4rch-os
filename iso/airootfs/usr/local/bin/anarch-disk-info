@@ -3,7 +3,7 @@
 # e.g. "Windows · 4 partitions", or nothing for an empty disk. Both installers
 # use it to make you confirm twice when a disk isn't empty.
 #
-# anarch-disk-info --space DISK — can an4rch go alongside the Windows on DISK,
+# anarch-disk-info --space DISK — can An4rch go alongside the Windows on DISK,
 # and how big can it be? Prints shell assignments (needs root):
 #   max_gb=…  free_gb=…  win=/dev/…  esp=/dev/…    or    error="…"
 set -u
@@ -11,14 +11,14 @@ set -u
 ESP_TYPE=c12a7328-f81f-11d2-ba4b-00a0c93ec93b
 MIB=$((1024 * 1024))
 KEEP_FOR_WINDOWS_MIB=$((12 * 1024)) # Windows needs room for updates
-BOOT_MIB=1024                         # an4rch's boot partition (kernels)
+BOOT_MIB=1024                         # An4rch's boot partition (kernels)
 
 space() {
   local disk="$1" esp win free_mib cur min info shrink_mib max_mib
   err() { printf 'error=%q\n' "$1"; exit 0; }
   [[ -d /sys/firmware/efi ]] || err "This computer started the USB in legacy BIOS mode. To install alongside Windows, restart and start the USB in UEFI mode."
   esp=$(lsblk -nrpo NAME,PARTTYPE "$disk" 2>/dev/null | awk -v t="$ESP_TYPE" 'tolower($2) == t {print $1; exit}')
-  [[ -n "$esp" ]] || err "This disk has no EFI partition, so Windows on it starts in legacy mode. an4rch can only go alongside a UEFI Windows."
+  [[ -n "$esp" ]] || err "This disk has no EFI partition, so Windows on it starts in legacy mode. An4rch can only go alongside a UEFI Windows."
   lsblk -nrpo FSTYPE "$disk" 2>/dev/null | grep -qi bitlocker &&
     err "Windows' drive is encrypted with BitLocker. Turn off BitLocker in Windows (Settings → Privacy & security → Device encryption), or make free space with Disk Management, then try again."
   # Windows' own drive is the biggest NTFS partition.

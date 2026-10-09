@@ -23,7 +23,7 @@ ENABLED=no LIGHT=an4rch-light DARK=an4rch MODE=sun DAY=07:00 NIGHT=19:30 NIGHTLI
 save() {
   mkdir -p "$LUMEN_CONFIG"
   cat >"$conf" <<EOF
-# an4rch automatic light/dark (anarch auto).
+# An4rch automatic light/dark (anarch auto).
 ENABLED=$ENABLED
 LIGHT=$LIGHT
 DARK=$DARK

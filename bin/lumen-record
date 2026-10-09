@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
-# lumen-record — obsolete name (before an4rch OS 1.1.0) of anarch-record; kept so old configs still work.
+# lumen-record — obsolete name (before An4rch OS 1.1.0) of anarch-record; kept so old configs still work.
 [[ -t 2 ]] && printf '\e[33m!\e[0m lumen-record is obsolete: use anarch-record (or: anarch record)\n' >&2
 exec "${LUMEN_PATH:-$HOME/.local/share/lumen}/bin/anarch-record" "$@"

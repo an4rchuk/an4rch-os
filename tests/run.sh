@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# an4rch test suite. Runs on any Linux box (no Hyprland needed):
+# An4rch test suite. Runs on any Linux box (no Hyprland needed):
 #   - Hyprland Lua config checked against the real 0.56 API (tests/hypr-api.lua)
 #   - every theme renders with no leftover placeholders
 #   - shellcheck on all shell scripts
@@ -47,14 +47,14 @@ for t in "$root"/themes-extra/*/*/; do
 done
 # The signature theme's old name still works.
 if "$root/bin/anarch-theme" set lumen >/dev/null 2>&1 && [[ "$("$root/bin/anarch-theme" current)" == an4rch ]]; then
-  ok "old theme name 'lumen' switches to an4rch"
+  ok "old theme name 'lumen' switches to An4rch"
 else
-  bad "theme 'lumen' doesn't map to an4rch"
+  bad "theme 'lumen' doesn't map to An4rch"
 fi
 # Retired themes (the old palettes before 1.1.1) land on their replacement.
 if "$root/bin/anarch-theme" set nord >/dev/null 2>&1 && [[ "$("$root/bin/anarch-theme" current)" == an4rch ]] &&
   "$root/bin/anarch-theme" set catppuccin-latte >/dev/null 2>&1 && [[ "$("$root/bin/anarch-theme" current)" == an4rch-light ]]; then
-  ok "retired themes switch to an4rch / an4rch Light"
+  ok "retired themes switch to An4rch / An4rch Light"
 else
   bad "retired theme names don't map to their replacement"
 fi
@@ -104,7 +104,7 @@ fi
 for s in "${scripts[@]}"; do bash -n "$s" || bad "syntax: $s"; done
 ok "bash -n"
 
-step "an4rch apps (Start menu, App Store, Welcome)"
+step "An4rch apps (Start menu, App Store, Welcome)"
 if python3 -m py_compile "$root"/apps/*/*.py "$root/bin/anarch-wallgen" 2>&1; then ok "Python compiles"; else bad "Python syntax"; fi
 rm -rf "$root"/apps/*/__pycache__ "$root"/bin/__pycache__
 if python3 - "$root/apps/lumen-store/catalog.json" <<'PY'
@@ -128,7 +128,7 @@ PY
 then ok "store catalogue is valid"; else bad "store catalogue"; fi
 
 # Every menu entry, Start search action, Settings button, bar click, key
-# binding and app shortcut must point at a command an4rch ships (or a
+# binding and app shortcut must point at a command An4rch ships (or a
 # well-known system one), so no menu item silently does nothing.
 if python3 - "$root" <<'PY'
 import re, sys
@@ -247,7 +247,7 @@ picks=$(printf '[{"name":"Virtual-1","width":3840,"height":2160,"refreshRate":60
 if [[ "$picks" == "Virtual-1=1.5 DP-1=1 eDP-1=1.6 HDMI-A-1=2 " ]]; then ok "auto scale: 4K 150%, 1080p 100%, laptop 160%, 5K 200%"
 else bad "auto scale picked: $picks"; fi
 
-step "Privacy, safety and other an4rch tools"
+step "Privacy, safety and other An4rch tools"
 # anarch carry: export, change a setting, import, and the setting is back.
 mkdir -p "$HOME/.config/lumen" "$HOME/.config/hypr"
 echo 'LUMEN_BROWSER=carry-test' >"$HOME/.config/lumen/settings.conf"

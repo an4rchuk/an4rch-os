@@ -39,7 +39,7 @@ PKGS_SYSTEM=(
   git base-devel curl
 )
 
-# Everyday command-line tools an4rch relies on.
+# Everyday command-line tools An4rch relies on.
 PKGS_TOOLS=(
   zsh zsh-autosuggestions zsh-syntax-highlighting starship
   fzf ripgrep fd bat eza zoxide jq
@@ -58,7 +58,7 @@ PKGS_LOOK=(
 )
 
 # The server edition (anarch-os-install --server): no desktop; the system,
-# remote access and the command-line tools an4rch's commands use.
+# remote access and the command-line tools An4rch's commands use.
 PKGS_SERVER=(
   openssh ufw networkmanager
   zsh zsh-autosuggestions zsh-syntax-highlighting starship

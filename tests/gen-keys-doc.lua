@@ -1,4 +1,4 @@
--- Print an4rch's key bindings as Markdown, straight from default/hypr/binds.lua,
+-- Print An4rch's key bindings as Markdown, straight from default/hypr/binds.lua,
 -- so the manual never drifts from the real bindings.
 --   lua5.4 tests/gen-keys-doc.lua > docs/02-keybindings.md
 local root = arg[1] or "."

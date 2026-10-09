@@ -2,13 +2,13 @@
 
 New in 1.1.1: one window for every setting, backups to a drive, your phone linked to the computer, the right graphics driver, Secure Boot, and help when something goes wrong.
 
-## The an4rch Hub
+## The An4rch Hub
 
-**Start → an4rch Hub**, or `anarch hub [page]`. Every setting that used to be a command is a page with switches: appearance, the desktop, privacy and safety, backups, phone, accessibility, screen time, hardware and drivers, updates and snapshots. `anarch settings` opens the same window.
+**Start → An4rch Hub**, or `anarch hub [page]`. Every setting that used to be a command is a page with switches: appearance, the desktop, privacy and safety, backups, phone, accessibility, screen time, hardware and drivers, updates and snapshots. `anarch settings` opens the same window.
 
 ## The login screen
 
-Your name is filled in: type the password and press <kbd>Enter</kbd>. The list under the password picks a session (the an4rch desktop, or Steam's Game Mode when it is installed), and the buttons at the bottom restart or shut down. The logo stays where the boot screen left it, so starting up looks like one smooth motion.
+Your name is filled in: type the password and press <kbd>Enter</kbd>. The list under the password picks a session (the An4rch desktop, or Steam's Game Mode when it is installed), and the buttons at the bottom restart or shut down. The logo stays where the boot screen left it, so starting up looks like one smooth motion.
 
 `anarch login wallpaper on` puts your wallpaper behind it instead of black.
 
@@ -18,7 +18,7 @@ High-resolution screens are scaled when you log in so text is a comfortable size
 
 ## Backups: `anarch backup`
 
-Time Machine for an4rch. Plug in a USB drive or an external disk and run `anarch backup setup` (or use the Hub's **Backups** page). Your home folder is backed up every hour, encrypted, whenever the drive is plugged in.
+Time Machine for An4rch. Plug in a USB drive or an external disk and run `anarch backup setup` (or use the Hub's **Backups** page). Your home folder is backed up every hour, encrypted, whenever the drive is plugged in.
 
 | Command | What it does |
 | --- | --- |
@@ -57,7 +57,7 @@ On laptops with two graphics chips it also installs `prime-run`: start a game on
 
 ## Secure Boot: `anarch secureboot`
 
-Some anti-cheat games and work laptops need Secure Boot on. an4rch signs its boot files with your own keys (Microsoft's are enrolled too, so Windows and graphics cards keep working):
+Some anti-cheat games and work laptops need Secure Boot on. An4rch signs its boot files with your own keys (Microsoft's are enrolled too, so Windows and graphics cards keep working):
 
 1. `anarch secureboot firmware` restarts into the firmware settings. Find Secure Boot, choose **Reset to Setup Mode** (or *Clear keys*), leave Secure Boot off, save.
 2. Back in an4rch: `anarch secureboot setup`.
@@ -67,10 +67,10 @@ Kernel updates sign themselves after that. `anarch secureboot` shows the state.
 
 ## When something goes wrong
 
-**Automatic recovery.** After a kernel update the boot menu counts start-ups: if an4rch fails to start three times, the menu falls back to the entry that worked. If the desktop crashes straight after logging in twice in a row, the login screen offers **Undo update**: type your password and it rolls back to the snapshot from before the update and restarts.
+**Automatic recovery.** After a kernel update the boot menu counts start-ups: if An4rch fails to start three times, the menu falls back to the entry that worked. If the desktop crashes straight after logging in twice in a row, the login screen offers **Undo update**: type your password and it rolls back to the snapshot from before the update and restarts.
 
-**`anarch report`** collects what's needed to fix a problem (an4rch's version, the hardware, failed services, this boot's errors, `anarch doctor`) into one file, removes your user and computer names, home folder, network addresses, Wi-Fi names and email addresses, and opens a new GitHub issue to attach it to. `anarch report --print` shows it first. It is also in the Hub under **System → Report a problem**.
+**`anarch report`** collects what's needed to fix a problem (An4rch's version, the hardware, failed services, this boot's errors, `anarch doctor`) into one file, removes your user and computer names, home folder, network addresses, Wi-Fi names and email addresses, and opens a new GitHub issue to attach it to. `anarch report --print` shows it first. It is also in the Hub under **System → Report a problem**.
 
 ## The Game edition
 
-Pick **Game** in the installer and the computer starts straight into Steam's Big Picture, like a Steam Deck. Steam → Power → **Switch to Desktop** goes to the login screen, where the an4rch desktop is one click away. On any install: `anarch gaming game-mode on` adds the session and `anarch gaming game-mode boot on|off` turns starting in it on or off.
+Pick **Game** in the installer and the computer starts straight into Steam's Big Picture, like a Steam Deck. Steam → Power → **Switch to Desktop** goes to the login screen, where the An4rch desktop is one click away. On any install: `anarch gaming game-mode on` adds the session and `anarch gaming game-mode boot on|off` turns starting in it on or off.

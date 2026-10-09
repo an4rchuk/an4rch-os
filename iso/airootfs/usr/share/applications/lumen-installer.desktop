@@ -1,7 +1,7 @@
 [Desktop Entry]
 Type=Application
-Name=Install an4rch OS
-Comment=Put an4rch OS on this computer
+Name=Install An4rch OS
+Comment=Put An4rch OS on this computer
 Exec=anarch-installer
 Icon=lumen-logo
 Categories=System;

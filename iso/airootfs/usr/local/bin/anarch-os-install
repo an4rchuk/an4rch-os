@@ -1,19 +1,19 @@
 #!/usr/bin/env bash
-# anarch-os-install — install an4rch OS from the live USB.
+# anarch-os-install — install An4rch OS from the live USB.
 #
 # Asks a few questions, then: wipes the chosen disk, creates an EFI partition
 # and an (optionally encrypted) btrfs system with subvolumes for snapshots,
 # installs Arch Linux with the main and LTS kernels, sets up systemd-boot,
-# Plymouth and zram, and finally runs the an4rch installer inside the new
-# system. Everything is logged to /var/log/lumen-os-install.log.
+# Plymouth and zram, and finally runs the An4rch installer inside the new
+# system. Everything is logged to /var/log/an4rch-install.log.
 #
 # Needs: UEFI firmware, an internet connection, 20 GB of disk.
-set -euo pipefail
+set -Eeuo pipefail
 
 LUMEN_SRC=/opt/lumen
 # shellcheck source=/dev/null
 source "$LUMEN_SRC/install/packages.sh"
-LOG=/var/log/lumen-os-install.log
+LOG=/var/log/an4rch-install.log
 MNT=/mnt
 ACCENT="#e01b24"
 DIM="#a39a9a"
@@ -68,7 +68,7 @@ fail() {
     tail -n 15 "$LOG" | sed 's/^/    /' >&3
   fi
   # Keep the log on the installed system too, when there is one.
-  [[ -d "$MNT/var/log" ]] && cp "$LOG" "$MNT/var/log/lumen-os-install.log" 2>/dev/null
+  [[ -d "$MNT/var/log" ]] && cp "$LOG" "$MNT/var/log/an4rch-install.log" 2>/dev/null
   echo >&3
   if [[ $GUI -eq 1 ]]; then
     echo "LUMEN-INSTALL-FAILED: $*"
@@ -99,6 +99,27 @@ share_log() {
   fi
 }
 step() { printf '\n==> %s\n' "$*" >>"$LOG"; }
+# Any command that stops the install says which one, in the log (and so on
+# the installer's "didn't finish" page, which shows the log's last lines).
+trap 'printf "\n✗ The install stopped at line %s: %s\n" "$LINENO" "$BASH_COMMAND" >>"$LOG"' ERR
+
+# release_mnt — stop whatever is still running inside the new system (the
+# gpg-agent and dirmngr that building an AUR package leaves behind, …), so
+# it can be unmounted.
+release_mnt() {
+  local p root
+  arch-chroot "$MNT" gpgconf --kill all >/dev/null 2>&1 || true
+  for p in /proc/[0-9]*; do
+    root=$(readlink "$p/root" 2>/dev/null) || continue
+    [[ "$root" == "$MNT" || "$root" == "$MNT"/* ]] && kill "${p#/proc/}" 2>/dev/null
+  done
+  sleep 1
+  for p in /proc/[0-9]*; do
+    root=$(readlink "$p/root" 2>/dev/null) || continue
+    [[ "$root" == "$MNT" || "$root" == "$MNT"/* ]] && kill -9 "${p#/proc/}" 2>/dev/null
+  done
+  true
+}
 # spin TITLE CMD... — run with a spinner, output to the log.
 spin() {
   local t="$1"
@@ -122,7 +143,7 @@ spin() {
 part_mb() { echo $(($(lsblk -bdno SIZE "$1" 2>/dev/null || echo 0) / 1048576)); }
 
 # manual_partitions — "use partitions I've made myself": pick the partition
-# for an4rch (erased), the EFI system partition (kept unless asked), and when
+# for An4rch (erased), the EFI system partition (kept unless asked), and when
 # the EFI partition is too small for the kernels (Windows' is often 100 MB),
 # a separate boot partition for them (erased).
 manual_partitions() {
@@ -131,7 +152,7 @@ manual_partitions() {
   live_src=$(findmnt -nvo SOURCE /run/archiso/bootmnt 2>/dev/null || true)
   live_disk=$( [[ -n "$live_src" ]] && lsblk -npo PKNAME "$live_src" 2>/dev/null | head -n1)
   note "Make your partitions first with the partition editor (cfdisk), or with another tool before starting." \
-    "an4rch needs: one partition of 20 GB or more for itself, and an EFI system partition."
+    "An4rch needs: one partition of 20 GB or more for itself, and an EFI system partition."
   if gum confirm --default=false "Open the partition editor (cfdisk) now?"; then
     mapfile -t ds < <(lsblk -dpno NAME,SIZE,MODEL,TYPE -e 7,11 | awk -v skip="${live_disk:-none}" '$NF == "disk" && $1 != skip {$NF=""; print}')
     pick=$(printf '%s\n' "${ds[@]}" | gum choose --header "Disk to edit") || true
@@ -142,13 +163,13 @@ manual_partitions() {
     [[ -n "$live_disk" && "/dev/$(lsblk -no PKNAME "$dev" | head -n1)" == "$live_disk" ]] && continue
     parts+=("$line")
   done < <(lsblk -lnpo NAME,SIZE,FSTYPE,PARTLABEL,TYPE -e 7,11 | awk '$NF == "part" {$NF=""; print}' | sed 's/ *$//')
-  [[ ${#parts[@]} -ge 2 ]] || fail "Not enough partitions: an4rch needs one for itself and an EFI system partition. Make them first (cfdisk), then try again."
+  [[ ${#parts[@]} -ge 2 ]] || fail "Not enough partitions: An4rch needs one for itself and an EFI system partition. Make them first (cfdisk), then try again."
 
-  title "The partition for an4rch"
-  pick=$(printf '%s\n' "${parts[@]}" | gum choose --header "Choose the partition for an4rch. EVERYTHING on it will be erased.") || exit 0
+  title "The partition for An4rch"
+  pick=$(printf '%s\n' "${parts[@]}" | gum choose --header "Choose the partition for An4rch. EVERYTHING on it will be erased.") || exit 0
   ROOT_PART=${pick%% *}
   root_mb=$(part_mb "$ROOT_PART")
-  ((root_mb >= 20 * 1024)) || fail "$ROOT_PART is only $((root_mb / 1024)) GB; an4rch needs at least 20 GB."
+  ((root_mb >= 20 * 1024)) || fail "$ROOT_PART is only $((root_mb / 1024)) GB; An4rch needs at least 20 GB."
 
   title "The EFI system partition"
   pick=$(printf '%s\n' "${parts[@]}" | grep -v "^$ROOT_PART " | gum choose --header "Choose the EFI system partition (FAT32; Windows' one is fine)") || exit 0
@@ -168,12 +189,12 @@ manual_partitions() {
   elif ((has_files == 0)); then
     gum confirm --default=true "$EFI_PART is empty. Format it (FAT32)?" && FORMAT_EFI=1
   else
-    note "$EFI_PART already has boot files (perhaps Windows'): they're kept, and an4rch's boot menu is added next to them."
+    note "$EFI_PART already has boot files (perhaps Windows'): they're kept, and An4rch's boot menu is added next to them."
   fi
   BOOT_PART=""
   if ((efi_mb < 900)); then
-    title "A boot partition for an4rch"
-    note "$EFI_PART is only ${efi_mb} MB: too small for an4rch's kernels." \
+    title "A boot partition for An4rch"
+    note "$EFI_PART is only ${efi_mb} MB: too small for An4rch's kernels." \
       "Choose a partition of about 1 GB for them (it will be erased), or make one first."
     pick=$(printf '%s\n' "${parts[@]}" | grep -v -e "^$ROOT_PART " -e "^$EFI_PART " | gum choose --header "Boot partition (about 1 GB; will be erased)") || exit 0
     BOOT_PART=${pick%% *}
@@ -186,7 +207,7 @@ manual_partitions() {
 # --- checks -----------------------------------------------------------------------
 [[ $EUID -eq 0 ]] || { echo "Run as root."; exit 1; }
 # Both UEFI and legacy BIOS computers are supported (see "boot loader" below).
-[[ -d "$LUMEN_SRC" ]] || fail "an4rch files are missing from this USB ($LUMEN_SRC)."
+[[ -d "$LUMEN_SRC" ]] || fail "An4rch files are missing from this USB ($LUMEN_SRC)."
 
 if [[ $AUTO -eq 1 ]]; then
   title "Automatic install (lumen.auto=1)"
@@ -195,7 +216,7 @@ if [[ $AUTO -eq 1 ]]; then
     curl -fsS --max-time 6 -o /dev/null https://geo.mirror.pkgbuild.com && break
     sleep 3
   done
-  # lumen.mode=alongside lumen.size=GB: keep Windows and put an4rch next to it.
+  # lumen.mode=alongside lumen.size=GB: keep Windows and put An4rch next to it.
   # lumen.mode=manual: partitions made beforehand (root, EFI, optional boot).
   MODE="${K[mode]:-erase}"
   ROOT_PART="${K[root]:-}" EFI_PART="${K[efi]:-}" BOOT_PART="${K[boot]:-}" FORMAT_EFI="${K[formatefi]:-0}"
@@ -226,7 +247,7 @@ if [[ $AUTO -eq 1 ]]; then
   EDITION="${K[edition]:-desktop}"
   EXTRA_APPS="${K[apps]:-}"
 else
-title "Welcome! This installs an4rch OS on this computer. It only takes a few minutes."
+title "Welcome! This installs An4rch OS on this computer. It only takes a few minutes."
 gum confirm --affirmative "Let's go" --negative "Not now" "Ready to begin?" || exit 0
 
 # --- network --------------------------------------------------------------------------
@@ -306,13 +327,13 @@ loadkeys "$keymap" 2>/dev/null || true
 # --- edition --------------------------------------------------------------------------
 title "What kind of install?"
 EDITION=$(gum choose --header "Choose one" \
-  "Desktop: the full an4rch desktop (recommended)" \
+  "Desktop: the full An4rch desktop (recommended)" \
   "Game: starts straight into Steam's Big Picture, like a Steam Deck (the desktop is one menu away)" \
-  "Server: no desktop, just the system, SSH and an4rch's tools (old computers, home servers)") || exit 0
+  "Server: no desktop, just the system, SSH and An4rch's tools (old computers, home servers)") || exit 0
 case "$EDITION" in Server*) EDITION=server ;; Game*) EDITION=game ;; *) EDITION=desktop ;; esac
 
 # --- disk -----------------------------------------------------------------------------
-title "Where should an4rch OS go?"
+title "Where should An4rch OS go?"
 MODE=erase ALONG_GB="" ROOT_PART="" EFI_PART="" BOOT_PART="" FORMAT_EFI=0
 how_part=$(gum choose --header "How should the disk be set up?" \
   "Automatically: erase a disk, or go alongside Windows (recommended)" \
@@ -321,7 +342,7 @@ if [[ "$how_part" == Manually* ]]; then
   MODE=manual
   manual_partitions
 else
-# The USB stick an4rch is running from isn't offered.
+# The USB stick An4rch is running from isn't offered.
 live_src=$(findmnt -nvo SOURCE /run/archiso/bootmnt 2>/dev/null || true)
 live_disk=$( [[ -n "$live_src" ]] && lsblk -npo PKNAME "$live_src" 2>/dev/null | head -n1)
 mapfile -t disks < <(lsblk -dpno NAME,SIZE,MODEL,TYPE -e 7,11 | awk -v skip="${live_disk:-none}" '$NF == "disk" && $1 != skip {$NF=""; print}' | sed 's/ *$//')
@@ -334,12 +355,12 @@ done
 disk_line=$(printf '%s\n' "${disks[@]}" | gum choose --header "Choose a disk. EVERYTHING on it will be erased.") || exit 1
 DISK="${disk_line%% *}"
 size_gb=$(( $(lsblk -bdno SIZE "$DISK") / 1024 / 1024 / 1024 ))
-(( size_gb >= 20 )) || fail "$DISK is only ${size_gb} GB; an4rch OS needs at least 20 GB."
+(( size_gb >= 20 )) || fail "$DISK is only ${size_gb} GB; An4rch OS needs at least 20 GB."
 
-# A disk with Windows on it: an4rch can go alongside, keeping Windows and its files.
+# A disk with Windows on it: An4rch can go alongside, keeping Windows and its files.
 if [[ "$(anarch-disk-info "$DISK" 2>/dev/null)" == *Windows* ]]; then
   title "Windows is on this disk"
-  how=$(gum choose --header "How should an4rch be installed?" \
+  how=$(gum choose --header "How should An4rch be installed?" \
     "Install alongside Windows (keep Windows and its files; choose at every start)" \
     "Erase the whole disk, Windows included") || exit 0
   if [[ "$how" == Install* ]]; then
@@ -347,10 +368,10 @@ if [[ "$(anarch-disk-info "$DISK" 2>/dev/null)" == *Windows* ]]; then
     note "Checking how much space Windows can spare…"
     eval "$(anarch-disk-info --space "$DISK")"
     [[ -z "${error:-}" ]] || fail "$error"
-    (( max_gb >= 30 )) || fail "There's only room for ${max_gb} GB next to Windows; an4rch needs 30 GB. Free up space in Windows (or shrink it with Disk Management), then try again."
+    (( max_gb >= 30 )) || fail "There's only room for ${max_gb} GB next to Windows; An4rch needs 30 GB. Free up space in Windows (or shrink it with Disk Management), then try again."
     suggest=$(( max_gb / 2 > 60 ? max_gb / 2 : (max_gb < 60 ? max_gb : 60) ))
     while true; do
-      ALONG_GB=$(gum input --header "Space for an4rch in GB (30 to $max_gb; Windows keeps the rest)" --value "$suggest") || exit 0
+      ALONG_GB=$(gum input --header "Space for An4rch in GB (30 to $max_gb; Windows keeps the rest)" --value "$suggest") || exit 0
       [[ "$ALONG_GB" =~ ^[0-9]+$ ]] && (( ALONG_GB >= 30 && ALONG_GB <= max_gb )) && break
       note "Enter a number from 30 to $max_gb."
     done
@@ -460,14 +481,14 @@ fi
 title "Ready to install"
 gum style --border rounded --border-foreground "$ACCENT" --padding "1 3" --margin "0 2" \
   "Install:     $(case $EDITION in server) echo "Server (no desktop)" ;; game) echo "Game (starts in Steam's Game Mode)" ;; *) echo Desktop ;; esac)" \
-  "Disk:        $disk_line$([[ $MODE == alongside ]] && echo "  ·  alongside Windows, ${ALONG_GB} GB for an4rch")" \
+  "Disk:        $disk_line$([[ $MODE == alongside ]] && echo "  ·  alongside Windows, ${ALONG_GB} GB for An4rch")" \
   "Encryption:  $([[ $ENCRYPT -eq 1 ]] && echo on || echo off)" \
   "User:        $USERNAME${FULLNAME:+ ($FULLNAME)}" \
   "Computer:    $HOSTNAME_" \
   "Time zone:   $TIMEZONE" \
   "Language:    $LOCALE · keyboard $keymap" \
   "System:      $KERNEL kernel, $SHELL_CHOICE shell" \
-  "Apps:        $([[ $EDITION == server ]] && echo "SSH, firewall, an4rch's tools" || echo "$BROWSER, $TERMINAL_APP, $EDITOR_APP$([[ $GAMING -eq 1 ]] && echo ', gaming')${EXTRA_APPS:+, }${EXTRA_APPS//,/, }")" \
+  "Apps:        $([[ $EDITION == server ]] && echo "SSH, firewall, An4rch's tools" || echo "$BROWSER, $TERMINAL_APP, $EDITOR_APP$([[ $GAMING -eq 1 ]] && echo ', gaming')${EXTRA_APPS:+, }${EXTRA_APPS//,/, }")" \
   "Theme:       $([[ $EDITION == server ]] && echo "-" || echo "$THEME")"
 if [[ $MODE == manual ]]; then
   gum style --margin "0 2" --foreground "$DIM" \
@@ -507,7 +528,7 @@ case "${EDITION:-desktop}" in server | game) ;; *) EDITION=desktop ;; esac
 [[ "${EXTRA_APPS:-}" =~ ^[a-z0-9.,_-]*$ ]] || EXTRA_APPS=""
 
 # --- install -----------------------------------------------------------------------------------
-title "Installing an4rch OS"
+title "Installing An4rch OS"
 : >"$LOG"
 part() { if [[ "$DISK" =~ [0-9]$ ]]; then echo "${DISK}p$1"; else echo "${DISK}$1"; fi; }
 EFI=$(part 1)
@@ -547,7 +568,7 @@ if [[ -e "$OFFLINE/lumen-offline.db" ]]; then
 elif ((!NET)); then
   fail "No internet connection, and this USB stick doesn't carry the packages (the online ISO). Connect to Wi-Fi or a cable first."
 fi
-# The same for pacman inside the new system while an4rch installs; undone after.
+# The same for pacman inside the new system while An4rch installs; undone after.
 offline_on() {
   [[ ${#pac_opts[@]} -gt 0 ]] || return 0
   mkdir -p "$MNT/var/cache/lumen-repo"
@@ -598,7 +619,7 @@ ensure_mirrors() {
   grep -q '^[[:space:]]*Server' "$1" 2>/dev/null && return 0
   note "No working mirror list; using Arch's worldwide mirrors"
   # shellcheck disable=SC2016 # $repo and $arch are pacman's, not the shell's
-  printf '%s\n' '# Arch Linux worldwide mirrors (an4rch OS fallback; run reflector to rank local ones)' \
+  printf '%s\n' '# Arch Linux worldwide mirrors (An4rch OS fallback; run reflector to rank local ones)' \
     'Server = https://geo.mirror.pkgbuild.com/$repo/os/$arch' \
     'Server = https://fastly.mirror.pkgbuild.com/$repo/os/$arch' \
     'Server = https://mirrors.kernel.org/archlinux/$repo/os/$arch' \
@@ -610,27 +631,27 @@ ensure_mirrors /etc/pacman.d/mirrorlist
 # the EFI one on every disk, so either kind of boot loader fits.
 if [[ -d /sys/firmware/efi ]]; then UEFI=1; else UEFI=0; fi
 if [[ $UEFI -eq 0 ]]; then
-  gum style --foreground "#f1d38b" --margin "0 2" "This computer started the USB in legacy (BIOS) mode, so an4rch installs a BIOS boot loader." \
+  gum style --foreground "#f1d38b" --margin "0 2" "This computer started the USB in legacy (BIOS) mode, so An4rch installs a BIOS boot loader." \
     "Keep the computer in legacy/CSM mode to start it (or reinstall from a USB started in UEFI mode)."
 fi
 BOOTP="$EFI" # the partition mounted at /boot (kernels)
 MODE="${MODE:-erase}"
 
 # Next to Windows: shrink Windows' drive if there isn't enough free space,
-# then add an4rch's boot partition (kernels; Windows' EFI partition is often
+# then add An4rch's boot partition (kernels; Windows' EFI partition is often
 # only 100 MB) and system partition. Windows' partitions keep their place,
-# type and identity, and its EFI partition gets the an4rch boot menu.
+# type and identity, and its EFI partition gets the An4rch boot menu.
 alongside_partition() {
   # shellcheck disable=SC2034  # free_gb is set by anarch-disk-info's output
   local error="" max_gb=0 free_gb=0 win="" esp="" need_mib free_mib ss cur new_bytes num info type guid name first end before after
   eval "$(anarch-disk-info --space "$DISK")"
   [[ -z "$error" ]] || fail "$error"
   [[ -n "$ALONG_GB" ]] || ALONG_GB=$max_gb
-  # an4rch needs 30 GB: a smaller request gets 30 when there is room, and
+  # An4rch needs 30 GB: a smaller request gets 30 when there is room, and
   # one larger than the room gets all of it (above 30).
-  ((max_gb >= 30)) || fail "Not enough room next to Windows: an4rch needs 30 GB, and only ${max_gb} GB can be freed. Free up space in Windows (or delete files), then try again. Nothing was changed."
+  ((max_gb >= 30)) || fail "Not enough room next to Windows: An4rch needs 30 GB, and only ${max_gb} GB can be freed. Free up space in Windows (or delete files), then try again. Nothing was changed."
   if ((ALONG_GB < 30)); then
-    note "an4rch needs at least 30 GB; using 30 GB instead of ${ALONG_GB} GB."
+    note "An4rch needs at least 30 GB; using 30 GB instead of ${ALONG_GB} GB."
     ALONG_GB=30
   elif ((ALONG_GB > max_gb)); then
     note "Only ${max_gb} GB can be freed next to Windows; using ${max_gb} GB instead of ${ALONG_GB} GB."
@@ -660,22 +681,22 @@ alongside_partition() {
     gum style --foreground "#9fdc9b" "  ✓ Made room next to Windows"
   fi
   before=$(lsblk -nrpo NAME "$DISK")
-  sgdisk -n 0:0:+1G -t 0:ea00 -c 0:LumenBoot "$DISK" >>"$LOG" 2>&1 || fail "Couldn't add an4rch's boot partition (details: $LOG)."
+  sgdisk -n 0:0:+1G -t 0:ea00 -c 0:An4rchBoot "$DISK" >>"$LOG" 2>&1 || fail "Couldn't add An4rch's boot partition (details: $LOG)."
   partprobe "$DISK" && udevadm settle
   BOOTP=$(comm -13 <(sort <<<"$before") <(lsblk -nrpo NAME "$DISK" | sort) | head -n1)
   before=$(lsblk -nrpo NAME "$DISK")
   free_mib=$(parted -sm "$DISK" unit MiB print free 2>/dev/null |
     awk -F: '$NF ~ /free;$/ { v = $4; sub(/MiB/, "", v); if (v + 0 > m) m = v + 0 } END { print int(m) }')
   if ((free_mib > ALONG_GB * 1024 + 2048)); then end="+${ALONG_GB}G"; else end=0; fi
-  sgdisk -n "0:0:$end" -t 0:8300 -c 0:lumen "$DISK" >>"$LOG" 2>&1 || fail "Couldn't add an4rch's partition (details: $LOG)."
+  sgdisk -n "0:0:$end" -t 0:8300 -c 0:an4rch "$DISK" >>"$LOG" 2>&1 || fail "Couldn't add An4rch's partition (details: $LOG)."
   partprobe "$DISK" && udevadm settle
   SYS=$(comm -13 <(sort <<<"$before") <(lsblk -nrpo NAME "$DISK" | sort) | head -n1)
   EFI="$esp"
   [[ -b "$BOOTP" && -b "$SYS" && -b "$EFI" ]] || fail "The new partitions didn't appear (details: $LOG)."
-  gum style --foreground "#9fdc9b" "  ✓ Added an4rch's partitions next to Windows"
+  gum style --foreground "#9fdc9b" "  ✓ Added An4rch's partitions next to Windows"
 }
 
-# Manual: the partitions chosen are used as they are; the one for an4rch
+# Manual: the partitions chosen are used as they are; the one for An4rch
 # (and the boot partition, if any) is wiped, the EFI one only if asked.
 manual_partition() {
   local num pdisk
@@ -685,7 +706,7 @@ manual_partition() {
     umount "$p" 2>/dev/null || true
   done
   [[ "$ROOT_PART" != "$EFI_PART" && "$ROOT_PART" != "${BOOT_PART:-none}" && "$EFI_PART" != "${BOOT_PART:-none}" ]] ||
-    fail "The partitions for an4rch, EFI and boot must be different."
+    fail "The partitions for An4rch, EFI and boot must be different."
   SYS="$ROOT_PART" EFI="$EFI_PART" BOOTP="$EFI_PART"
   wipefs -af "$ROOT_PART" >>"$LOG" 2>&1 || fail "Couldn't clear $ROOT_PART (is it in use?)."
   if [[ -n "$BOOT_PART" ]]; then
@@ -697,7 +718,7 @@ manual_partition() {
     [[ -n "$num" ]] && sgdisk -t "$num:ea00" "$pdisk" >>"$LOG" 2>&1 && partprobe "$pdisk" 2>/dev/null && udevadm settle
   fi
   [[ "$FORMAT_EFI" == 1 ]] && { wipefs -af "$EFI_PART" >>"$LOG" 2>&1 || fail "Couldn't clear $EFI_PART."; }
-  gum style --foreground "#9fdc9b" "  ✓ Using your partitions: $ROOT_PART for an4rch"
+  gum style --foreground "#9fdc9b" "  ✓ Using your partitions: $ROOT_PART for An4rch"
 }
 
 if [[ $MODE == alongside ]]; then
@@ -714,28 +735,28 @@ fi
 ROOTDEV="$SYS"
 if [[ $ENCRYPT -eq 1 ]]; then
   step "Encrypting"
-  printf '%s' "$LUKS_PASS" | cryptsetup luksFormat --type luks2 --batch-mode --label lumen-crypt "$SYS" - >>"$LOG" 2>&1 || fail "Encryption failed"
+  printf '%s' "$LUKS_PASS" | cryptsetup luksFormat --type luks2 --batch-mode --label an4rch-crypt "$SYS" - >>"$LOG" 2>&1 || fail "Encryption failed"
   printf '%s' "$LUKS_PASS" | cryptsetup open --allow-discards --persistent "$SYS" cryptroot - >>"$LOG" 2>&1 || fail "Unlocking failed"
   ROOTDEV=/dev/mapper/cryptroot
   gum style --foreground "#9fdc9b" "  ✓ Encrypted the system partition"
 fi
 
-# Alongside Windows only an4rch's own boot partition is formatted, never
+# Alongside Windows only An4rch's own boot partition is formatted, never
 # Windows' EFI partition. With partitions of your own, the EFI partition is
 # formatted only when you asked for it.
 BOOTLABEL=EFI SPLIT_ESP=0 FORMAT_BOOT=1
 [[ $MODE == alongside || ( $MODE == manual && -n "$BOOT_PART" ) ]] && SPLIT_ESP=1
-((SPLIT_ESP)) && BOOTLABEL=LUMENBOOT
+((SPLIT_ESP)) && BOOTLABEL=AN4RCHBOOT
 [[ $MODE == manual && -z "$BOOT_PART" && "$FORMAT_EFI" != 1 ]] && FORMAT_BOOT=0
 if ((FORMAT_BOOT)); then
-  spin "Formatting" bash -c "mkfs.fat -F32 -n '$BOOTLABEL' '$BOOTP' && mkfs.btrfs -f -L lumen '$ROOTDEV'"
+  spin "Formatting" bash -c "mkfs.fat -F32 -n '$BOOTLABEL' '$BOOTP' && mkfs.btrfs -f -L An4rch '$ROOTDEV'"
 else
-  spin "Formatting" mkfs.btrfs -f -L lumen "$ROOTDEV"
+  spin "Formatting" mkfs.btrfs -f -L An4rch "$ROOTDEV"
 fi
 if [[ $MODE == manual && -n "$BOOT_PART" && "$FORMAT_EFI" == 1 ]]; then
   spin "Formatting the EFI partition" mkfs.fat -F32 -n EFI "$EFI_PART"
 fi
-# Windows keeps the hardware clock in local time: so does an4rch next to it.
+# Windows keeps the hardware clock in local time: so does An4rch next to it.
 WIN_CLOCK=0
 [[ $MODE == alongside ]] && WIN_CLOCK=1
 [[ $MODE == manual && "$(anarch-disk-info "$DISK" 2>/dev/null)" == *Windows* ]] && WIN_CLOCK=1
@@ -763,7 +784,7 @@ grep -q AuthenticAMD /proc/cpuinfo && UCODE=amd-ucode
 # mkinitcpio settings must exist before the kernels are installed.
 mkdir -p "$MNT/etc/mkinitcpio.conf.d"
 cat >"$MNT/etc/mkinitcpio.conf.d/lumen.conf" <<'EOF'
-# an4rch OS: systemd-based initramfs with boot splash and disk unlock.
+# An4rch OS: systemd-based initramfs with boot splash and disk unlock.
 HOOKS=(base systemd plymouth autodetect microcode modconf kms keyboard sd-vconsole block sd-encrypt filesystems fsck)
 EOF
 printf 'KEYMAP=%s\n' "$keymap" >"$MNT/etc/vconsole.conf"
@@ -788,12 +809,12 @@ CMDLINE="$ROOT_ARGS rootflags=subvol=@ rw quiet splash loglevel=3 rd.udev.log_le
 ESP_UUID=$(blkid -s UUID -o value "$EFI")
 
 step "Configuring the system"
-# The an4rch boot screen, so the initramfs built below has it.
+# The An4rch boot screen, so the initramfs built below has it.
 LUMEN_PATH="$LUMEN_SRC" bash "$LUMEN_SRC/install/plymouth.sh" --root "$MNT" >>"$LOG" 2>&1 || true
 arch-chroot "$MNT" /bin/bash -e >>"$LOG" 2>&1 <<CHROOT || fail "System configuration failed"
 ln -sf "/usr/share/zoneinfo/$TIMEZONE" /etc/localtime
 if [[ $WIN_CLOCK == 1 ]]; then
-  # Windows keeps the hardware clock in local time; so does an4rch next to it,
+  # Windows keeps the hardware clock in local time; so does An4rch next to it,
   # or the clock would be off by hours after switching.
   printf '0.0 0 0.0\n0\nLOCAL\n' >/etc/adjtime
 else
@@ -817,7 +838,7 @@ passwd -l root
 
 if [[ $UEFI -eq 1 ]]; then
 if [[ $SPLIT_ESP == 1 ]]; then
-  # Boot menu on Windows' EFI partition, kernels on an4rch's own; systemd-boot
+  # Boot menu on Windows' EFI partition, kernels on An4rch's own; systemd-boot
   # lists Windows by itself.
   bootctl install --esp-path=/efi --boot-path=/boot
   ESPDIR=/efi TIMEOUT=5
@@ -834,13 +855,13 @@ console-mode max
 editor no
 LOADER
 cat >/boot/loader/entries/lumen.conf <<ENTRY
-title   an4rch OS
+title   An4rch OS
 linux   /vmlinuz-$KPKG
 initrd  /initramfs-$KPKG.img
 options $CMDLINE
 ENTRY
 cat >/boot/loader/entries/$FB_ENTRY <<ENTRY
-title   an4rch OS ($(kernel_label "$FBPKG"))
+title   An4rch OS ($(kernel_label "$FBPKG"))
 linux   /vmlinuz-$FBPKG
 initrd  /initramfs-$FBPKG.img
 options $CMDLINE
@@ -854,11 +875,11 @@ insmod fat
 search --no-floppy --fs-uuid --set=root $ESP_UUID
 set timeout=3
 set default=0
-menuentry "an4rch OS" {
+menuentry "An4rch OS" {
   linux /vmlinuz-$KPKG $CMDLINE
   initrd /initramfs-$KPKG.img
 }
-menuentry "an4rch OS ($(kernel_label "$FBPKG"))" {
+menuentry "An4rch OS ($(kernel_label "$FBPKG"))" {
   linux /vmlinuz-$FBPKG $CMDLINE
   initrd /initramfs-$FBPKG.img
 }
@@ -896,8 +917,8 @@ if [[ -n "${WIFI_SSID:-}" ]]; then
   chmod 600 "$conn"
 fi
 
-# an4rch itself, installed as the new user with temporary password-less sudo.
-spin "Copying an4rch" bash -c "mkdir -p '$MNT/home/$USERNAME/.local/share' && cp -a '$LUMEN_SRC' '$MNT/home/$USERNAME/.local/share/lumen' && arch-chroot '$MNT' chown -R '$USERNAME:$USERNAME' '/home/$USERNAME/.local'"
+# An4rch itself, installed as the new user with temporary password-less sudo.
+spin "Copying An4rch" bash -c "mkdir -p '$MNT/home/$USERNAME/.local/share' && cp -a '$LUMEN_SRC' '$MNT/home/$USERNAME/.local/share/lumen' && arch-chroot '$MNT' chown -R '$USERNAME:$USERNAME' '/home/$USERNAME/.local'"
 # verifypw/listpw=any: otherwise `sudo -v` (used by yay and makepkg) still asks
 # for a password, because the wheel rule above has no NOPASSWD.
 printf 'Defaults:%s verifypw=any, listpw=any\n%s ALL=(ALL) NOPASSWD: ALL\n' "$USERNAME" "$USERNAME" >"$MNT/etc/sudoers.d/99-lumen-install"
@@ -918,18 +939,18 @@ if [[ -f /usr/lib/lumen/hyprbars.so && -f /var/lib/lumen/hyprbars-hyprland ]]; t
   install -D -m644 /var/lib/lumen/hyprbars-hyprland "$MNT/var/lib/lumen/hyprbars-hyprland"
 fi
 offline_on
-step "an4rch installer: ${lumen_args[*]}"
-gum style --foreground "$DIM" --margin "1 2 0" "Installing the an4rch desktop and apps (a few minutes). Progress: $LOG"
+step "An4rch installer: ${lumen_args[*]}"
+gum style --foreground "$DIM" --margin "1 2 0" "Installing the An4rch desktop and apps (a few minutes). Progress: $LOG"
 if ! setsid -w arch-chroot "$MNT" sudo -u "$USERNAME" env HOME="/home/$USERNAME" USER="$USERNAME" LUMEN_YES=1 LUMEN_VERBOSE=1 LUMEN_OFFLINE=$((NET ? 0 : 1)) LUMEN_GPU="${K[gpu]:-}" \
   bash "/home/$USERNAME/.local/share/lumen/install.sh" "${lumen_args[@]}" </dev/null >>"$LOG" 2>&1; then
   rm -f "$MNT/etc/sudoers.d/99-lumen-install"
   offline_off
-  fail "The an4rch desktop didn't install completely. The system boots to a console; log in and run ~/.local/share/lumen/install.sh to finish."
+  fail "The An4rch desktop didn't install completely. The system boots to a console; log in and run ~/.local/share/lumen/install.sh to finish."
 fi
 rm -f "$MNT/etc/sudoers.d/99-lumen-install"
 offline_off
-cp "$LOG" "$MNT/var/log/lumen-os-install.log" 2>/dev/null || true
-gum style --foreground "#9fdc9b" "  ✓ Installed $([[ $EDITION == server ]] && echo "an4rch (server)" || echo "the an4rch desktop")"
+cp "$LOG" "$MNT/var/log/an4rch-install.log" 2>/dev/null || true
+gum style --foreground "#9fdc9b" "  ✓ Installed $([[ $EDITION == server ]] && echo "An4rch (server)" || echo "the An4rch desktop")"
 
 # The keyboard layout chosen above, for the desktop and the login screen too
 # (not only the console): console keymap names → XKB layout (+ variant).
@@ -984,8 +1005,13 @@ fi
 arch-chroot "$MNT" snapper --no-dbus -c root create --description "Fresh install" --userdata important=yes >>"$LOG" 2>&1 || true
 
 sync
-umount -R "$MNT"
-[[ $ENCRYPT -eq 1 ]] && cryptsetup close cryptroot
+release_mnt
+if ! umount -R "$MNT" 2>>"$LOG"; then
+  # Still busy: everything is written (sync); detach it, it goes at restart.
+  echo "  (the new system was still busy; unmounting it lazily)" >>"$LOG"
+  umount -R -l "$MNT" 2>>"$LOG" || true
+fi
+if [[ $ENCRYPT -eq 1 ]]; then cryptsetup close cryptroot 2>>"$LOG" || true; fi
 
 if [[ $AUTO -eq 1 ]]; then
   if [[ $GUI -eq 1 ]]; then echo "LUMEN-INSTALL-OK"; exit 0; fi
@@ -994,6 +1020,6 @@ if [[ $AUTO -eq 1 ]]; then
   exit 0
 fi
 
-title "an4rch OS is installed"
+title "An4rch OS is installed"
 note "Remove the USB stick, then restart." "" "After logging in, tap the Windows key to open Start."
 gum confirm --affirmative "Restart now" --negative "Stay here" "Restart?" && systemctl reboot

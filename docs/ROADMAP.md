@@ -1,6 +1,6 @@
 # Roadmap
 
-Where an4rch OS is heading. Each release has one theme, so it ships something whole rather than a little of everything. Plans change with what people actually need: open an issue if something here matters to you, or if something is missing.
+Where An4rch OS is heading. Each release has one theme, so it ships something whole rather than a little of everything. Plans change with what people actually need: open an issue if something here matters to you, or if something is missing.
 
 ## 1.1 — Your install, your way
 
@@ -8,7 +8,7 @@ Privacy and safety tools, features borrowed from other systems, and more choices
 
 ## 1.1.1 — Looks like itself (now)
 
-The red and black an4rch look, a boot screen that flows into a one-step login, the an4rch Hub, display scaling, backups, phone link, the driver manager, Secure Boot, `anarch report`, automatic recovery and the Game edition. See the [release notes](releases/v1.1.1.md).
+The red and black An4rch look, a boot screen that flows into a one-step login, the An4rch Hub, display scaling, backups, phone link, the driver manager, Secure Boot, `anarch report`, automatic recovery and the Game edition. See the [release notes](releases/v1.1.1.md).
 
 ## 1.2 — Safe to forget about
 
@@ -16,7 +16,7 @@ Updates that never break things, and help when something does.
 
 | Feature | Why |
 | --- | --- |
-| **The an4rch package repository** | an4rch's own tools, themes and prebuilt AUR favourites (hyprbars, ProtonPlus…) as signed packages. Installs no longer build from source, and updates arrive through pacman like everything else. Hosted on Cloudflare R2 behind an4rch.uk. |
+| **The An4rch package repository** | An4rch's own tools, themes and prebuilt AUR favourites (hyprbars, ProtonPlus…) as signed packages. Installs no longer build from source, and updates arrive through pacman like everything else. Hosted on Cloudflare R2 behind an4rch.uk. |
 | **Tested update channels** | *Stable* holds Arch updates for a few days while the e2e VMs install and use them; only a passing set reaches users. *Rolling* gets Arch as it comes. Bazzite's main trick, for Arch. |
 
 ## 2.0 — Editions
@@ -25,7 +25,7 @@ The same core, built for different machines. The ISO workflow builds each one.
 
 | Edition | For |
 | --- | --- |
-| **Desktop** | What an4rch OS is today. |
+| **Desktop** | What An4rch OS is today. |
 | **Game** | (The installer's Game edition arrived in 1.1.1.) Its own ISO that boots straight into Steam's Big Picture (gamescope session), with the desktop one menu away. For living-room PCs and handhelds (Steam Deck, ROG Ally, Legion Go): Handheld Daemon, TDP control and on-screen keyboard. |
 | **Server** | The 1.1 server install, as its own small ISO, plus Cockpit for managing it from a browser and one-command app containers (Jellyfin, Nextcloud, Home Assistant). |
 | **Lite** | For old computers and 4 GB of RAM: no blur or animations, lighter apps, zram tuned harder. |

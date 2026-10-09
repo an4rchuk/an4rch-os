@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# anarch-login — the login screen: the an4rch logo (where the boot screen
+# anarch-login — the login screen: the An4rch logo (where the boot screen
 # leaves it) and your theme's colours.
 #
 #   anarch-login sync      copy the current theme (and wallpaper) to the login screen
@@ -34,7 +34,7 @@ sync() {
     {
       cat "$t/regreet.css"
       # Room for the logo: the login box sits below it.
-      if ((logo)); then printf '\n/* The login form sits below the an4rch logo; the clock stays at the top (anarch-login). */\noverlay > frame:nth-child(2) { margin-top: 300px; }\n'; fi
+      if ((logo)); then printf '\n/* The login form sits below the An4rch logo; the clock stays at the top (anarch-login). */\noverlay > frame:nth-child(2) { margin-top: 300px; }\n'; fi
     } >"$DIR/regreet.css.new" && chmod 644 "$DIR/regreet.css.new" && mv -f "$DIR/regreet.css.new" "$DIR/regreet.css"
   fi
   local LUMEN_THEME_MODE="dark" LUMEN_THEME_ICONS="Papirus-Dark"
@@ -108,7 +108,7 @@ setup() {
   if [[ -f "$conf" ]]; then initial=$(sed -n '/^\[initial_session\]/,$p' "$conf"); fi
   sudo mkdir -p /etc/greetd
   {
-    printf '# an4rch login screen: greetd runs lumen-greeter (ReGreet, or tuigreet as a fallback).\n'
+    printf '# An4rch login screen: greetd runs lumen-greeter (ReGreet, or tuigreet as a fallback).\n'
     printf '[terminal]\nvt = 1\n\n[default_session]\ncommand = "/usr/local/bin/lumen-greeter"\nuser = "greeter"\n'
     if [[ -n "$initial" ]]; then printf '\n%s\n' "$initial"; fi
   } | sudo tee "$conf" >/dev/null
@@ -128,7 +128,7 @@ case "${1:-sync}" in
   wallpaper)
     case "${2:-}" in
       on) touch "$DIR/use-wallpaper" && sync && echo "✓ The login screen shows your wallpaper." ;;
-      off) rm -f "$DIR/use-wallpaper" && sync && echo "✓ The login screen shows the an4rch logo." ;;
+      off) rm -f "$DIR/use-wallpaper" && sync && echo "✓ The login screen shows the An4rch logo." ;;
       *) die "usage: anarch-login wallpaper on|off" ;;
     esac
     ;;

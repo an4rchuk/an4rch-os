@@ -3,14 +3,14 @@
 # work laptops) with your own keys.
 #
 #   anarch-secureboot            is Secure Boot on, and is everything signed?
-#   anarch-secureboot setup      sign an4rch's boot files with your own keys and
+#   anarch-secureboot setup      sign An4rch's boot files with your own keys and
 #                                enrol them (with Microsoft's, so Windows and
 #                                graphics cards keep working)
 #   anarch-secureboot firmware   restart into the firmware settings
 #
 # How it goes: 1) restart into the firmware settings, find Secure Boot and
 # choose "Reset to Setup Mode" (or "Clear keys"; leave Secure Boot off for now),
-# 2) back in an4rch run `anarch-secureboot setup`, 3) restart into the
+# 2) back in An4rch run `anarch-secureboot setup`, 3) restart into the
 # firmware again and turn Secure Boot on. Updates sign themselves after that.
 set -euo pipefail
 source "${LUMEN_PATH:-$HOME/.local/share/lumen}/lib/lumen.sh"
@@ -62,7 +62,7 @@ The firmware isn't ready for your keys yet (it isn't in "Setup Mode").
   2. Find Secure Boot (often under Security or Boot) and choose
      "Reset to Setup Mode", "Clear Secure Boot keys" or "Delete all keys".
      Leave Secure Boot itself off for now. Save and exit.
-  3. Back in an4rch, run:  anarch secureboot setup
+  3. Back in An4rch, run:  anarch secureboot setup
 EOF
     exit 1
   fi

@@ -74,13 +74,13 @@ unpack() {
   local file="$1" dir="$work/in"
   [[ -f "$file" ]] || die "No such file: $file"
   # Nothing may land outside the home folder: check before extracting.
-  tar -tzf "$file" >"$work/list" 2>/dev/null || die "That isn't an an4rch carry file"
+  tar -tzf "$file" >"$work/list" 2>/dev/null || die "That isn't an An4rch carry file"
   if grep -qvE '^(\./)?(home|meta)(/|$)' "$work/list" || grep -qE '(^|/)\.\.(/|$)' "$work/list"; then
     die "This file contains unsafe paths; not using it"
   fi
   mkdir -p "$dir"
-  tar -C "$dir" --no-same-owner -xzf "$file" || die "That isn't an an4rch carry file"
-  [[ -f "$dir/meta/carry.conf" ]] || die "That isn't an an4rch carry file"
+  tar -C "$dir" --no-same-owner -xzf "$file" || die "That isn't an An4rch carry file"
+  [[ -f "$dir/meta/carry.conf" ]] || die "That isn't an An4rch carry file"
   if find "$dir" -type l -o -type b -o -type c -o -type p | grep -q .; then
     die "This file contains links or devices; not using it"
   fi

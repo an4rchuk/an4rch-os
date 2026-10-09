@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# an4rch OS 1.1.0: privacy and safety tools. "Remove hidden data" in the file
+# An4rch OS 1.1.0: privacy and safety tools. "Remove hidden data" in the file
 # manager, the daily health check, drive monitoring and the monthly btrfs scrub.
 set -euo pipefail
 LUMEN_PATH="${LUMEN_PATH:-$HOME/.local/share/lumen}"

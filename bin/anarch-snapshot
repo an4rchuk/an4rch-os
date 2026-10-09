@@ -7,7 +7,7 @@
 #   anarch-snapshot undo            roll back to just before the last update
 #   anarch-snapshot restore N       roll back to snapshot N (applies on restart)
 #
-# an4rch OS keeps the system on btrfs with snapper. A snapshot is taken
+# An4rch OS keeps the system on btrfs with snapper. A snapshot is taken
 # automatically before and after every package change (snap-pac), so any
 # update can be undone. Your home folder is a separate subvolume and is never
 # rolled back.
@@ -22,7 +22,7 @@ source "${LUMEN_PATH:-$HOME/.local/share/lumen}/lib/lumen.sh"
 snap() { snapper -c root "$@" 2>/dev/null || sudo snapper -c root "$@"; }
 
 need_snapper() {
-  has snapper || die "Snapshots need snapper on a btrfs system (an4rch OS installs this for you)."
+  has snapper || die "Snapshots need snapper on a btrfs system (An4rch OS installs this for you)."
   [[ "$(findmnt -no FSTYPE /)" == btrfs ]] || die "The root filesystem isn't btrfs, so snapshots aren't available."
   snap list >/dev/null 2>&1 || die "No snapper config for /. Create one: sudo snapper -c root create-config /"
 }
@@ -100,7 +100,7 @@ restore() {
       sudo arch-chroot "$new" pacman -U --noconfirm --overwrite '/boot/*' "/var/cache/pacman/pkg/$(basename "$pkgfile")" >/dev/null
     else
       echo "! Kernel package $k $ver isn't in the cache; the restored system will boot the current kernel." >&2
-      echo "  If it fails to start, pick 'an4rch OS (LTS kernel)' in the boot menu." >&2
+      echo "  If it fails to start, pick 'An4rch OS (LTS kernel)' in the boot menu." >&2
     fi
   done
   sudo umount "$new/var/cache/pacman/pkg" 2>/dev/null || true

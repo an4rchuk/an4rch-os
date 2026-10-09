@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# an4rch OS 1.1.1: the an4rch Hub, the one-step login screen, automatic
+# An4rch OS 1.1.1: the An4rch Hub, the one-step login screen, automatic
 # recovery (boot counting and Undo update at the login screen), backups,
 # phone link, graphics drivers, Secure Boot and bug reports.
 set -euo pipefail
 LUMEN_PATH="${LUMEN_PATH:-$HOME/.local/share/lumen}"
 source "$LUMEN_PATH/lib/lumen.sh"
 
-echo "  New: the an4rch Hub (Settings), a login screen with user name and password together,"
+echo "  New: the An4rch Hub (Settings), a login screen with user name and password together,"
 echo "       anarch backup, anarch phone, anarch drivers, anarch secureboot, anarch report"
 is_server && exit 0
 
@@ -22,7 +22,7 @@ if [[ -f /usr/share/lumen/os-release || -f /etc/greetd/config.toml ]] && grep -q
   "$LUMEN_PATH/bin/anarch-login" sync >/dev/null 2>&1 || true
 fi
 
-# Boot counting after kernel updates (an4rch OS with systemd-boot).
+# Boot counting after kernel updates (An4rch OS with systemd-boot).
 if [[ -f /usr/share/lumen/os-release ]]; then
   sudo install -Dm755 "$LUMEN_PATH/share/recover/arm-bootcount" /usr/local/lib/lumen/arm-bootcount || true
   sudo install -d /etc/pacman.d/hooks

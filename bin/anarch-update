@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# anarch-update — update an4rch, system packages, Flatpaks and firmware (SUPER + ALT + U).
+# anarch-update — update An4rch, system packages, Flatpaks and firmware (SUPER + ALT + U).
 #
 #   anarch-update           everything
-#   anarch-update lumen     only an4rch itself
+#   anarch-update lumen     only An4rch itself
 set -euo pipefail
 source "${LUMEN_PATH:-$HOME/.local/share/lumen}/lib/lumen.sh"
 
@@ -25,7 +25,7 @@ update_lumen() {
   # asks for a login); never prompt, just fail with a message.
   export GIT_TERMINAL_PROMPT=0
   "${g[@]}" config core.fileMode false
-  # The project's home, then its name before the an4rch rename (GitHub
+  # The project's home, then its name before the An4rch rename (GitHub
   # forwards that one once the repository is renamed).
   for repo in ${LUMEN_REPO:-https://github.com/an4rchuk/an4rch-os.git https://github.com/an4rchuk/lumen-os.git}; do
     if [[ "$("${g[@]}" remote get-url origin 2>/dev/null)" != "$repo" ]]; then
@@ -37,7 +37,7 @@ update_lumen() {
     fi
   done
   if ((!fetched)); then
-    echo "  Couldn't reach GitHub (no internet?); an4rch stays as it is."
+    echo "  Couldn't reach GitHub (no internet?); An4rch stays as it is."
     return 0
   fi
   # Updates follow the releases (v1.0.8, v1.0.9, …), the same code as the ISOs.
@@ -48,7 +48,7 @@ update_lumen() {
     echo "  Already up to date ($("${g[@]}" describe --tags --always 2>/dev/null))."
     return 0
   fi
-  # Edits to an4rch's own files are kept in a stash (git stash list), not lost.
+  # Edits to An4rch's own files are kept in a stash (git stash list), not lost.
   "${g[@]}" stash push --quiet -m "anarch update $(date '+%F %T')" 2>/dev/null || true
   if ! "${g[@]}" checkout --quiet --detach "$latest" 2>/dev/null; then
     "${g[@]}" checkout --quiet --force --detach "$latest"

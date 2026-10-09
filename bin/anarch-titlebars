@@ -9,7 +9,7 @@
 #   anarch-titlebars load     load the plugin into the running session (used at login)
 #
 # The bars come from hyprbars, Hyprland's official plugin, compiled for your
-# exact Hyprland version (an4rch OS ships it prebuilt) into
+# exact Hyprland version (An4rch OS ships it prebuilt) into
 # /usr/lib/lumen/hyprbars.so. Their colours follow your theme.
 set -euo pipefail
 source "${LUMEN_PATH:-$HOME/.local/share/lumen}/lib/lumen.sh"

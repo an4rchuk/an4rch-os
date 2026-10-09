@@ -50,7 +50,7 @@ restic_() { RESTIC_PASSWORD_FILE="$keyfile" RESTIC_REPOSITORY="$1" restic "${@:2
 
 save_conf() {
   mkdir -p "$LUMEN_CONFIG"
-  printf '# an4rch backups (anarch-backup).\nTARGET=%q\nUUID=%q\nSUBDIR=%q\n' "$TARGET" "$UUID" "$SUBDIR" >"$conf"
+  printf '# An4rch backups (anarch-backup).\nTARGET=%q\nUUID=%q\nSUBDIR=%q\n' "$TARGET" "$UUID" "$SUBDIR" >"$conf"
 }
 
 # Drives you could back up to: mounted, not the system disk.

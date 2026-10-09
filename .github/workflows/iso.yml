@@ -1,6 +1,6 @@
 name: iso
 
-# Builds the an4rch OS installer ISO in an Arch Linux container.
+# Builds the An4rch OS installer ISO in an Arch Linux container.
 # Run it from the Actions tab ("Run workflow"), or push a tag like v1.1.0 to
 # also publish a release (or type a tag in "Run workflow"). Release files are limited to 2 GB each, so a
 # release carries the full ISO in parts (to join after downloading) plus a
@@ -43,7 +43,7 @@ jobs:
 
       - name: Build the ISO (Arch container)
         run: |
-          # Releases carry their own version (an4rch menu → About, anarch doctor, os-release).
+          # Releases carry their own version (An4rch menu → About, anarch doctor, os-release).
           if [ -n "$TAG" ]; then echo "${TAG#v}" >VERSION; fi
           docker run --rm --privileged -v "$PWD:/src" -e LUMEN_STRICT=1 archlinux:latest bash -c '
             pacman -Syu --noconfirm --needed archiso git python-pillow >/dev/null &&
@@ -83,7 +83,7 @@ jobs:
           api.create_repo(repo, repo_type="dataset", exist_ok=True)
           for path in (iso, iso + ".sha256"):
               api.upload_file(path_or_fileobj=path, path_in_repo=f"{tag}/{os.path.basename(path)}",
-                              repo_id=repo, repo_type="dataset", commit_message=f"an4rch OS {tag}")
+                              repo_id=repo, repo_type="dataset", commit_message=f"An4rch OS {tag}")
           url = f"https://huggingface.co/datasets/{repo}/resolve/main/{tag}/{name}"
           with open(os.environ["GITHUB_ENV"], "a") as f:
               f.write(f"HF_URL={url}\n")
@@ -142,13 +142,13 @@ jobs:
 
           ## Install
 
-          Write the ISO to a USB stick of 8 GB or more (Rufus in DD mode, Ventoy, Impression, Fedora Media Writer or \`dd\`), turn off Secure Boot, and boot it (UEFI recommended; older legacy BIOS computers work too). Pick **an4rch OS installer** for the live desktop with the graphical installer, or **(text mode)** for the console installer.
+          Write the ISO to a USB stick of 8 GB or more (Rufus in DD mode, Ventoy, Impression, Fedora Media Writer or \`dd\`), turn off Secure Boot, and boot it (UEFI recommended; older legacy BIOS computers work too). Pick **An4rch OS installer** for the live desktop with the graphical installer, or **(text mode)** for the console installer.
 
-          > ⚠️ **Erasing a disk deletes everything on it, including Windows.** On a disk with Windows you can choose **Alongside Windows** instead, which keeps Windows and its files (back up first, and turn off Fast Startup in Windows). To just try an4rch, use the live desktop and don't install: nothing on the computer is touched.
+          > ⚠️ **Erasing a disk deletes everything on it, including Windows.** On a disk with Windows you can choose **Alongside Windows** instead, which keeps Windows and its files (back up first, and turn off Fast Startup in Windows). To just try An4rch, use the live desktop and don't install: nothing on the computer is touched.
 
-          NVIDIA graphics (GTX 16xx / RTX 20xx and newer): pick **an4rch OS installer (NVIDIA)** in the boot menu.
+          NVIDIA graphics (GTX 16xx / RTX 20xx and newer): pick **An4rch OS installer (NVIDIA)** in the boot menu.
 
-          See the [an4rch OS manual](https://github.com/${GITHUB_REPOSITORY}/blob/${TAG}/docs/09-lumen-os.md).
+          See the [An4rch OS manual](https://github.com/${GITHUB_REPOSITORY}/blob/${TAG}/docs/09-lumen-os.md).
           EOF
           } >notes.md
           sed -i 's/^          //' notes.md
@@ -160,6 +160,6 @@ jobs:
         with:
           tag_name: ${{ env.TAG }}
           target_commitish: ${{ github.sha }}
-          name: an4rch OS ${{ env.TAG }}
+          name: An4rch OS ${{ env.TAG }}
           body_path: notes.md
           files: release/*

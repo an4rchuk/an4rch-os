@@ -5,7 +5,7 @@
 #   anarch-wallpaper pick           choose from a menu
 #   anarch-wallpaper set FILE       use any image
 #   anarch-wallpaper list           print this theme's wallpapers
-#   anarch-wallpaper generate       (re)create an4rch's wallpapers for every theme
+#   anarch-wallpaper generate       (re)create An4rch's wallpapers for every theme
 #   anarch-wallpaper restore        re-apply the current wallpaper (used at login)
 #
 # Your own images go in ~/Pictures/Wallpapers (all themes) or

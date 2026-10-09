@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# an4rch OS 1.1.0: every lumen-* command is now anarch-* (the old names are
+# An4rch OS 1.1.0: every lumen-* command is now anarch-* (the old names are
 # obsolete and only forward). Your own config files that call them are updated;
 # the originals are kept in ~/.local/state/lumen/before-anarch/.
 set -euo pipefail

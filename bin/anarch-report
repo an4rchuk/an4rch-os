@@ -6,9 +6,9 @@
 #                          issue on GitHub to attach it to
 #   anarch-report --print  print the report instead
 #
-# Included: an4rch's version and install choices, the kernel, the graphics,
+# Included: An4rch's version and install choices, the kernel, the graphics,
 # network and sound hardware, disks and free space, failed services, errors
-# from this boot, `anarch doctor`, and an4rch's own logs. Removed: your user
+# from this boot, `anarch doctor`, and An4rch's own logs. Removed: your user
 # and computer names, your home folder's path, network addresses, Wi-Fi
 # names and email addresses. Read it before you send it.
 set -uo pipefail
@@ -68,7 +68,7 @@ home, me, host = sys.argv[1], sys.argv[2], sys.argv[3]
 for ssid in [s for s in sys.argv[4].splitlines() if len(s) > 2]:
     text = text.replace(ssid, "<network>")
 text = text.replace(home, "~")
-# The default computer names (an4rch, archlinux…) are not private, and an4rch
+# The default computer names (An4rch, archlinux…) are not private, and An4rch
 # is also the name of the OS all through the report: leave those.
 generic = {"an4rch", "lumen", "archlinux", "archiso", "localhost"}
 for word, repl in ((me, "<user>"), (host if host.lower() not in generic else "", "<computer>")):

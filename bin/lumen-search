@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
-# lumen-search — obsolete name (before an4rch OS 1.1.0) of anarch-search; kept so old configs still work.
+# lumen-search — obsolete name (before An4rch OS 1.1.0) of anarch-search; kept so old configs still work.
 [[ -t 2 ]] && printf '\e[33m!\e[0m lumen-search is obsolete: use anarch-search (or: anarch search)\n' >&2
 exec "${LUMEN_PATH:-$HOME/.local/share/lumen}/bin/anarch-search" "$@"

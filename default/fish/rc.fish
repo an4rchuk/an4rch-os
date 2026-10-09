@@ -1,4 +1,4 @@
-# an4rch shell defaults (fish). Managed by an4rch — put your own settings in
+# An4rch shell defaults (fish). Managed by An4rch — put your own settings in
 # ~/.config/fish/config.fish after the line that sources this file.
 
 set -q LUMEN_PATH; or set -gx LUMEN_PATH $HOME/.local/share/lumen

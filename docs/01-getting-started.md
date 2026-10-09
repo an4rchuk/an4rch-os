@@ -2,7 +2,7 @@
 
 There are two ways to get an4rch:
 
-- **an4rch OS**: boot the installer ISO and it sets up the whole computer, including disk encryption, snapshots and the boot loader. See [an4rch OS](09-lumen-os.md).
+- **An4rch OS**: boot the installer ISO and it sets up the whole computer, including disk encryption, snapshots and the boot loader. See [An4rch OS](09-lumen-os.md).
 - **On an existing Arch install**: the steps below. You get the same desktop, Start menu, App Store and tools on top of the system you already have.
 
 ## What you need
@@ -22,7 +22,7 @@ Log in as your user on the text console and run:
 curl -fsSL https://raw.githubusercontent.com/an4rchuk/an4rch-os/HEAD/boot.sh | bash
 ```
 
-This clones an4rch to `~/.local/share/lumen` and starts the installer. If you'd rather look first:
+This clones An4rch to `~/.local/share/lumen` and starts the installer. If you'd rather look first:
 
 ```sh
 git clone https://github.com/an4rchuk/an4rch-os ~/.local/share/lumen
@@ -55,7 +55,7 @@ Useful options (pass them after `bash -s --` when piping, e.g. `… | bash -s --
 | `--autologin` | Skip the login screen. Only sensible with full-disk encryption |
 | `--no-greeter` | No login screen; logging in on the first console starts the desktop |
 | `--gaming` | Also install the gaming stack (Steam, Proton tools, GameMode, MangoHud) |
-| `--distro` | Apply the an4rch OS system layer (branding, snapshots, boot splash, zram) |
+| `--distro` | Apply the An4rch OS system layer (branding, snapshots, boot splash, zram) |
 | `--configs-only` | Refresh configs and styling without touching packages |
 
 The installer is safe to run again. Packages already installed are skipped. On later runs your configs are only added when missing, never overwritten.
@@ -66,7 +66,7 @@ After the restart you'll see the login screen. Sign in, and the **Welcome** tour
 
 The top bar, from left to right:
 
-- **󰣇** opens Start (right-click opens the an4rch menu).
+- **󰣇** opens Start (right-click opens the An4rch menu).
 - **Workspace dots.** Click one to switch, scroll to move through them.
 - **The active window's title.**
 - **Clock** in the centre. Hover for a calendar, scroll it to change month. Pending reminders show next to it.
@@ -87,7 +87,7 @@ The top bar, from left to right:
 | <kbd>SUPER</kbd> + arrows | Move focus (add <kbd>SHIFT</kbd> to move the window) |
 | <kbd>SUPER</kbd> + <kbd>T</kbd> | Float / tile the window |
 | <kbd>Print</kbd> | Screenshot a region |
-| <kbd>SUPER</kbd> + <kbd>ALT</kbd> + <kbd>SPACE</kbd> | The an4rch menu |
+| <kbd>SUPER</kbd> + <kbd>ALT</kbd> + <kbd>SPACE</kbd> | The An4rch menu |
 | <kbd>SUPER</kbd> + <kbd>/</kbd> | All key bindings |
 
 ## How tiling works
@@ -104,14 +104,14 @@ New windows split the space with the window that has focus, so you rarely move o
 
 Every window has a title bar with **close**, **maximise/restore** and **minimise** buttons (right to left). Double-click the bar to maximise, drag it to move a floating window. Minimised windows wait out of sight: bring one back with <kbd>SUPER</kbd> + <kbd>SHIFT</kbd> + <kbd>M</kbd>, or from the taskbar. <kbd>SUPER</kbd> + <kbd>,</kbd> minimises from the keyboard.
 
-The **taskbar** along the bottom of the screen is on by default; turn it off or on again from an4rch menu → Toggle → *Taskbar at the bottom* (or `anarch taskbar off` / `on`). Click an app to switch to it, click the active one to minimise it, middle-click to close it.
+The **taskbar** along the bottom of the screen is on by default; turn it off or on again from An4rch menu → Toggle → *Taskbar at the bottom* (or `anarch taskbar off` / `on`). Click an app to switch to it, click the active one to minimise it, middle-click to close it.
 
 Prefer the opposite, a clean edge-to-edge tiling look? `anarch titlebars off` removes the title bars. Both choices are saved in `~/.config/lumen/settings.conf` (`LUMEN_TITLEBARS`, `LUMEN_TASKBAR`) and can also be made in the installer.
 
-The title bars come from Hyprland's official *hyprbars* plugin, built for your exact Hyprland version when an4rch is installed; `anarch update` rebuilds it after Hyprland updates.
+The title bars come from Hyprland's official *hyprbars* plugin, built for your exact Hyprland version when An4rch is installed; `anarch update` rebuilds it after Hyprland updates.
 
 ## Getting help
 
 - `anarch doctor` checks that everything is installed and running.
-- `anarch help` lists every an4rch command.
+- `anarch help` lists every An4rch command.
 - `anarch manual themes` (or any chapter name) opens a chapter in the terminal.

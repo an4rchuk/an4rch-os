@@ -6,6 +6,7 @@
     {"vm": "b-4k", "mem": "12G", "xres": 3840, "yres": 2160, "login": true},
     {"vm": "b-light", "install": "lumen.theme=an4rch-light"},
     {"vm": "b-server", "install": "lumen.edition=server"},
-    {"vm": "b-game", "mem": "8G", "install": "lumen.edition=game"}
+    {"vm": "b-game", "mem": "8G", "install": "lumen.edition=game"},
+    {"vm": "b-vscode", "install": "lumen.apps=visual-studio-code"}
   ]
 }

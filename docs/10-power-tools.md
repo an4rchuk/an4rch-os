@@ -1,12 +1,12 @@
 # Power tools
 
-Four commands for the things a fresh desktop doesn't do on its own: tuning the system, one-step setups for popular extras, a development environment, and sharing themes. Each one is also in the an4rch menu (<kbd>SUPER</kbd> + <kbd>ALT</kbd> + <kbd>SPACE</kbd>) and in Start's search.
+Four commands for the things a fresh desktop doesn't do on its own: tuning the system, one-step setups for popular extras, a development environment, and sharing themes. Each one is also in the An4rch menu (<kbd>SUPER</kbd> + <kbd>ALT</kbd> + <kbd>SPACE</kbd>) and in Start's search.
 
 They borrow from three distributions: performance tuning from [CachyOS](https://cachyos.org), one-command extras from [Bazzite](https://bazzite.gg)'s `ujust`, and the development setup from [Omarchy](https://omarchy.org).
 
 ## Performance: `anarch tune`
 
-an4rch OS already applies the low-risk tweaks at install time:
+An4rch OS already applies the low-risk tweaks at install time:
 
 | Tweak | Why |
 | --- | --- |
@@ -76,18 +76,18 @@ Databases: `postgres`, `mysql`, `redis`, `mongo`. Each runs as a container calle
 
 ## Sharing themes: `anarch theme install`
 
-Anyone can publish a an4rch theme as a git repository with a `theme.conf` at the top (see [Making your own theme](03-themes.md#making-your-own-theme)), plus an optional `backgrounds/` folder of wallpapers.
+Anyone can publish an An4rch theme as a git repository with a `theme.conf` at the top (see [Making your own theme](03-themes.md#making-your-own-theme)), plus an optional `backgrounds/` folder of wallpapers.
 
 ```sh
 anarch theme install https://github.com/someone/lumen-frosty-theme
 anarch theme remove frosty
 ```
 
-The theme's name comes from the repository name, without `an4rch-`, `anarch-` (or `lumen-`) and `-theme`. Themes without wallpapers get painted ones. Run the same install command again to update a theme. From the desktop: an4rch menu → Style → *Install a theme from git*.
+The theme's name comes from the repository name, without `an4rch-`, `anarch-` (or `lumen-`) and `-theme`. Themes without wallpapers get painted ones. Run the same install command again to update a theme. From the desktop: An4rch menu → Style → *Install a theme from git*.
 
 ## Battery warnings
 
-On laptops, an4rch warns at 20% and again at 10%, and suspends at 4% so nothing is lost. Change the levels in `~/.config/lumen/settings.conf`:
+On laptops, An4rch warns at 20% and again at 10%, and suspends at 4% so nothing is lost. Change the levels in `~/.config/lumen/settings.conf`:
 
 ```sh
 LUMEN_BATTERY_LOW=25

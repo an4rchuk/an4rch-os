@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
-# lumen-ocr — obsolete name (before an4rch OS 1.1.0) of anarch-ocr; kept so old configs still work.
+# lumen-ocr — obsolete name (before An4rch OS 1.1.0) of anarch-ocr; kept so old configs still work.
 [[ -t 2 ]] && printf '\e[33m!\e[0m lumen-ocr is obsolete: use anarch-ocr (or: anarch ocr)\n' >&2
 exec "${LUMEN_PATH:-$HOME/.local/share/lumen}/bin/anarch-ocr" "$@"

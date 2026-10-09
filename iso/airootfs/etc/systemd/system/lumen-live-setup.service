@@ -1,5 +1,5 @@
 [Unit]
-Description=an4rch OS live desktop
+Description=An4rch OS live desktop
 Before=getty@tty1.service
 After=systemd-sysusers.service local-fs.target
 

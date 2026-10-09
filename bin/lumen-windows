@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
-# lumen-windows — obsolete name (before an4rch OS 1.1.0) of anarch-windows; kept so old configs still work.
+# lumen-windows — obsolete name (before An4rch OS 1.1.0) of anarch-windows; kept so old configs still work.
 [[ -t 2 ]] && printf '\e[33m!\e[0m lumen-windows is obsolete: use anarch-windows (or: anarch windows)\n' >&2
 exec "${LUMEN_PATH:-$HOME/.local/share/lumen}/bin/anarch-windows" "$@"

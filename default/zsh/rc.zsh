@@ -1,4 +1,4 @@
-# an4rch shell defaults (zsh). Managed by an4rch — put your own settings in
+# An4rch shell defaults (zsh). Managed by An4rch — put your own settings in
 # ~/.zshrc after the line that sources this file.
 
 export LUMEN_PATH="${LUMEN_PATH:-$HOME/.local/share/lumen}"
@@ -72,7 +72,7 @@ alias copy='wl-copy'
 alias paste='wl-paste'
 alias ff='fzf --preview "bat --color=always --style=numbers {}"'
 
-# Quick install / remove through an4rch's package helper.
+# Quick install / remove through An4rch's package helper.
 alias install='anarch-pkg add'
 alias uninstall='anarch-pkg rm'
 alias update='anarch-update'

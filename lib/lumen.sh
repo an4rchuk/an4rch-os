@@ -1,6 +1,6 @@
 # shellcheck shell=bash
 # shellcheck disable=SC2034  # settings are read by the commands that source this file
-# an4rch shared shell library. Sourced by every `lumen-*` command.
+# An4rch shared shell library. Sourced by every `lumen-*` command.
 #
 # Keep this file dependency-free: it must load on a half-installed system so
 # `anarch doctor` can explain what is missing.
@@ -56,7 +56,7 @@ in_terminal() {
   exit 0
 }
 
-# is_server — installed as an4rch Server (no desktop).
+# is_server — installed as An4rch Server (no desktop).
 is_server() { [[ "$(cat "$LUMEN_CONFIG/edition" 2>/dev/null)" == server ]]; }
 
 die() {
@@ -70,7 +70,7 @@ notify() {
   shift 2 2>/dev/null || shift $#
   has notify-send || { printf '%s %s\n' "$title" "$body"; return; }
   # No notification service (an install from a console): not an error.
-  notify-send -a an4rch "$@" "$title" "$body" 2>/dev/null || printf '%s %s\n' "$title" "$body"
+  notify-send -an An4rch "$@" "$title" "$body" 2>/dev/null || printf '%s %s\n' "$title" "$body"
 }
 
 # Run a program detached from the caller, as its own systemd scope when the

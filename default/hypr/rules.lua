@@ -15,7 +15,7 @@ hl.window_rule({
     no_focus = true,
 })
 
--- an4rch dialogs: TUIs opened with `anarch-term --float` (Wi-Fi, Bluetooth,
+-- An4rch dialogs: TUIs opened with `anarch-term --float` (Wi-Fi, Bluetooth,
 -- audio, package installer, ...) behave like centred dialogs.
 hl.window_rule({
     name  = "lumen-floating",
@@ -63,7 +63,7 @@ hl.window_rule({
     center = true,
 })
 
--- an4rch's own windows.
+-- An4rch's own windows.
 hl.window_rule({ name = "anarch-welcome", match = { class = "^(org\\.lumen\\.Welcome)$" }, float = true, center = true, size = { 820, 640 } })
 hl.window_rule({ name = "anarch-settings", match = { class = "^(org\\.lumen\\.Settings)$" }, float = true, center = true, size = { 980, 700 } })
 

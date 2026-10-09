@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# anarch-doctor — check that everything an4rch needs is installed and running.
+# anarch-doctor — check that everything An4rch needs is installed and running.
 #
 #   anarch-doctor            full report
 #   anarch-doctor windows    print class and title of open windows (for rules)
@@ -21,7 +21,7 @@ if [[ "${1:-}" == hardware ]]; then
       /^[0-9a-f]/ { show = ($0 ~ re); if (show) print "  " substr($0, 9); next }
       show && /Kernel driver in use/ { sub(/^[ \t]+/, ""); print "    " $0 }'; }
   {
-    echo "an4rch hardware report  $(date '+%F %R')  an4rch $(cat "$LUMEN_PATH/VERSION" 2>/dev/null || echo dev)"
+    echo "An4rch hardware report  $(date '+%F %R')  An4rch $(cat "$LUMEN_PATH/VERSION" 2>/dev/null || echo dev)"
     echo "Computer: $(dmi sys_vendor) $(dmi product_name) $(dmi product_version)  (BIOS $(dmi bios_version))"
     echo "CPU: $(grep -m1 'model name' /proc/cpuinfo 2>/dev/null | cut -d: -f2- | sed 's/^ *//')"
     echo "Memory: $(free -h 2>/dev/null | awk '/^Mem:/ {print $2}')  Kernel: $(uname -r)"
@@ -62,12 +62,12 @@ need() { # need CMD [package] [optional]
   if has "$1"; then pass "$1"; elif [[ "${3:-}" == optional ]]; then note "$1 not installed (optional: anarch-pkg add ${2:-$1})"; else fail "$1 missing — anarch-pkg add ${2:-$1}"; fi
 }
 
-printf '\e[1;35man4rch doctor\e[0m  %s\n' "$(cat "$LUMEN_PATH/VERSION" 2>/dev/null || echo dev)"
+printf '\e[1;35mAn4rch doctor\e[0m  %s\n' "$(cat "$LUMEN_PATH/VERSION" 2>/dev/null || echo dev)"
 
-# an4rch Server: no desktop; the system, remote access and the tools.
+# An4rch Server: no desktop; the system, remote access and the tools.
 if is_server; then
   section "Server"
-  pass "an4rch Server (no desktop) · kernel $(uname -r)"
+  pass "An4rch Server (no desktop) · kernel $(uname -r)"
   for c in git curl jq fzf btop "${SHELL##*/}"; do need "$c"; done
   for s in NetworkManager sshd systemd-timesyncd; do
     if systemctl is-active -q "$s" 2>/dev/null; then pass "$s"; else note "$s not active — sudo systemctl enable --now $s"; fi
@@ -108,7 +108,7 @@ for c in fuzzel mako hypridle hyprlock swaybg; do need "$c"; done
 need hyprsunset hyprsunset optional
 need hyprpicker hyprpicker optional
 
-section "an4rch apps"
+section "An4rch apps"
 if python3 -c 'import gi; gi.require_version("Gtk", "4.0"); gi.require_version("Adw", "1")' 2>/dev/null; then
   pass "GTK 4 + libadwaita for Python (Start menu, App Store, Welcome)"
 else

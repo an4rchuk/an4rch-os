@@ -39,7 +39,7 @@ while IFS= read -r -d '' f; do
   fi
 done < <(find "$LUMEN_PATH/config" -type f -print0)
 
-# Launchers and icons for an4rch's own apps are managed by an4rch: always refresh.
+# Launchers and icons for An4rch's own apps are managed by an4rch: always refresh.
 data="${XDG_DATA_HOME:-$HOME/.local/share}"
 if ((server)); then mkdir -p "$data"; else
 mkdir -p "$data/applications" "$data/icons/hicolor/scalable/apps"

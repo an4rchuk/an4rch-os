@@ -142,7 +142,7 @@ setup_menu() {
     "󰈷  Fingerprint login" \
     "󰐪  Printers" \
     "󰏘  Default apps" \
-    "󰒓  an4rch settings" \
+    "󰒓  An4rch settings" \
     "󰈙  Edit key bindings" \
     "󰗅  Accessibility" \
     "󰁯  Move my setup elsewhere" \
@@ -164,12 +164,12 @@ setup_menu() {
     *Fingerprint*) term --float --hold -- "$bin/anarch-setup" fingerprint ;;
     *Printers) term --float --hold -- "$bin/anarch-setup" printing ;;
     *"Default apps") "$bin/anarch-setup" defaults ;;
-    *"an4rch settings") "$bin/anarch-settings" ;;
+    *"An4rch settings") "$bin/anarch-settings" ;;
     *"key bindings") edit "$HOME/.config/hypr/bindings.lua" ;;
     *Accessibility) "$bin/anarch-a11y" menu ;;
     *"setup elsewhere") carry_menu ;;
     *"Computer health") "$bin/anarch-health" ;;
-    *"Health check") term --float --hold --title "an4rch doctor" -- "$bin/anarch-doctor" ;;
+    *"Health check") term --float --hold --title "An4rch doctor" -- "$bin/anarch-doctor" ;;
     *"Hardware report") term --float --hold --title "Hardware report" -- "$bin/anarch-doctor" hardware ;;
   esac
 }
@@ -268,7 +268,7 @@ carry_menu() {
 learn_menu() {
   case $(show "Learn" \
     "󰌌  Key bindings" \
-    "󰈙  an4rch manual" \
+    "󰈙  An4rch manual" \
     "󰖟  Hyprland wiki" \
     "󰣇  Arch Wiki" \
     "󰋑  Welcome tour" \

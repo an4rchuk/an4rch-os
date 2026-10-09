@@ -1,4 +1,4 @@
--- an4rch key bindings.
+-- An4rch key bindings.
 --
 -- The layout of the keyboard map:
 --   SUPER + key            apps and windows
@@ -31,7 +31,7 @@ bind("SUPER + SUPER_L",       exec(cmd("start")),                      "Start me
 bind("SUPER + SUPER_R",       exec(cmd("start")),                      "Start menu (right Windows key)", { release = true })
 bind("SUPER + SPACE",         exec(cmd("launcher")),                   "Quick app launcher")
 bind("SUPER + A",             exec(cmd("store")),                      "App Store")
-bind("SUPER + ALT + SPACE",   exec(cmd("menu")),                       "an4rch menu")
+bind("SUPER + ALT + SPACE",   exec(cmd("menu")),                       "An4rch menu")
 bind("SUPER + B",             exec(launch("browser")),                 "Browser")
 bind("SUPER + SHIFT + B",     exec(launch("browser --private")),       "Browser (private window)")
 bind("SUPER + E",             exec(launch("files")),                   "File manager")
@@ -39,7 +39,7 @@ bind("SUPER + C",             exec(launch("editor")),                  "Code edi
 bind("SUPER + SHIFT + Return", exec(cmd("term", "--float")),           "Floating terminal")
 bind("SUPER + grave",         exec(cmd("windows")),                    "Find an open window")
 bind("SUPER + slash",         exec(cmd("keys")),                       "Show all key bindings")
-bind("SUPER + F1",            exec(cmd("manual")),                     "Open the an4rch manual")
+bind("SUPER + F1",            exec(cmd("manual")),                     "Open the An4rch manual")
 bind("SUPER + I",             exec(cmd("settings")),                   "Settings")
 bind("CTRL + SHIFT + Escape",  exec(launch("monitor")),                 "Task Manager (like Windows)")
 

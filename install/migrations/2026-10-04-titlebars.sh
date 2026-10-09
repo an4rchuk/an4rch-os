@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# an4rch 2.1: title bars with close/maximise/minimise buttons (hyprbars plugin,
+# An4rch 2.1: title bars with close/maximise/minimise buttons (hyprbars plugin,
 # on unless LUMEN_TITLEBARS=no) and minimise/restore support.
 set -euo pipefail
 LUMEN_PATH="${LUMEN_PATH:-$HOME/.local/share/lumen}"

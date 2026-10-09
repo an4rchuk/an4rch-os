@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
-# lumen-power-profile — obsolete name (before an4rch OS 1.1.0) of anarch-power-profile; kept so old configs still work.
+# lumen-power-profile — obsolete name (before An4rch OS 1.1.0) of anarch-power-profile; kept so old configs still work.
 [[ -t 2 ]] && printf '\e[33m!\e[0m lumen-power-profile is obsolete: use anarch-power-profile (or: anarch power-profile)\n' >&2
 exec "${LUMEN_PATH:-$HOME/.local/share/lumen}/bin/anarch-power-profile" "$@"

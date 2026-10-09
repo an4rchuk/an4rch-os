@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# an4rch OS system layer. Run as root (the ISO installer runs it inside the new
+# An4rch OS system layer. Run as root (the ISO installer runs it inside the new
 # system; `install.sh --distro` runs it on an existing Arch install).
 #
 #   - brands the OS (os-release, console greeting, fastfetch logo) and keeps
@@ -41,7 +41,7 @@ Exec = /usr/local/lib/lumen/arm-bootcount
 HOOK
 
 # --- Boot splash --------------------------------------------------------------------
-# The an4rch logo on black, and the disk password in the same style.
+# The An4rch logo on black, and the disk password in the same style.
 bash "$LUMEN_PATH/install/plymouth.sh"
 
 # --- Memory ---------------------------------------------------------------------------
@@ -121,7 +121,7 @@ systemctl enable paccache.timer >/dev/null 2>&1 || true
 if [[ "$(findmnt -no FSTYPE /)" == btrfs ]]; then
   pacman -S --needed --noconfirm snapper snap-pac >/dev/null
   if [[ ! -f /etc/snapper/configs/root ]]; then
-    # snapper wants to create /.snapshots itself; an4rch OS mounts the @snapshots
+    # snapper wants to create /.snapshots itself; An4rch OS mounts the @snapshots
     # subvolume there instead, so step aside while the config is created.
     if mountpoint -q /.snapshots; then
       umount /.snapshots
@@ -157,4 +157,4 @@ if [[ "$(findmnt -no FSTYPE /)" == btrfs ]]; then
   systemctl enable btrfs-scrub@-.timer >/dev/null 2>&1 || true
 fi
 
-echo "an4rch OS system layer applied."
+echo "An4rch OS system layer applied."

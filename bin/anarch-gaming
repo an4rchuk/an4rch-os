@@ -118,7 +118,7 @@ game_session() {
 }
 
 # Steam's "Switch to Desktop" runs steamos-session-select: end Game Mode, so
-# the login screen (and the an4rch desktop) comes up.
+# the login screen (and the An4rch desktop) comes up.
 session_select() {
   sudo tee /usr/local/bin/steamos-session-select >/dev/null <<'EOF'
 #!/bin/sh

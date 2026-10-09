@@ -2,7 +2,7 @@
 
 The quickest way is the **Settings** app (<kbd>SUPER</kbd> + <kbd>I</kbd>, or Start → Settings): theme and wallpaper, the top bar and taskbar, title bars, the window layout, night light, gaps, borders, rounded corners, animations, blur, shadows and transparency, sound devices, Wi-Fi and Bluetooth, displays, keyboard repeat, pointer speed and touchpad behaviour, power and sleep, default apps, and system information. Window and input choices are saved to `~/.config/lumen/desktop.lua`; everything below goes further by hand.
 
-an4rch keeps two kinds of files apart:
+An4rch keeps two kinds of files apart:
 
 - **an4rch's defaults** live in `~/.local/share/lumen` (a git checkout). `anarch update` replaces them, so don't edit them.
 - **Your files** live in `~/.config`. They're loaded *after* the defaults, so anything you set there wins. Updates never overwrite them.
@@ -25,7 +25,7 @@ an4rch keeps two kinds of files apart:
 | Notifications | `~/.config/mako/config` |
 | Terminal | `~/.config/ghostty/config` |
 | Session environment variables | `~/.config/uwsm/env` |
-| Shell | `~/.zshrc` (an4rch's defaults are in `default/zsh/rc.zsh`) |
+| Shell | `~/.zshrc` (An4rch's defaults are in `default/zsh/rc.zsh`) |
 
 Hyprland, Waybar's style and the theme files reload by themselves when you save. For other changes:
 
@@ -52,11 +52,11 @@ LUMEN_OCR_LANG=eng            # tesseract languages, e.g. eng+deu
 LUMEN_SEARCH_URL="https://duckduckgo.com/?q="
 ```
 
-**an4rch menu → Setup → Default apps** changes the first four for you and also updates which browser opens links.
+**An4rch menu → Setup → Default apps** changes the first four for you and also updates which browser opens links.
 
 ## Hyprland in Lua
 
-Hyprland 0.55 and later is configured in **Lua**, and an4rch uses that format. A few patterns cover most needs.
+Hyprland 0.55 and later is configured in **Lua**, and An4rch uses that format. A few patterns cover most needs.
 
 **Change options:**
 
@@ -108,13 +108,13 @@ end)
 
 Apps with an XDG autostart entry (`~/.config/autostart/*.desktop`, what most apps create with a "start at login" checkbox) are started automatically.
 
-**Keyboard layouts:** **an4rch menu → Setup → Keyboard layout**, or edit `input.lua`:
+**Keyboard layouts:** **An4rch menu → Setup → Keyboard layout**, or edit `input.lua`:
 
 ```lua
 hl.config({ input = { kb_layout = "us,de", kb_options = "compose:ralt,grp:alt_shift_toggle" } })
 ```
 
-an4rch also exposes a small helper table for your Lua files: `lumen.cmd("screenshot", "region")` gives the absolute path of a an4rch command, and `lumen.theme.accent` is the current theme's accent colour (hex, no `#`).
+An4rch also exposes a small helper table for your Lua files: `lumen.cmd("screenshot", "region")` gives the absolute path of an An4rch command, and `lumen.theme.accent` is the current theme's accent colour (hex, no `#`).
 
 Full reference: <https://wiki.hypr.land/configuring/>. Hyprland reports config errors in a banner at the top of the screen, and `hyprctl configerrors` lists them.
 
@@ -135,7 +135,7 @@ an4rch's own modules show status from `anarch-status` and refresh instantly when
 
 ## The shell
 
-an4rch sets up **zsh** with autosuggestions, syntax highlighting, a fast history search, the **starship** prompt and **zoxide** (`cd` learns your folders: `cd proj` jumps to `~/code/project`). There are a few handy aliases:
+An4rch sets up **zsh** with autosuggestions, syntax highlighting, a fast history search, the **starship** prompt and **zoxide** (`cd` learns your folders: `cd proj` jumps to `~/code/project`). There are a few handy aliases:
 
 | Alias | Runs |
 | --- | --- |
@@ -148,4 +148,4 @@ an4rch sets up **zsh** with autosuggestions, syntax highlighting, a fast history
 | <kbd>CTRL</kbd> + <kbd>T</kbd> | Insert a file path |
 | <kbd>ALT</kbd> + <kbd>C</kbd> | Jump into a sub-folder |
 
-Put your own settings at the bottom of `~/.zshrc`. Prefer bash? `chsh -s /bin/bash`; an4rch's commands don't depend on zsh.
+Put your own settings at the bottom of `~/.zshrc`. Prefer bash? `chsh -s /bin/bash`; An4rch's commands don't depend on zsh.

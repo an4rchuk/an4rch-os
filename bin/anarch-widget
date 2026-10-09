@@ -2,7 +2,7 @@
 # anarch-widget — add your own widgets to the top bar, or community ones.
 #
 #   anarch-widget                 your widgets, and the ones you can add
-#   anarch-widget add NAME|URL    add a widget from an4rch's collection, or
+#   anarch-widget add NAME|URL    add a widget from An4rch's collection, or
 #                                 from a git repository (a community widget)
 #   anarch-widget remove NAME     take one off the bar
 #   anarch-widget new NAME        make your own (a script and a settings file
@@ -14,7 +14,7 @@
 #                 on-click = a command (optional), json = yes (optional)
 #   run           a script that prints the text to show (or, with json = yes,
 #                 {"text": …, "tooltip": …, "class": …} for Waybar)
-# Community widgets: see widgets/README.md in an4rch's folder.
+# Community widgets: see widgets/README.md in An4rch's folder.
 set -euo pipefail
 source "${LUMEN_PATH:-$HOME/.local/share/lumen}/lib/lumen.sh"
 

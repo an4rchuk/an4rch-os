@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-"""an4rch Hub — one window for everything you can change: look, desktop,
+"""An4rch Hub — one window for everything you can change: look, desktop,
 windows and effects, sound, network, displays, keyboard and mouse, power,
 default apps, privacy and safety, backups, your phone, accessibility,
 wellbeing, hardware and the system.
 
-Most pages drive an4rch's own commands (anarch-theme, anarch-taskbar, …), so
-the Settings app, the an4rch menu and the command line always agree. Window
+Most pages drive An4rch's own commands (anarch-theme, anarch-taskbar, …), so
+the Settings app, the An4rch menu and the command line always agree. Window
 and input choices are saved to ~/.config/lumen/desktop.json and written out
-as ~/.config/lumen/desktop.lua, which Hyprland loads after an4rch's defaults.
+as ~/.config/lumen/desktop.lua, which Hyprland loads after An4rch's defaults.
 
     anarch-settings [PAGE]          open (at PAGE: look, desktop, windows, sound,
                                    network, displays, input, power, apps, privacy,
@@ -34,7 +34,7 @@ DESKTOP_JSON = CONFIG / "desktop.json"
 DESKTOP_LUA = CONFIG / "desktop.lua"
 HERE = Path(__file__).resolve().parent
 
-# Window and input choices, with an4rch's defaults (default/hypr/looks.lua and
+# Window and input choices, with An4rch's defaults (default/hypr/looks.lua and
 # input.lua). Only these keys are written to desktop.lua.
 DESKTOP_DEFAULTS = {
     "gaps_in": 5, "gaps_out": 12, "border_size": 2, "rounding": 12,
@@ -77,8 +77,8 @@ DESKTOP_KEYS = {
 
 
 def desktop_lua(d: dict) -> str:
-    """Only the choices that differ from an4rch's defaults are written, so the
-    file stays small and everything else follows an4rch's own config."""
+    """Only the choices that differ from An4rch's defaults are written, so the
+    file stays small and everything else follows An4rch's own config."""
     tree: dict = {}
     for key, path in DESKTOP_KEYS.items():
         if key in d and d[key] != DESKTOP_DEFAULTS[key]:
@@ -98,8 +98,8 @@ def desktop_lua(d: dict) -> str:
                 lines.append(f"{pad}{k} = {lua_value(v)},")
         return lines
 
-    head = ("-- Written by an4rch Settings: change these there (or delete this file to go\n"
-            "-- back to an4rch's defaults). Your files in ~/.config/hypr/ load after it.\n")
+    head = ("-- Written by An4rch Settings: change these there (or delete this file to go\n"
+            "-- back to An4rch's defaults). Your files in ~/.config/hypr/ load after it.\n")
     if not tree:
         return head
     return head + "hl.config({\n" + "\n".join(emit(tree, 1)) + "\n})\n"
@@ -150,7 +150,7 @@ def lumen_cmd(name: str) -> str:
 
 
 def tool(*argv: str) -> None:
-    """Start a an4rch command (or any program) in the background."""
+    """Start an An4rch command (or any program) in the background."""
     cmd = [lumen_cmd(argv[0]), *argv[1:]] if argv[0].startswith("anarch") else list(argv)
     try:
         subprocess.Popen(cmd, start_new_session=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -312,12 +312,12 @@ PAGES = [
 
 
 def in_term(title: str, *argv: str) -> None:
-    """Run an an4rch command in a small terminal (for questions and passwords)."""
+    """Run an An4rch command in a small terminal (for questions and passwords)."""
     tool("anarch-term", "--float", "--hold", "--title", title, "--", lumen_cmd(argv[0]), *argv[1:])
 
 
 def status_lines(*cmd: str) -> dict[str, str]:
-    """'  Name   value' lines from an an4rch status command, as a dict."""
+    """'  Name   value' lines from an An4rch status command, as a dict."""
     found = {}
     for line in out(lumen_cmd(cmd[0]), *cmd[1:]).splitlines():
         m = re.match(r"^\s+(\S.*?)\s{2,}(\S.*)$", line)
@@ -600,7 +600,7 @@ class Settings(Adw.ApplicationWindow):
         page.add(fx)
 
         reset = Adw.PreferencesGroup()
-        b = Gtk.Button(label="Reset to an4rch's defaults", css_classes=["pill"], halign=Gtk.Align.CENTER)
+        b = Gtk.Button(label="Reset to An4rch's defaults", css_classes=["pill"], halign=Gtk.Align.CENTER)
         b.connect("clicked", lambda *_: self.reset_desktop())
         reset.add(b)
         page.add(reset)
@@ -817,7 +817,7 @@ class Settings(Adw.ApplicationWindow):
                         if re.search(r"VGA|3D|Display", l))[:120]
         disk = shutil.disk_usage("/")
         for title, value, icon in (
-            ("System", f'{osr.get("PRETTY_NAME", "an4rch OS")}{f"  ·  version {version}" if version else ""}', "computer-symbolic"),
+            ("System", f'{osr.get("PRETTY_NAME", "An4rch OS")}{f"  ·  version {version}" if version else ""}', "computer-symbolic"),
             ("Processor", cpu, "cpu-symbolic"),
             ("Memory", f"{mem / 1048576:.1f} GB" if mem else "", "memory-symbolic"),
             ("Graphics", gpu, "video-display-symbolic"),
@@ -831,12 +831,12 @@ class Settings(Adw.ApplicationWindow):
         page.add(about)
 
         upkeep = Adw.PreferencesGroup(title="Keep it running well")
-        upkeep.add(button_row("Update everything", "an4rch takes a snapshot first, so updates can be undone",
+        upkeep.add(button_row("Update everything", "An4rch takes a snapshot first, so updates can be undone",
                               "software-update-available-symbolic", lambda: tool("anarch-update")))
         upkeep.add(button_row("Snapshots and rollback", "Go back to how things were", "document-revert-symbolic",
                               lambda: tool("anarch-snapshot", "menu")))
         upkeep.add(button_row("Health check", "Find and fix common problems", "emblem-ok-symbolic",
-                              lambda: tool("anarch-term", "--float", "--hold", "--title", "an4rch doctor", "--", lumen_cmd("anarch-doctor"))))
+                              lambda: tool("anarch-term", "--float", "--hold", "--title", "An4rch doctor", "--", lumen_cmd("anarch-doctor"))))
         upkeep.add(button_row("Performance tuning", "Gaming and responsiveness tweaks", "power-profile-performance-symbolic",
                               lambda: tool("anarch-tune")))
         page.add(upkeep)
@@ -849,7 +849,7 @@ class Settings(Adw.ApplicationWindow):
             ("Fingerprint login", "", "fingerprint-symbolic", ["anarch-term", "--float", "--hold", "--", lumen_cmd("anarch-setup"), "fingerprint"]),
             ("Printers", "", "printer-symbolic", ["anarch-term", "--float", "--hold", "--", lumen_cmd("anarch-setup"), "printing"]),
             ("Welcome tour and tips", "", "help-about-symbolic", ["anarch-welcome"]),
-            ("an4rch manual", "", "help-browser-symbolic", ["anarch-manual"]),
+            ("An4rch manual", "", "help-browser-symbolic", ["anarch-manual"]),
         ):
             more.add(button_row(title, sub, icon, lambda a=argv: tool(*a)))
         more.add(button_row("Report a problem", "Collects what's needed to fix it (private details removed)",
@@ -998,7 +998,7 @@ class Settings(Adw.ApplicationWindow):
         page.add(gfx)
         health = Adw.PreferencesGroup(title="Health")
         health.add(button_row("Health report", "Drives, filesystem, space, battery and temperatures",
-                              "emblem-ok-symbolic", lambda: in_term("an4rch health", "anarch-health")))
+                              "emblem-ok-symbolic", lambda: in_term("An4rch health", "anarch-health")))
         health.add(button_row("Free up space", "Old downloads of updates, caches, old Trash", "edit-clear-symbolic",
                               lambda: in_term("Tidy up", "anarch-tidy")))
         page.add(health)

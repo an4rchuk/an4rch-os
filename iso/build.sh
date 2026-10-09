@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Build the an4rch OS installer ISO.
+# Build the An4rch OS installer ISO.
 #
 #   sudo iso/build.sh                 → out/an4rch-os-<date>-x86_64.iso
 #   sudo WORK=/var/tmp/lumen iso/build.sh
 #
 # Needs an Arch Linux host (or the archlinux container) with `archiso`
-# installed. The ISO is Arch's official "releng" live image with an4rch's
+# installed. The ISO is Arch's official "releng" live image with An4rch's
 # installer, branding and a copy of this repository layered on top, so it
 # stays in step with upstream archiso automatically.
 #
@@ -47,7 +47,7 @@ cat "$root/iso/packages.x86_64" >>"$profile/packages.x86_64"
 ) >>"$profile/packages.x86_64"
 sort -u -o "$profile/packages.x86_64" "$profile/packages.x86_64"
 
-# A copy of an4rch itself (with git history, so `anarch update` works after
+# A copy of An4rch itself (with git history, so `anarch update` works after
 # installing). Build leftovers are left out.
 mkdir -p "$profile/airootfs/opt/lumen"
 tar -C "$root" --exclude=./out --exclude=./work --exclude='./iso/*.iso' --exclude='__pycache__' -cf - . |
@@ -75,11 +75,11 @@ version="$(date +%Y.%m.%d)"
 sed -i \
   -e 's/^iso_name=.*/iso_name="an4rch-os"/' \
   -e "s/^iso_label=.*/iso_label=\"AN4RCH_\$(date --date=\"@\${SOURCE_DATE_EPOCH:-\$(date +%s)}\" +%Y%m)\"/" \
-  -e 's/^iso_publisher=.*/iso_publisher="an4rch OS <https:\/\/github.com\/an4rchuk\/an4rch-os>"/' \
-  -e 's/^iso_application=.*/iso_application="an4rch OS installer"/' \
+  -e 's/^iso_publisher=.*/iso_publisher="An4rch OS <https:\/\/github.com\/an4rchuk\/an4rch-os>"/' \
+  -e 's/^iso_application=.*/iso_application="An4rch OS installer"/' \
   "$profile/profiledef.sh"
 # mkarchiso copies airootfs without file modes, so everything that must stay
-# executable is listed: our installer, and every executable in an4rch's tree
+# executable is listed: our installer, and every executable in An4rch's tree
 # (otherwise every lumen-* command fails with "Permission denied").
 perms='  ["/usr/local/bin/anarch-os-install"]="0:0:755"\n  ["/usr/local/bin/anarch-rescue"]="0:0:755"\n  ["/usr/local/bin/anarch-live-setup"]="0:0:755"\n  ["/usr/local/bin/anarch-installer"]="0:0:755"\n  ["/usr/local/bin/anarch-live-check"]="0:0:755"\n  ["/usr/local/bin/anarch-live-preload"]="0:0:755"\n  ["/usr/local/bin/anarch-disk-info"]="0:0:755"'
 while IFS= read -r f; do
@@ -99,7 +99,7 @@ sed -i '/^\[options\]/a NoExtract = usr/share/doc/* usr/share/gtk-doc/* usr/shar
 
 # Boot menu branding.
 find "$profile/efiboot" "$profile/syslinux" "$profile/grub" -type f \( -name '*.conf' -o -name '*.cfg' \) \
-  -exec sed -i -e 's/Arch Linux install medium/an4rch OS installer/g' -e 's/Arch Linux/an4rch OS/g' {} +
+  -exec sed -i -e 's/Arch Linux install medium/An4rch OS installer/g' -e 's/Arch Linux/An4rch OS/g' {} +
 [[ -f "$root/iso/splash.png" ]] && cp "$root/iso/splash.png" "$profile/syslinux/splash.png"
 # The BIOS menu's colours: red highlight and title instead of archiso's blue.
 # (#AARRGGBB; a no-op if archiso changes its defaults.)

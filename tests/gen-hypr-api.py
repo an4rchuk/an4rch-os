@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Extract Hyprland's Lua config API from its source tree into tests/hypr-api.lua.
 
-The test harness (tests/check-hypr-config.lua) loads an4rch's Hyprland config
+The test harness (tests/check-hypr-config.lua) loads An4rch's Hyprland config
 against a stub `hl` table built from this data, so typos in option names,
 rule fields or dispatchers fail CI instead of a user's session.
 

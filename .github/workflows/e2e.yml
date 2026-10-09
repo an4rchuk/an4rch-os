@@ -1,6 +1,6 @@
 name: e2e
 
-# End-to-end test of an4rch OS in a real virtual machine:
+# End-to-end test of An4rch OS in a real virtual machine:
 #   1. build the ISO
 #   2. boot it in QEMU (UEFI, KVM) and run the installer unattended
 #   3. boot the installed system, log in automatically and screenshot the
@@ -80,7 +80,7 @@ jobs:
           ls -l /dev/kvm
 
       # The USB's boot menus, as a computer shows them: UEFI (systemd-boot) and
-      # legacy BIOS (syslinux, with the an4rch splash).
+      # legacy BIOS (syslinux, with the An4rch splash).
       - name: Screenshot the USB's boot menus
         if: matrix.menus
         continue-on-error: true
@@ -140,7 +140,7 @@ jobs:
           [ -s live-results.txt ] || echo "E2E-RESULT live: report received FAIL (no LUMEN-LIVE-CHECK on serial)" >live-results.txt
           cat live-check.log
 
-      - name: Install an4rch OS in a VM (unattended)
+      - name: Install An4rch OS in a VM (unattended)
         run: |
           iso=$(ls out/an4rch-os-*.iso | head -n1)
           label=$(blkid -o value -s LABEL "$iso")
@@ -177,9 +177,9 @@ jobs:
             qemu-img convert -O qcow2 win.raw disk.qcow2 && rm -f win.raw
           elif [ -n "$PREPART" ]; then
             # Partitions made beforehand, as for "use partitions I've made myself":
-            # simple: a 1 GB EFI partition and one for an4rch; split: a small
+            # simple: a 1 GB EFI partition and one for An4rch; split: a small
             # EFI partition that already holds another system's boot files, a
-            # 1 GB boot partition and one for an4rch.
+            # 1 GB boot partition and one for An4rch.
             sudo apt-get install -y -q gdisk dosfstools >/dev/null
             truncate -s 40G man.raw
             if [ "$PREPART" = split ]; then
@@ -240,7 +240,7 @@ jobs:
           sudo mount -o ro /dev/nbd0p1 /mnt/esp
           ls -R /mnt/esp | head -n 40
           if [ -f /mnt/esp/EFI/Microsoft/Boot/bootmgfw.efi ]; then r "Windows boot manager still there" PASS; else r "Windows boot manager still there" FAIL; fi
-          if [ -f /mnt/esp/EFI/systemd/systemd-bootx64.efi ]; then r "an4rch boot menu on the EFI partition" PASS; else r "an4rch boot menu on the EFI partition" FAIL; fi
+          if [ -f /mnt/esp/EFI/systemd/systemd-bootx64.efi ]; then r "An4rch boot menu on the EFI partition" PASS; else r "An4rch boot menu on the EFI partition" FAIL; fi
           sudo umount /mnt/esp
           sudo qemu-nbd -d /dev/nbd0
 

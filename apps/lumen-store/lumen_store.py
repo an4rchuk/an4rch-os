@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""an4rch App Store — find, install, update and remove apps.
+"""An4rch App Store — find, install, update and remove apps.
 
-One place for every source an4rch supports:
+One place for every source An4rch supports:
   * Arch repositories (pacman) — fast, integrated, updated with the system
   * Flathub (Flatpak)          — sandboxed apps straight from developers
   * AUR (yay)                  — community packages for everything else

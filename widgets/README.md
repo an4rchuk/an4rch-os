@@ -1,4 +1,4 @@
-# an4rch widgets
+# An4rch widgets
 
 Small add-ons for the top bar. Each folder here is one widget:
 

@@ -1,20 +1,20 @@
-<p align="center"><img src="docs/images/logo.png" alt="The an4rch OS logo: a red, hand-drawn circled A" width="160"></p>
+<p align="center"><img src="docs/images/logo.png" alt="The An4rch OS logo: a red, hand-drawn circled A" width="160"></p>
 
-<h1 align="center">an4rch OS</h1>
+<h1 align="center">An4rch OS</h1>
 
 <p align="center"><strong>An Arch-based Linux distribution that's calm, fast, private, and ready for work and play the moment you log in.</strong></p>
 
 <p align="center"><a href="https://github.com/an4rchuk/an4rch-os/releases">Download</a> · <a href="docs/README.md">Manual</a> · <a href="docs/releases/v1.1.1.md">What's new in 1.1.1</a> · <a href="docs/ROADMAP.md">Roadmap</a> · <a href="https://an4rch.uk">an4rch.uk</a></p>
 
-an4rch OS takes inspiration from [Omarchy](https://omarchy.org) (an opinionated, keyboard-first Hyprland desktop on plain Arch), [Bazzite](https://bazzite.gg) (try it live before installing, roll back any update, gaming ready, a friendly app store) and [CachyOS](https://cachyos.org) (tuned for speed, a teal look of its own). It ships as a bootable USB image; the same desktop also installs on any existing Arch system.
+An4rch OS takes inspiration from [Omarchy](https://omarchy.org) (an opinionated, keyboard-first Hyprland desktop on plain Arch), [Bazzite](https://bazzite.gg) (try it live before installing, roll back any update, gaming ready, a friendly app store) and [CachyOS](https://cachyos.org) (tuned for speed, a teal look of its own). It ships as a bootable USB image; the same desktop also installs on any existing Arch system.
 
-![The an4rch OS desktop in red and black: a terminal, Files, Firefox, the calculator and the task manager, with the top bar and the taskbar](docs/images/desktop.jpg)
-<sub>A real an4rch OS install, screenshotted by the automated VM test: title bars with minimise, maximise and close on every window, and the taskbar along the bottom.</sub>
+![The An4rch OS desktop in red and black: a terminal, Files, Firefox, the calculator and the task manager, with the top bar and the taskbar](docs/images/desktop.jpg)
+<sub>A real An4rch OS install, screenshotted by the automated VM test: title bars with minimise, maximise and close on every window, and the taskbar along the bottom.</sub>
 
-![Starting up: the an4rch logo settles into place with a red glow, then the login screen asks only for the password](docs/images/boot-login.jpg)
+![Starting up: the An4rch logo settles into place with a red glow, then the login screen asks only for the password](docs/images/boot-login.jpg)
 <sub>From power on to the desktop: the boot screen's logo stays where it is for the one-step login.</sub>
 
-- **Try it before you install.** The USB boots to a live an4rch desktop with the installer open. Pick a theme and the desktop restyles as you click, then install in a few minutes: the packages come on the stick.
+- **Try it before you install.** The USB boots to a live An4rch desktop with the installer open. Pick a theme and the desktop restyles as you click, then install in a few minutes: the packages come on the stick.
 - **Windows behave like you expect:** title bars with minimise, maximise and close buttons, double-click to maximise, and a Windows-style taskbar along the bottom (on by default, one switch to turn off).
 - **Tap the Windows key** for the Start menu: pinned apps, recent apps, everything A–Z, and a search that also finds settings, does maths and searches the web.
 - **App Store** for Flathub, the Arch repositories and the AUR in one place, with screenshots, one-click install, and updates.
@@ -28,19 +28,19 @@ an4rch OS takes inspiration from [Omarchy](https://omarchy.org) (an opinionated,
 - **Your phone and computer together:** notifications, files both ways and a shared clipboard, set up in one command.
 - **Your install, your way:** desktop, Game edition (starts in Steam's Big Picture, like a Steam Deck) or server, your choice of kernel (latest, LTS, zen or hardened) and shell (zsh, bash or fish), extra apps ticked while installing, or your own partitions.
 
-![The Start menu, the App Store, the an4rch Hub's Backups page and the welcome tour, in the red and black an4rch theme](docs/images/start-store-welcome.jpg)
-<sub>The Start menu, the App Store, the an4rch Hub (every setting in one window) and the welcome tour, rendered from the real apps in the an4rch theme.</sub>
+![The Start menu, the App Store, the An4rch Hub's Backups page and the welcome tour, in the red and black An4rch theme](docs/images/start-store-welcome.jpg)
+<sub>The Start menu, the App Store, the An4rch Hub (every setting in one window) and the welcome tour, rendered from the real apps in the An4rch theme.</sub>
 
 Underneath is a polished [Hyprland](https://hypr.land) desktop. It sets up a clean top bar, a launcher and menus for everything, themes that restyle the whole system at once, and the everyday tools already wired in: screenshots, screen recording, clipboard history, reminders, an emoji picker, a calculator, OCR and web apps. Wi-Fi, Bluetooth, audio, displays, sleep, login, fingerprint, printing, updates and installing apps are each one key away.
 
-![The bundled themes: an4rch, an4rch Light and the anarchism themes, each with the Start menu on its own gradient wallpaper](docs/images/themes.jpg)
-<sub>The bundled themes: an4rch, an4rch Light and one per school of anarchism, each the real Start menu on the gradient wallpaper an4rch paints for it.</sub>
+![The bundled themes: An4rch, An4rch Light and the anarchism themes, each with the Start menu on its own gradient wallpaper](docs/images/themes.jpg)
+<sub>The bundled themes: An4rch, An4rch Light and one per school of anarchism, each the real Start menu on the gradient wallpaper An4rch paints for it.</sub>
 
 ## Install
 
-**an4rch OS (recommended).** Get the ISO from the [releases](https://github.com/an4rchuk/an4rch-os/releases) or the latest run of the [*iso* workflow](https://github.com/an4rchuk/an4rch-os/actions/workflows/iso.yml) (or build it with `sudo iso/build.sh` on Arch). Write it to a USB stick (8 GB or more), turn off Secure Boot, and boot it (UEFI recommended; older legacy BIOS computers work too).
+**An4rch OS (recommended).** Get the ISO from the [releases](https://github.com/an4rchuk/an4rch-os/releases) or the latest run of the [*iso* workflow](https://github.com/an4rchuk/an4rch-os/actions/workflows/iso.yml) (or build it with `sudo iso/build.sh` on Arch). Write it to a USB stick (8 GB or more), turn off Secure Boot, and boot it (UEFI recommended; older legacy BIOS computers work too).
 
-You land on a live an4rch desktop with **Install an4rch OS** open, Bazzite-style. Look around first if you like, then answer a few questions: keyboard, Wi-Fi, disk and encryption, your account, time zone, a theme and layout, and your apps. The stick carries every package a default install needs, so installing takes minutes rather than a long download. It sets up encrypted btrfs with snapshots, systemd-boot with an LTS fallback kernel, the boot splash and the desktop. Prefer text? Pick *an4rch OS installer (text mode)* in the boot menu. See [an4rch OS](docs/09-lumen-os.md).
+You land on a live An4rch desktop with **Install An4rch OS** open, Bazzite-style. Look around first if you like, then answer a few questions: keyboard, Wi-Fi, disk and encryption, your account, time zone, a theme and layout, and your apps. The stick carries every package a default install needs, so installing takes minutes rather than a long download. It sets up encrypted btrfs with snapshots, systemd-boot with an LTS fallback kernel, the boot splash and the desktop. Prefer text? Pick *An4rch OS installer (text mode)* in the boot menu. See [An4rch OS](docs/09-lumen-os.md).
 
 ![The graphical installer: welcome, the kind of install (Desktop, Game or Server), disk choice and the theme gallery](docs/images/installer.jpg)
 
@@ -56,15 +56,15 @@ Answer a few questions (browser, terminal, editor, gaming), wait a few minutes, 
 
 | | |
 | --- | --- |
-| **an4rch OS** | Arch-based live USB with a graphical installer (and a text-mode one) that installs from the stick in minutes: encrypted btrfs, automatic snapshots and one-click rollback, rescue mode from the USB, systemd-boot with an LTS fallback, Plymouth, zram, multilib on, and a welcome tour on first boot |
+| **An4rch OS** | Arch-based live USB with a graphical installer (and a text-mode one) that installs from the stick in minutes: encrypted btrfs, automatic snapshots and one-click rollback, rescue mode from the USB, systemd-boot with an LTS fallback, Plymouth, zram, multilib on, and a welcome tour on first boot |
 | **Start menu** | Tap the Windows key. Pins, recents, all apps, and search across apps, settings, maths, commands and the web. Right-click to pin or uninstall |
 | **App Store** | GTK 4 / libadwaita store over Flathub, the Arch repos and the AUR: curated Explore page, screenshots, per-app source choice, Installed and Updates tabs |
 | **Gaming** | Steam + Proton, 32-bit drivers for your GPU, GameMode, MangoHud, gamescope, ProtonPlus, and an optional Steam Big Picture session |
 | **Desktop** | Hyprland 0.55+ with its new Lua config, run as a proper systemd session by uwsm. Title bars with minimise, maximise and close on every window, real minimise and restore, gentle animations, blur, rounded corners, and a scrolling layout one key away |
 | **Taskbar** | Optional Windows-style bar along the bottom: Start, open windows (click to minimise or restore, middle-click to close), minimised windows and the clock. Turn it on in Settings or the installer's *Classic* layout |
 | **Top bar** | Waybar: workspaces, window title, clock and calendar, reminders, media, privacy indicators, recording, toggles, tray, audio, Bluetooth, network, power profile, battery. Click anything to open its panel |
-| **Launcher and menus** | fuzzel for apps, windows, the an4rch menu, Wi-Fi, displays, power, themes, wallpapers, clipboard and emoji: one consistent look everywhere |
-| **Themes** | Fifteen: the red and black **an4rch**, **an4rch Light**, one per school of anarchism (Anarcho-communism, Anarcho-syndicalism, Mutualism, Individualist, Anarcho-capitalism, Green anarchism, Anarcho-primitivism, Anarcha-feminism, Anarcho-pacifism, Queer anarchism, Insurrectionary and Without adjectives) and High contrast. One key restyles borders, bar, menus, notifications, lock screen, terminal, prompt, `btop`, `fzf` and GTK apps. Every theme gets nine wallpapers painted from its colours, five of them long smooth gradients. [Make your own](docs/03-themes.md#making-your-own-theme) in ten lines |
+| **Launcher and menus** | fuzzel for apps, windows, the An4rch menu, Wi-Fi, displays, power, themes, wallpapers, clipboard and emoji: one consistent look everywhere |
+| **Themes** | Fifteen: the red and black **An4rch**, **An4rch Light**, one per school of anarchism (Anarcho-communism, Anarcho-syndicalism, Mutualism, Individualist, Anarcho-capitalism, Green anarchism, Anarcho-primitivism, Anarcha-feminism, Anarcho-pacifism, Queer anarchism, Insurrectionary and Without adjectives) and High contrast. One key restyles borders, bar, menus, notifications, lock screen, terminal, prompt, `btop`, `fzf` and GTK apps. Every theme gets nine wallpapers painted from its colours, five of them long smooth gradients. [Make your own](docs/03-themes.md#making-your-own-theme) in ten lines |
 | **Widgets** | Add-ons for the top bar: weather, CPU temperature, disk space, uptime, a countdown, community widgets from a git link, or your own in one script (`anarch widget`) |
 | **Wallpapers** | Original abstract wallpapers painted from each theme's colours on your machine (no downloads, no licensing questions), plus your own |
 | **Everyday tools** | Screenshots with annotation, screen recording, clipboard history, reminders, emoji, calculator with units and currencies, colour picker, OCR, web search, web apps |
@@ -78,7 +78,7 @@ Answer a few questions (browser, terminal, editor, gaming), wait a few minutes, 
 | **Health and upkeep** | `anarch health` (drives, filesystem, space, battery, services, temperatures, checked daily), `anarch tidy`, `anarch battery limit`, `anarch reset`, `anarch carry` to move your setup to another computer |
 | **Accessibility** | `anarch a11y`: screen reader, bigger text and cursor, no animations, and a High contrast theme |
 | **Everyday extras** | `anarch auto` light/dark by sunset, `anarch note` drop-down notes, `anarch say` read aloud, `anarch share` QR codes for your phone, `anarch screentime`, `anarch focus` |
-| **Updates** | One key updates an4rch, packages, Flatpaks and firmware. Your config files are never overwritten |
+| **Updates** | One key updates An4rch, packages, Flatpaks and firmware. Your config files are never overwritten |
 
 ## The keyboard in one minute
 
@@ -87,7 +87,7 @@ Answer a few questions (browser, terminal, editor, gaming), wait a few minutes, 
 | <kbd>SUPER</kbd> (tap) | Start menu |
 | <kbd>SUPER</kbd> + <kbd>SPACE</kbd> | Quick launcher |
 | <kbd>SUPER</kbd> + <kbd>A</kbd> | App Store |
-| <kbd>SUPER</kbd> + <kbd>ALT</kbd> + <kbd>SPACE</kbd> | an4rch menu: everything else |
+| <kbd>SUPER</kbd> + <kbd>ALT</kbd> + <kbd>SPACE</kbd> | An4rch menu: everything else |
 | <kbd>SUPER</kbd> + <kbd>/</kbd> | Searchable list of every key binding |
 | <kbd>SUPER</kbd> + <kbd>Enter</kbd> / <kbd>B</kbd> / <kbd>E</kbd> / <kbd>C</kbd> | Terminal / browser / files / code editor |
 | <kbd>SUPER</kbd> + <kbd>W</kbd> | Close window |
@@ -111,8 +111,8 @@ The pattern: <kbd>SUPER</kbd> for apps and windows, <kbd>+SHIFT</kbd> to move an
 | [Built-in tools](docs/05-tools.md) | Screenshots, recording, clipboard, reminders, emoji, calculator, OCR, web apps |
 | [System and hardware](docs/06-system.md) | Network, Bluetooth, audio, displays, sleep, login, fingerprint, printing, updates, apps |
 | [Troubleshooting](docs/07-troubleshooting.md) | `anarch doctor`, logs, recovery |
-| [How an4rch works](docs/08-architecture.md) | Architecture, theme engine, tests |
-| [an4rch OS](docs/09-lumen-os.md) | The ISO and installer, Start menu, App Store, gaming, snapshots and rescue |
+| [How An4rch works](docs/08-architecture.md) | Architecture, theme engine, tests |
+| [An4rch OS](docs/09-lumen-os.md) | The ISO and installer, Start menu, App Store, gaming, snapshots and rescue |
 | [Power tools](docs/10-power-tools.md) | `anarch tune`, `anarch extras`, `anarch dev`, theme sharing, battery warnings |
 | [Privacy, safety and accessibility](docs/11-privacy-and-safety.md) | The panic key, network privacy, vaults, sandboxes, health checks, accessibility |
 | [Borrowed from other systems](docs/12-borrowed-features.md) | Auto light/dark, notes, read aloud, Quick Share, Screen Time, tidy, battery limit, reset |
@@ -121,7 +121,7 @@ On the desktop: <kbd>SUPER</kbd> + <kbd>F1</kbd>, or `anarch manual` in a termin
 
 ## Principles
 
-- **Your files are yours.** an4rch's defaults live in `~/.local/share/lumen` and load first. Your files in `~/.config` load after them and are never overwritten by updates.
+- **Your files are yours.** An4rch's defaults live in `~/.local/share/lumen` and load first. Your files in `~/.config` load after them and are never overwritten by updates.
 - **Nothing strands you.** Display changes revert unless you confirm them, configs are backed up before replacement, and a broken theme or wallpaper falls back gracefully.
 - **Every feature is a command.** `anarch help` lists them all, so you can bind, script or combine any of them.
 - **Upstream formats.** Each app keeps its native config format, documented and commented, with no new configuration language on top.
@@ -132,12 +132,12 @@ On the desktop: <kbd>SUPER</kbd> + <kbd>F1</kbd>, or `anarch manual` in a termin
 tests/run.sh
 ```
 
-checks the Hyprland Lua config against an API snapshot taken from Hyprland's source (unknown options, rule fields, dispatchers, events, duplicate bindings), renders every theme, runs shellcheck on every script, validates the Waybar config and generates sample wallpapers. See [How an4rch works](docs/08-architecture.md).
+checks the Hyprland Lua config against an API snapshot taken from Hyprland's source (unknown options, rule fields, dispatchers, events, duplicate bindings), renders every theme, runs shellcheck on every script, validates the Waybar config and generates sample wallpapers. See [How An4rch works](docs/08-architecture.md).
 
-The *e2e* workflow tests the real thing: it builds the ISO, boots the live USB, installs an4rch OS unattended in a virtual machine, then logs in and runs through everyday tasks (apps, Start search, themes, screenshots, minimise and the taskbar, audio, network, lock and unlock), screenshotting the desktop as it goes.
+The *e2e* workflow tests the real thing: it builds the ISO, boots the live USB, installs An4rch OS unattended in a virtual machine, then logs in and runs through everyday tasks (apps, Start search, themes, screenshots, minimise and the taskbar, audio, network, lock and unlock), screenshotting the desktop as it goes.
 
 ## Where it's going
 
-The plan for the next releases (an4rch Hub, OTA image updates, a handheld edition and more) is in the [roadmap](docs/ROADMAP.md). Ideas and bug reports are welcome as issues.
+The plan for the next releases (An4rch Hub, OTA image updates, a handheld edition and more) is in the [roadmap](docs/ROADMAP.md). Ideas and bug reports are welcome as issues.
 
 Built on [Hyprland](https://hypr.land), [uwsm](https://github.com/Vladimir-csp/uwsm), [Waybar](https://github.com/Alexays/Waybar), [fuzzel](https://codeberg.org/dnkl/fuzzel), [mako](https://github.com/emersion/mako), [Ghostty](https://ghostty.org), [greetd](https://sr.ht/~kennylevinsen/greetd/), [cliphist](https://github.com/sentriz/cliphist), [Satty](https://github.com/gabm/Satty) and the rest of the excellent Wayland ecosystem.

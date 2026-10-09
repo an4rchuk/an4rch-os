@@ -1,6 +1,6 @@
 # Built-in tools
 
-All of these are in the an4rch menu (<kbd>SUPER</kbd> + <kbd>ALT</kbd> + <kbd>SPACE</kbd>), and each one is also a plain command (`anarch <tool>`) you can script or bind to other keys.
+All of these are in the An4rch menu (<kbd>SUPER</kbd> + <kbd>ALT</kbd> + <kbd>SPACE</kbd>), and each one is also a plain command (`anarch <tool>`) you can script or bind to other keys.
 
 ## Screenshots
 
@@ -82,7 +82,7 @@ sqrt(2) * pi
 
 ## Web apps
 
-Turn any website into an app with its own launcher entry and window: **an4rch menu → Install → Web app**, or:
+Turn any website into an app with its own launcher entry and window: **An4rch menu → Install → Web app**, or:
 
 ```sh
 anarch webapp add "Music" https://music.youtube.com

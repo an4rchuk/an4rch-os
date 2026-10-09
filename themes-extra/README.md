@@ -4,7 +4,7 @@ Extra themes that aren't installed by default. Each folder is a pack; each
 folder inside it is an ordinary theme (a `theme.conf`, see the manual's
 theme chapter). `pack.conf` gives the pack's name and description. There are
 no packs at the moment: the anarchism themes, a pack until 1.1.1, now come with
-an4rch (in `themes/`).
+An4rch (in `themes/`).
 
     anarch theme packs            list the packs
     anarch theme get PACK         add every theme in a pack

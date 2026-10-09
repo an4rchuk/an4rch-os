@@ -1,6 +1,6 @@
--- an4rch — Hyprland defaults.
+-- An4rch — Hyprland defaults.
 --
--- This file is managed by an4rch and is replaced on `anarch update`.
+-- This file is managed by An4rch and is replaced on `anarch update`.
 -- Do not edit it: everything here can be overridden from the files in
 -- ~/.config/hypr/, which are loaded after this one.
 

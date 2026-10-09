@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# an4rch installer — turns a fresh Arch Linux install into the an4rch desktop.
+# An4rch installer — turns a fresh Arch Linux install into the An4rch desktop.
 #
 #   ./install.sh                 interactive install
 #   ./install.sh --yes           accept every default (unattended)
@@ -15,9 +15,9 @@
 #                      Game Mode (like a Steam Deck)
 #   --shell NAME       zsh (default), bash or fish
 #   --apps ID,ID…      extra apps from the App Store's list (apps/lumen-store/catalog.json)
-#   --server           no desktop: the system, SSH, the firewall and an4rch's tools
-#   --distro           apply the an4rch OS system layer (branding, snapshots,
-#                      boot splash, zram) — used by the an4rch OS ISO installer
+#   --server           no desktop: the system, SSH, the firewall and An4rch's tools
+#   --distro           apply the An4rch OS system layer (branding, snapshots,
+#                      boot splash, zram) — used by the An4rch OS ISO installer
 #   --no-reboot        don't offer to restart at the end
 #   --no-greeter       don't set up the greetd login screen
 #   --autologin        log straight in (sensible with full-disk encryption)
@@ -79,12 +79,12 @@ FIRST_INSTALL=1
 # --- 1. Preflight ---------------------------------------------------------------
 preflight() {
   step "Checking this computer"
-  [[ -f /etc/arch-release ]] || fail "an4rch needs Arch Linux (or an Arch-based distro)."
+  [[ -f /etc/arch-release ]] || fail "An4rch needs Arch Linux (or an Arch-based distro)."
   [[ $EUID -ne 0 ]] || fail "Run the installer as your normal user, not root. It uses sudo when needed."
   command -v sudo >/dev/null || fail "sudo is required: as root, run 'pacman -S sudo' and add yourself to the wheel group."
   ok "Arch Linux, user $USER"
 
-  info "an4rch needs administrator rights to install packages."
+  info "An4rch needs administrator rights to install packages."
   # sudo -n first: with password-less sudo, -v can still prompt (verifypw=all).
   sudo -n true 2>/dev/null || sudo -v || fail "sudo authentication failed"
   # Keep sudo alive for the whole install.
@@ -103,14 +103,14 @@ preflight() {
     if ((online)); then
       ok "Internet connection"
     elif [[ "${LUMEN_OFFLINE:-0}" == 1 ]]; then
-      # an4rch OS installing from its USB stick: every package is on the stick.
+      # An4rch OS installing from its USB stick: every package is on the stick.
       ok "No internet: installing from the USB stick"
     else
       fail "No internet connection. Connect first (for Wi-Fi on a fresh install: iwctl)."
     fi
     local free
     free=$(df -Pk / | awk 'NR==2 {print int($4/1024/1024)}')
-    ((free >= 6)) || fail "Only ${free} GB free on /. an4rch needs about 6 GB."
+    ((free >= 6)) || fail "Only ${free} GB free on /. An4rch needs about 6 GB."
     ok "${free} GB free"
   fi
 
@@ -119,7 +119,7 @@ preflight() {
   [[ "$cpu_arch" == x86_64 || "$cpu_arch" == aarch64 ]] || warn "Untested CPU architecture: $cpu_arch"
 
   if [[ -n "${WAYLAND_DISPLAY:-}${DISPLAY:-}" ]] && [[ "${XDG_CURRENT_DESKTOP:-}" != *Hyprland* ]]; then
-    warn "You're running another desktop (${XDG_CURRENT_DESKTOP:-unknown}). It stays installed; pick an4rch at the login screen."
+    warn "You're running another desktop (${XDG_CURRENT_DESKTOP:-unknown}). It stays installed; pick An4rch at the login screen."
   fi
 }
 
@@ -149,7 +149,7 @@ setup_pacman() {
   fi
   run "Updating the system" sudo pacman -Syu --noconfirm
 
-  # The an4rch OS USB stick carries yay prebuilt; elsewhere it's built from the AUR.
+  # The An4rch OS USB stick carries yay prebuilt; elsewhere it's built from the AUR.
   if ! command -v yay >/dev/null && pacman -Si yay-bin >/dev/null 2>&1; then
     pkg_install OPTIONAL yay-bin
   fi
@@ -320,7 +320,7 @@ install_configs() {
       ln -sfn "$LUMEN_PATH" "$home_path"
       ok "Linked ~/.local/share/lumen → $LUMEN_PATH"
     else
-      warn "$home_path exists and isn't this checkout; an4rch commands will use that copy"
+      warn "$home_path exists and isn't this checkout; An4rch commands will use that copy"
     fi
   fi
   local f rel
@@ -349,7 +349,7 @@ install_configs() {
   "$LUMEN_PATH/bin/anarch-scrub" setup >/dev/null 2>&1 || true
   "$LUMEN_PATH/bin/anarch-health" timer >/dev/null 2>&1 || true
 
-  # Launchers and icons for an4rch's own apps (Start, App Store, Welcome, …).
+  # Launchers and icons for An4rch's own apps (Start, App Store, Welcome, …).
   local data="${XDG_DATA_HOME:-$HOME/.local/share}"
   mkdir -p "$data/applications" "$data/icons/hicolor/scalable/apps"
   cp "$LUMEN_PATH"/share/applications/*.desktop "$data/applications/"
@@ -363,7 +363,7 @@ install_configs() {
   local settings="$HOME/.config/lumen/settings.conf"
   if [[ ! -f "$settings" ]]; then
     cat >"$settings" <<EOF
-# an4rch settings. Change apps here or with: an4rch menu → Setup → Default apps.
+# An4rch settings. Change apps here or with: An4rch menu → Setup → Default apps.
 LUMEN_TERMINAL=$TERMINAL_APP
 LUMEN_BROWSER=$( [[ "$BROWSER" == brave ]] && echo brave || echo "$BROWSER")
 LUMEN_EDITOR=$EDITOR_APP
@@ -391,7 +391,7 @@ EOF
   if ((HAS_NVIDIA)); then
     ((NVIDIA_ONLY)) && ! grep -q LIBVA_DRIVER_NAME "$HOME/.config/uwsm/env" 2>/dev/null && cat >>"$HOME/.config/uwsm/env" <<'EOF'
 
-# NVIDIA (added by the an4rch installer: NVIDIA is the only GPU)
+# NVIDIA (added by the An4rch installer: NVIDIA is the only GPU)
 export LIBVA_DRIVER_NAME=nvidia
 export __GLX_VENDOR_LIBRARY_NAME=nvidia
 export NVD_BACKEND=direct
@@ -441,7 +441,7 @@ setup_system() {
     fi
     set_login_shell
     if [[ $DISTRO -eq 1 ]]; then
-      run "Applying the an4rch OS system layer (branding, snapshots, zram)" sudo LUMEN_PATH="$LUMEN_PATH" bash "$LUMEN_PATH/install/distro.sh"
+      run "Applying the An4rch OS system layer (branding, snapshots, zram)" sudo LUMEN_PATH="$LUMEN_PATH" bash "$LUMEN_PATH/install/distro.sh"
     fi
     return 0
   fi
@@ -468,7 +468,7 @@ setup_system() {
     fi
   fi
 
-  # Power button opens an4rch's power menu instead of shutting down at once;
+  # Power button opens An4rch's power menu instead of shutting down at once;
   # holding it still powers off.
   sudo mkdir -p /etc/systemd/logind.conf.d
   printf '[Login]\nHandlePowerKey=ignore\nHandlePowerKeyLongPress=poweroff\n' |
@@ -482,7 +482,7 @@ setup_system() {
   set_login_shell
 
   if [[ $DISTRO -eq 1 ]]; then
-    run "Applying the an4rch OS system layer (branding, snapshots, boot splash, zram)" sudo LUMEN_PATH="$LUMEN_PATH" bash "$LUMEN_PATH/install/distro.sh"
+    run "Applying the An4rch OS system layer (branding, snapshots, boot splash, zram)" sudo LUMEN_PATH="$LUMEN_PATH" bash "$LUMEN_PATH/install/distro.sh"
   fi
 
   if [[ $GAMING -eq 1 ]] || { [[ -z "${LUMEN_YES:-}" ]] && ask_yes "Set up gaming too? (Steam, Proton tools, GameMode, MangoHud)" n; }; then
@@ -507,7 +507,7 @@ setup_system() {
       fi
     fi
   else
-    info "No login screen: logging in on the first console starts an4rch (see ~/.zprofile)."
+    info "No login screen: logging in on the first console starts An4rch (see ~/.zprofile)."
   fi
 }
 
@@ -525,7 +525,7 @@ setup_greeter() {
     systemctl is-enabled -q "$dm" 2>/dev/null && other="$dm"
   done
   if [[ -n "$other" ]]; then
-    if ask_yes "Replace the $other login screen with an4rch's (greetd)?" n; then
+    if ask_yes "Replace the $other login screen with An4rch's (greetd)?" n; then
       run "Disabling $other" sudo systemctl disable "$other"
     else
       info "Keeping $other. Choose \"Hyprland (uwsm-managed)\" when you log in."
@@ -533,7 +533,7 @@ setup_greeter() {
     fi
   fi
 
-  # The graphical login screen in an4rch's theme (text login as a fallback).
+  # The graphical login screen in An4rch's theme (text login as a fallback).
   run "Setting up the login screen" "$LUMEN_PATH/bin/anarch-login" setup
   if [[ $AUTOLOGIN -eq 1 ]] && ! grep -q '^\[initial_session\]' /etc/greetd/config.toml; then
     printf '\n[initial_session]\ncommand = "uwsm start -- hyprland.desktop"\nuser = "%s"\n' "$USER" | sudo tee -a /etc/greetd/config.toml >/dev/null
@@ -612,7 +612,7 @@ finish() {
   step "Finishing up"
   bash "$LUMEN_PATH/install/migrate.sh" --mark-all >>"$LOG" 2>&1 || true
 
-  printf '\n  %s%s✓ an4rch is installed.%s\n\n' "$BOLD" "$GREEN" "$RESET"
+  printf '\n  %s%s✓ An4rch is installed.%s\n\n' "$BOLD" "$GREEN" "$RESET"
   if [[ ${#WARNINGS[@]} -gt 0 ]]; then
     printf '  %sNotes:%s\n' "$YELLOW" "$RESET"
     printf '    • %s\n' "${WARNINGS[@]}"
@@ -634,14 +634,14 @@ EOF
   cat <<EOF
   ${BOLD}First steps${RESET}
     ${ACCENT}SUPER + SPACE${RESET}        open apps
-    ${ACCENT}SUPER + ALT + SPACE${RESET}  the an4rch menu: Wi-Fi, themes, capture, settings…
+    ${ACCENT}SUPER + ALT + SPACE${RESET}  the An4rch menu: Wi-Fi, themes, capture, settings…
     ${ACCENT}SUPER + /${RESET}            every key binding
     ${ACCENT}SUPER + F1${RESET}           the manual (or: anarch manual)
 
   Log: ${DIM}$LOG${RESET}
 
 EOF
-  if [[ $REBOOT -eq 1 && -z "${WAYLAND_DISPLAY:-}" ]] && ask_yes "Restart now to start an4rch?" y; then
+  if [[ $REBOOT -eq 1 && -z "${WAYLAND_DISPLAY:-}" ]] && ask_yes "Restart now to start An4rch?" y; then
     sudo systemctl reboot
   fi
 }

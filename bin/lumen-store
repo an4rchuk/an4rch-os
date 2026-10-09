@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
-# lumen-store — obsolete name (before an4rch OS 1.1.0) of anarch-store; kept so old configs still work.
+# lumen-store — obsolete name (before An4rch OS 1.1.0) of anarch-store; kept so old configs still work.
 [[ -t 2 ]] && printf '\e[33m!\e[0m lumen-store is obsolete: use anarch-store (or: anarch store)\n' >&2
 exec "${LUMEN_PATH:-$HOME/.local/share/lumen}/bin/anarch-store" "$@"

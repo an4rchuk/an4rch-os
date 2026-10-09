@@ -13,8 +13,8 @@ Fifteen themes come with an4rch: the signature look, its light version, one per 
 
 | Theme | Look |
 | --- | --- |
-| `an4rch` | The signature look: black, with the red of the an4rch logo. Its wallpapers: the logo in the corner (the default) and the wordmark |
-| `an4rch-light` | The an4rch red on white: the light theme, and the one `anarch auto` uses by day |
+| `an4rch` | The signature look: black, with the red of the An4rch logo. Its wallpapers: the logo in the corner (the default) and the wordmark |
+| `an4rch-light` | The An4rch red on white: the light theme, and the one `anarch auto` uses by day |
 | `ancom` | Anarcho-communism: black and red |
 | `ansyn` | Anarcho-syndicalism: black and red with industrial grey |
 | `mutualism` | Mutualism: black and orange |
@@ -33,7 +33,7 @@ The palettes from before 1.1.1 (Cachy, Tokyo Night, Catppuccin, Gruvbox, Nord, R
 
 ### Theme packs
 
-More themes can come in packs added with one command (`anarch theme packs` lists them, `anarch theme get PACK` adds one, `anarch theme drop PACK` removes it). Packs live in `themes-extra/` in an4rch's folder; see its README to make one.
+More themes can come in packs added with one command (`anarch theme packs` lists them, `anarch theme get PACK` adds one, `anarch theme drop PACK` removes it). Packs live in `themes-extra/` in An4rch's folder; see its README to make one.
 
 ## Wallpapers
 
@@ -52,7 +52,7 @@ Without one, the gradient runs from the theme's background to its accent.
 - <kbd>SUPER</kbd> + <kbd>CTRL</kbd> + <kbd>SHIFT</kbd> + <kbd>W</kbd> picks one from a list.
 - `anarch wallpaper set ~/Pictures/photo.jpg` uses any image.
 
-an4rch remembers the wallpaper you chose for each theme, so switching themes back and forth keeps your pick.
+An4rch remembers the wallpaper you chose for each theme, so switching themes back and forth keeps your pick.
 
 **Adding your own wallpapers:**
 
@@ -69,7 +69,7 @@ $EDITOR ~/.config/lumen/themes/sunrise/theme.conf
 anarch theme set sunrise
 ```
 
-You can also do this from the an4rch menu: **Style → Make my own theme**.
+You can also do this from the An4rch menu: **Style → Make my own theme**.
 
 A theme is one small file of colours:
 
@@ -150,7 +150,7 @@ The interface uses **Inter**; terminals and code use **JetBrains Mono Nerd Font*
 
 ## Widgets on the top bar: `anarch widget`
 
-Widgets are small add-ons in the top bar, next to the media controls. an4rch comes with a few (**weather**, **cpu-temp**, **disk-free**, **uptime** and **countdown**), you can add community ones from a git link, and making your own takes one script.
+Widgets are small add-ons in the top bar, next to the media controls. An4rch comes with a few (**weather**, **cpu-temp**, **disk-free**, **uptime** and **countdown**), you can add community ones from a git link, and making your own takes one script.
 
 ```sh
 anarch widget                  # what's on your bar, and what you can add
@@ -160,7 +160,7 @@ anarch widget new my-widget    # make your own, then edit ~/.config/lumen/widget
 anarch widget remove weather
 ```
 
-A widget is a folder with `widget.conf` (name, description, how often it updates, what clicking does) and `run`, a script that prints what to show. Adding a community widget shows you its script first, because it runs on your computer. See `widgets/README.md` in an4rch's folder for the details and how to share one.
+A widget is a folder with `widget.conf` (name, description, how often it updates, what clicking does) and `run`, a script that prints what to show. Adding a community widget shows you its script first, because it runs on your computer. See `widgets/README.md` in An4rch's folder for the details and how to share one.
 
 ## Your own wallpapers
 

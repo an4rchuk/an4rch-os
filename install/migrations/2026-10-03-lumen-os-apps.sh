@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# an4rch 2.0: the Start menu, App Store and Welcome apps need Python GTK 4 and
+# An4rch 2.0: the Start menu, App Store and Welcome apps need Python GTK 4 and
 # libadwaita; gtk4-layer-shell makes Start a proper overlay.
 set -euo pipefail
 need=()

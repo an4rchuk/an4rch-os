@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# anarch — front door to every an4rch OS command.
+# anarch — front door to every An4rch OS command.
 #
 #   anarch                 open the menu
 #   anarch <command> ...   run that command, e.g. `anarch theme set ancom`
@@ -17,7 +17,7 @@ fi
 
 case "$1" in
   help | -h | --help)
-    printf '\e[1man4rch OS\e[0m %s\n\n' "$(cat "$LUMEN_PATH/VERSION" 2>/dev/null || echo dev)"
+    printf '\e[1mAn4rch OS\e[0m %s\n\n' "$(cat "$LUMEN_PATH/VERSION" 2>/dev/null || echo dev)"
     printf 'Usage: anarch <command> [args]\n\n'
     for f in "$LUMEN_PATH"/bin/anarch-*; do
       name="${f##*/anarch-}"
