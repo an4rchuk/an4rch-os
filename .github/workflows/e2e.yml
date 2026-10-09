@@ -400,8 +400,10 @@ jobs:
       - name: Print screenshots as text
         if: always()
         run: |
-          # Live USB, boot and login shots last: the job-log API only returns the log's tail.
-          for f in $(ls shots/*.png | grep -v '/00\|/01[ab]') $(ls shots/*.png | grep '/00') $(ls shots/*.png | grep '/01[ab]'); do
+          # Live USB, boot and login shots last, then the desktop shots the README
+          # uses: the job-log API only returns the log's tail.
+          readme='/(10-clean-desktop|12-theme-|16-start-search|18-store-search|20-browser|21b-hub-backups)'
+          for f in $(ls shots/*.png | grep -v '/00\|/01[ab]' | grep -Ev "$readme") $(ls shots/*.png | grep '/00') $(ls shots/*.png | grep '/01[ab]') $(ls shots/*.png | grep -E "$readme"); do
             [ -f "$f" ] || continue
             python3 -c "from PIL import Image; im=Image.open('$f').convert('RGB'); im.thumbnail((1280,720)); im.save('/tmp/s.jpg', quality=60)"
             echo "=== SHOT $(basename "$f" .png) ==="

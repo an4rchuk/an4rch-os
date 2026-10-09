@@ -497,10 +497,12 @@ cli "anarch backup off" anarch backup off
 cli "anarch drivers" anarch drivers
 task "anarch drivers check (nothing better to install)" as_user anarch drivers check
 rep=$(as_user anarch report --print 2>/dev/null)
-if [[ "$rep" == *"===== System"* && "$rep" != *"/home/$u"* && "$rep" != *"$(cat /etc/hostname)"* ]]; then
+# (The VM's computer name is an4rch, the OS's own name, which the report keeps;
+# the user name and home folder must be gone.)
+if [[ "$rep" == *"===== System"* && "$rep" != *"/home/$u"* ]] && ! grep -qw -- "$u" <<<"$rep"; then
   result "problem report (private details removed)" PASS "$(wc -l <<<"$rep") lines"
 else
-  result "problem report (private details removed)" FAIL "$(grep -m3 -e "/home/$u" -e "$(cat /etc/hostname)" <<<"$rep" | tr '\n' ' ')"
+  result "problem report (private details removed)" FAIL "$(grep -m3 -w -e "/home/$u" -e "$u" <<<"$rep" | tr '\n' ' ')"
 fi
 cli "anarch phone (status)" anarch phone
 if [[ -d /sys/firmware/efi ]]; then cli "anarch secureboot (status)" anarch secureboot; fi

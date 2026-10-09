@@ -13,7 +13,7 @@ Fifteen themes come with an4rch: the signature look, its light version, one per 
 
 | Theme | Look |
 | --- | --- |
-| `an4rch` | The signature look: black, with the red of the an4rch logo, and its own logo wallpapers |
+| `an4rch` | The signature look: black, with the red of the an4rch logo. Its wallpapers: the logo in the corner, the wordmark, and the original violet aurora an4rch started with |
 | `an4rch-light` | The an4rch red on white: the light theme, and the one `anarch auto` uses by day |
 | `ancom` | Anarcho-communism: black and red |
 | `ansyn` | Anarcho-syndicalism: black and red with industrial grey |

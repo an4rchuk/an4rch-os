@@ -94,11 +94,11 @@ setup() {
   mnt=$(findmnt -rno TARGET "$source" 2>/dev/null | head -n1 || true)
   if [[ -n "$uuid" && "$mnt" == /run/media/* ]]; then
     UUID=$uuid
-    SUBDIR="${dir#"$mnt"}/an4rch-backups/$(hostname)-${USER:-$(id -un)}"
+    SUBDIR="${dir#"$mnt"}/an4rch-backups/$(uname -n)-${USER:-$(id -un)}"
     SUBDIR=${SUBDIR#/}
     TARGET=""
   else
-    TARGET="$dir/an4rch-backups/$(hostname)-${USER:-$(id -un)}"
+    TARGET="$dir/an4rch-backups/$(uname -n)-${USER:-$(id -un)}"
   fi
 
   local r
