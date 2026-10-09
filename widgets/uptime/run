@@ -1,2 +1,3 @@
 #!/usr/bin/env bash
-uptime -p | sed "s/^up //; s/ hours\\?/h/; s/ minutes\\?/m/; s/ days\\?/d/; s/,//g"
+# How long the computer has been on, short: 2w 1d 3h 14m.
+uptime -p | sed -E 's/^up //; s/ weeks?/w/; s/ days?/d/; s/ hours?/h/; s/ minutes?/m/; s/,//g'
