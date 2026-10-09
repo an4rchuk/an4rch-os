@@ -50,6 +50,7 @@ SHELLS = [("zsh", "Zsh", "Suggestions as you type, colours (recommended)"),
           ("bash", "Bash", "The classic, on every Linux"),
           ("fish", "Fish", "The friendliest, with smart suggestions")]
 EDITIONS = [("desktop", "Desktop", "The full an4rch desktop (recommended)"),
+            ("game", "Game", "Starts straight into Steam's Big Picture, like a Steam Deck; the desktop is one menu away"),
             ("server", "Server", "No desktop: the system, SSH and an4rch's tools, for old computers and home servers")]
 DESKTOP_PAGES = ("look", "apps")
 LAYOUTS = [("classic", "an4rch", "Top bar, title bars and a taskbar along the bottom", "yes", "yes"),
@@ -907,7 +908,7 @@ class Installer(Adw.ApplicationWindow):
             "gaming": "1" if self.gaming.get_active() else "0",
             "taskbar": "1" if layout[3] == "yes" else "0",
             "titlebars": "1" if layout[4] == "yes" else "0",
-            "apps": ",".join(sorted(self.extra_apps)) if a["edition"] == "desktop" else "",
+            "apps": ",".join(sorted(self.extra_apps)) if a["edition"] != "server" else "",
         })
         if self.manual():
             m = self.manual_parts()

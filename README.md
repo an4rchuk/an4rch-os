@@ -4,7 +4,7 @@
 
 <p align="center"><strong>An Arch-based Linux distribution that's calm, fast, private, and ready for work and play the moment you log in.</strong></p>
 
-<p align="center"><a href="https://github.com/an4rchuk/an4rch-os/releases">Download</a> · <a href="docs/README.md">Manual</a> · <a href="docs/releases/v1.1.0.md">What's new in 1.1</a> · <a href="docs/ROADMAP.md">Roadmap</a> · <a href="https://an4rch.uk">an4rch.uk</a></p>
+<p align="center"><a href="https://github.com/an4rchuk/an4rch-os/releases">Download</a> · <a href="docs/README.md">Manual</a> · <a href="docs/releases/v1.1.1.md">What's new in 1.1.1</a> · <a href="docs/ROADMAP.md">Roadmap</a> · <a href="https://an4rch.uk">an4rch.uk</a></p>
 
 an4rch OS takes inspiration from [Omarchy](https://omarchy.org) (an opinionated, keyboard-first Hyprland desktop on plain Arch), [Bazzite](https://bazzite.gg) (try it live before installing, roll back any update, gaming ready, a friendly app store) and [CachyOS](https://cachyos.org) (tuned for speed, a teal look of its own). It ships as a bootable USB image; the same desktop also installs on any existing Arch system.
 
@@ -21,7 +21,9 @@ an4rch OS takes inspiration from [Omarchy](https://omarchy.org) (an opinionated,
 - **Extras in one command,** like Bazzite's `ujust`: game streaming (Sunshine), Decky, RGB, GPU control, Android apps, containers, VMs, Tailscale.
 - **Private and safe by default:** a panic key that hides everything in one press, encrypted folders, sandboxed apps, encrypted DNS with tracker blocking, made-up hardware addresses on every network, and drive health monitoring.
 - **The best ideas from other systems:** automatic light and dark by sunset (macOS), sticky notes (Windows), Quick Share by QR code (Android), Screen Time, Storage Sense, battery charge limits and a Powerwash-style reset (ChromeOS).
-- **Your install, your way:** desktop or server, your choice of kernel (latest, LTS, zen or hardened) and shell (zsh, bash or fish), extra apps ticked while installing, or your own partitions.
+- **Looks after itself:** encrypted hourly backups to a drive, the right graphics driver picked for you, Secure Boot with your own keys, screens scaled to fit, and if an update breaks the desktop, the login screen offers to undo it.
+- **Your phone and computer together:** notifications, files both ways and a shared clipboard, set up in one command.
+- **Your install, your way:** desktop, Game edition (starts in Steam's Big Picture, like a Steam Deck) or server, your choice of kernel (latest, LTS, zen or hardened) and shell (zsh, bash or fish), extra apps ticked while installing, or your own partitions.
 
 ![The Start menu, the App Store, settings search in Start, and the welcome tour](docs/images/start-store-welcome.jpg)
 <sub>The Start menu, App Store, a settings search in Start, and the welcome tour, rendered from the real apps during testing (with a fallback font instead of Inter).</sub>

@@ -5,6 +5,10 @@
 #   anarch-gaming status          show what's installed
 #   anarch-gaming game-mode on    add a "Steam Game Mode" session to the login screen
 #   anarch-gaming game-mode off   remove it again
+#   anarch-gaming game-mode boot on|off   start straight into Game Mode when the
+#                                 computer starts, like a Steam Deck (the Game
+#                                 edition does this); Steam → Power → Switch to
+#                                 Desktop goes to the login screen
 #
 # The stack: Steam (with Proton for Windows games), 32-bit graphics drivers for
 # your GPU, GameMode (CPU/GPU boost while playing), MangoHud (FPS overlay,
@@ -104,6 +108,43 @@ EOF
 EOF
 }
 
+# The command that starts Steam's Game Mode session.
+game_session() {
+  local f
+  for f in /usr/share/wayland-sessions/gamescope-session-steam.desktop /usr/share/wayland-sessions/gamescope-session*.desktop; do
+    [[ -f "$f" ]] && { sed -n 's/^Exec=//p' "$f" | head -n1; return 0; }
+  done
+  return 1
+}
+
+# Steam's "Switch to Desktop" runs steamos-session-select: end Game Mode, so
+# the login screen (and the an4rch desktop) comes up.
+session_select() {
+  sudo tee /usr/local/bin/steamos-session-select >/dev/null <<'EOF'
+#!/bin/sh
+# an4rch: Steam → Switch to Desktop. Leave Game Mode for the login screen.
+steam -shutdown >/dev/null 2>&1 &
+sleep 4
+loginctl terminate-session "$XDG_SESSION_ID" 2>/dev/null || pkill -u "$(id -u)" gamescope
+EOF
+  sudo chmod +x /usr/local/bin/steamos-session-select
+}
+
+# game_boot on|off — log straight into Game Mode when the computer starts.
+game_boot() {
+  local conf=/etc/greetd/config.toml cmd
+  [[ -f "$conf" ]] || die "The login screen isn't set up (anarch-login setup)."
+  sudo sed -i '/^\[initial_session\]/,$d' "$conf"
+  if [[ "$1" == on ]]; then
+    cmd=$(game_session) || die "Game Mode isn't installed yet: anarch-gaming game-mode on"
+    session_select
+    printf '\n[initial_session]\ncommand = "%s"\nuser = "%s"\n' "$cmd" "${USER:-$(id -un)}" | sudo tee -a "$conf" >/dev/null
+    echo "  ✓ The computer starts straight into Game Mode. Switch to Desktop (Steam → Power) goes to the login screen."
+  else
+    echo "  ✓ The computer starts at the login screen again."
+  fi
+}
+
 game_mode() {
   case "${1:-}" in
     on)
@@ -112,16 +153,20 @@ game_mode() {
       local helper
       helper=$(command -v yay || command -v paru || true)
       [[ -n "$helper" ]] || die "An AUR helper (yay) is needed."
-      "$helper" -S --needed gamescope-session-steam-git
+      local yes=()
+      [[ "${LUMEN_YES:-0}" == 1 ]] && yes=(--noconfirm)
+      "$helper" -S --needed "${yes[@]}" gamescope-session-steam-git
+      session_select
       echo
-      echo "  ✓ At the login screen, press F3 and choose "Steam Big Picture"."
+      echo "  ✓ At the login screen, pick Steam's session in the list under the password."
       echo "    Inside Game Mode, use Steam → Power → Switch to Desktop to come back."
       ;;
+    boot) game_boot "${2:-on}" ;;
     off)
       sudo pacman -Rns --noconfirm gamescope-session-steam-git gamescope-session-git 2>/dev/null || true
       echo "  Game Mode session removed."
       ;;
-    *) die "usage: anarch-gaming game-mode on|off" ;;
+    *) die "usage: anarch-gaming game-mode on|off|boot on|off" ;;
   esac
 }
 

@@ -100,7 +100,7 @@ Pick *gaming* in the installer, or later run **Start → Gaming setup** (`anarch
 - **gamescope**, Valve's game compositor, for upscaling and frame limiting.
 - **ProtonPlus**, which manages extra Proton and Wine versions (e.g. Proton-GE).
 
-For a console-like experience, run `anarch gaming game-mode on`. It adds a **Steam Big Picture** session (gamescope-session, as on the Steam Deck and Bazzite). At the login screen, press <kbd>F3</kbd> to choose it. To get back to the desktop, use Steam's *Power → Switch to Desktop*.
+For a console-like experience, run `anarch gaming game-mode on`. It adds a **Steam Big Picture** session (gamescope-session, as on the Steam Deck and Bazzite): pick it in the list under the password on the login screen. `anarch gaming game-mode boot on` starts the computer straight into it, which is what the **Game edition** in the installer does. To get back to the desktop, use Steam's *Power → Switch to Desktop*.
 
 Heroic (Epic and GOG), Lutris, Bottles, Prism Launcher, RetroArch and Moonlight are all in the App Store under **Games**.
 
