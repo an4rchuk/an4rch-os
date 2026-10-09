@@ -227,6 +227,11 @@ else
   printf '  - skipped (Pillow not installed)\n'
 fi
 
+step "Graphics drivers"
+picks=$(bash -c 'source "$1/lib/gpu.sh"; for d in 2684 1f08 1c03 13c2 1180 0a65; do printf "%s " "$(nvidia_driver $d)"; done' _ "$root")
+if [[ "$picks" == "open open 580xx 580xx 470xx nouveau " ]]; then ok "NVIDIA driver by card: RTX 40/20 open, GTX 10/900 580xx, GTX 600 470xx, older nouveau"
+else bad "NVIDIA driver picks: $picks"; fi
+
 step "Display scaling"
 picks=$(printf '[{"name":"Virtual-1","width":3840,"height":2160,"refreshRate":60},{"name":"DP-1","width":1920,"height":1080,"refreshRate":60},{"name":"eDP-1","width":2560,"height":1600,"refreshRate":60},{"name":"HDMI-A-1","width":5120,"height":2880,"refreshRate":60}]' |
   python3 "$root/lib/autoscale.py" | awk '{printf "%s=%s ", $1, $2}')

@@ -168,10 +168,21 @@ detect_gpu() {
   local gpus
   gpus=$(lspci -nn 2>/dev/null | grep -Ei 'vga|3d|display' || true)
   GPU_PKGS=()
-  HAS_INTEL=0 HAS_AMD=0 HAS_NVIDIA=0 OTHER_GPU=0
+  HAS_INTEL=0 HAS_AMD=0 HAS_NVIDIA=0 OTHER_GPU=0 LEGACY_NVIDIA=0
   grep -q '\[8086:' <<<"$gpus" && HAS_INTEL=1
   grep -q '\[1002:' <<<"$gpus" && HAS_AMD=1
   grep -q '\[10de:' <<<"$gpus" && HAS_NVIDIA=1
+  # NVIDIA's driver while installing only for cards its open modules support
+  # (GTX 16xx / RTX 20xx and newer). Older cards run on nouveau until
+  # `anarch drivers install` adds their legacy driver (from the AUR).
+  if ((HAS_NVIDIA)) && [[ "${LUMEN_GPU:-}" != nvidia ]]; then
+    source "$LUMEN_PATH/lib/gpu.sh"
+    local id open=0
+    for id in $(gpus | awk -F'\t' '$1 ~ /^10de:/ {sub(/^10de:/, "", $1); print $1}'); do
+      [[ "$(nvidia_driver "$id")" == open ]] && open=1
+    done
+    ((open)) || { HAS_NVIDIA=0; LEGACY_NVIDIA=1; }
+  fi
   grep -vqE '\[(8086|1002|10de):' <<<"$gpus" && OTHER_GPU=1
   # Tests (lumen.gpu=nvidia): set up NVIDIA's driver on a machine without one.
   [[ "${LUMEN_GPU:-}" == nvidia ]] && HAS_NVIDIA=1
@@ -259,7 +270,8 @@ install_packages() {
 
   detect_gpu
   pkg_install OPTIONAL "${GPU_PKGS[@]}"
-  ((HAS_NVIDIA)) && info "NVIDIA GPU found: installed the open kernel modules. Older (pre-Turing) cards need the drivers listed on wiki.archlinux.org/title/NVIDIA."
+  ((HAS_NVIDIA)) && info "NVIDIA graphics: installed NVIDIA's open kernel modules."
+  ((LEGACY_NVIDIA)) && info "Older NVIDIA graphics: using the open-source driver for now. For NVIDIA's own (legacy) driver, run: anarch drivers install"
 
   step "Installing your apps and tools"
   pkg_install OPTIONAL "${PKG_FOR[$BROWSER]:-$BROWSER}" "${PKG_FOR[$TERMINAL_APP]:-$TERMINAL_APP}" "${PKG_FOR[$EDITOR_APP]:-$EDITOR_APP}"

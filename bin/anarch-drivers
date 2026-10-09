@@ -1,0 +1,161 @@
+#!/usr/bin/env bash
+# anarch-drivers — graphics drivers: what's in use and the best one for each card.
+#
+#   anarch-drivers             your graphics cards, the driver each uses, and
+#                              the one recommended
+#   anarch-drivers install     install the recommended NVIDIA driver (and, on
+#                              laptops with two graphics chips, prime-run)
+#   anarch-drivers nouveau     go back to the open-source NVIDIA driver
+#   anarch-drivers check       quietly: is a better driver available? (exit 1 if so)
+#
+# NVIDIA: GTX 16xx / RTX 20xx and newer use NVIDIA's open kernel modules;
+# GTX 750–10xx the 580 legacy driver; GTX 600/700 the 470 legacy driver
+# (both from the AUR); older cards the open-source nouveau driver. Intel and
+# AMD graphics need nothing extra: their drivers are part of the system.
+set -euo pipefail
+source "${LUMEN_PATH:-$HOME/.local/share/lumen}/lib/lumen.sh"
+source "$LUMEN_PATH/lib/gpu.sh"
+
+# in_use PCI_ID → the kernel driver currently driving that card
+in_use() {
+  local slot
+  slot=$(lspci -nn -d "$1" 2>/dev/null | awk 'NR==1 {print $1}')
+  [[ -n "$slot" ]] || return 0
+  lspci -k -s "$slot" 2>/dev/null | sed -n 's/^\s*Kernel driver in use: //p' | head -n1
+}
+
+vendor_name() {
+  case "${1%%:*}" in
+    10de) echo NVIDIA ;; 1002) echo AMD ;; 8086) echo Intel ;; *) echo "Other" ;;
+  esac
+}
+
+# recommended → the NVIDIA driver for the newest NVIDIA card here, or nothing.
+recommended() {
+  local best="" id d
+  for id in $(gpus | awk -F'\t' '$1 ~ /^10de:/ {print $1}'); do
+    d=$(nvidia_driver "${id#10de:}")
+    case "$best:$d" in
+      :*) best=$d ;;
+      *:open) best=open ;;
+      nouveau:* | 470xx:580xx) best=$d ;;
+    esac
+  done
+  echo "$best"
+}
+
+hybrid() { # an Intel or AMD chip as well as NVIDIA (most gaming laptops)
+  gpus | grep -q '^10de:' && gpus | grep -qE '^(8086|1002):'
+}
+
+installed() { # the NVIDIA driver installed now: open, 580xx, 470xx, proprietary or none
+  if pacman -Qq nvidia-open-dkms nvidia-open nvidia-open-lts >/dev/null 2>&1; then echo open
+  elif pacman -Qq nvidia-580xx-dkms >/dev/null 2>&1; then echo 580xx
+  elif pacman -Qq nvidia-470xx-dkms >/dev/null 2>&1; then echo 470xx
+  elif pacman -Qq nvidia nvidia-dkms nvidia-lts >/dev/null 2>&1; then echo proprietary
+  else echo none
+  fi
+}
+
+report() {
+  local id desc drv rec
+  rec=$(recommended)
+  echo "Graphics"
+  while IFS=$'\t' read -r id desc; do
+    [[ -n "$id" ]] || continue
+    drv=$(in_use "$id")
+    printf '  %-7s %s\n' "$(vendor_name "$id")" "$desc"
+    printf '          driver in use: %s\n' "${drv:-none}"
+  done < <(gpus)
+  if [[ -z "$rec" ]]; then
+    echo
+    echo "✓ No NVIDIA card: nothing to install."
+    return 0
+  fi
+  echo
+  case "$rec" in
+    open) echo "Recommended: NVIDIA's open kernel modules (nvidia-open-dkms)" ;;
+    580xx) echo "Recommended: NVIDIA's 580 legacy driver (nvidia-580xx-dkms, from the AUR)" ;;
+    470xx) echo "Recommended: NVIDIA's 470 legacy driver (nvidia-470xx-dkms, from the AUR)" ;;
+    nouveau) echo "Recommended: the open-source nouveau driver (this card is too old for NVIDIA's)" ;;
+  esac
+  local have
+  have=$(installed)
+  if [[ "$have" == "$rec" || ("$rec" == nouveau && "$have" == none) ]]; then
+    echo "✓ That's what you have."
+  else
+    echo "→ Installed now: $have. Switch with: anarch drivers install"
+  fi
+  if hybrid; then
+    echo
+    echo "Two graphics chips: the screen runs on the other one to save battery."
+    echo "Run a game or app on NVIDIA with: prime-run APP (Steam: prime-run %command%)"
+  fi
+}
+
+kernel_headers() {
+  local k out=()
+  for k in linux linux-lts linux-zen linux-hardened; do
+    pacman -Qq "$k" >/dev/null 2>&1 && out+=("$k-headers")
+  done
+  echo "${out[@]}"
+}
+
+install_rec() {
+  local rec have
+  rec=$(recommended)
+  [[ -n "$rec" ]] || { echo "No NVIDIA card here: nothing to install."; return 0; }
+  have=$(installed)
+  if [[ "$rec" == nouveau ]]; then
+    echo "This card works best with the open-source driver, which you already have."
+    return 0
+  fi
+  in_terminal "$0" install
+  local pkgs
+  read -ra pkgs <<<"$(nvidia_packages "$rec") $(kernel_headers)"
+  hybrid && pkgs+=(nvidia-prime)
+  gpus | grep -q '^10de:' && pacman -Qq steam >/dev/null 2>&1 && pkgs+=("lib32-${pkgs[1]}")
+  echo "Installing: ${pkgs[*]}"
+  # Only one NVIDIA driver at a time.
+  local old=()
+  case "$have" in
+    open) [[ "$rec" == open ]] || old+=(nvidia-open-dkms nvidia-utils lib32-nvidia-utils) ;;
+    580xx) [[ "$rec" == 580xx ]] || old+=(nvidia-580xx-dkms nvidia-580xx-utils lib32-nvidia-580xx-utils) ;;
+    470xx) [[ "$rec" == 470xx ]] || old+=(nvidia-470xx-dkms nvidia-470xx-utils lib32-nvidia-470xx-utils) ;;
+  esac
+  if ((${#old[@]})); then
+    mapfile -t old < <(pacman -Qq "${old[@]}" 2>/dev/null || true)
+    ((${#old[@]})) && sudo pacman -Rdd --noconfirm "${old[@]}"
+  fi
+  "$LUMEN_PATH/bin/anarch-pkg" add "${pkgs[@]}"
+  # Early graphics (the boot screen and disk password on NVIDIA).
+  echo 'options nvidia_drm modeset=1 fbdev=1' | sudo tee /etc/modprobe.d/lumen-nvidia.conf >/dev/null
+  sudo mkinitcpio -P >/dev/null 2>&1 || true
+  echo "✓ Done. Restart to use the new driver."
+}
+
+to_nouveau() {
+  in_terminal "$0" nouveau
+  local old
+  mapfile -t old < <(pacman -Qq nvidia-open-dkms nvidia-dkms nvidia nvidia-lts nvidia-open nvidia-utils lib32-nvidia-utils \
+    nvidia-580xx-dkms nvidia-580xx-utils lib32-nvidia-580xx-utils nvidia-470xx-dkms nvidia-470xx-utils lib32-nvidia-470xx-utils \
+    libva-nvidia-driver nvidia-prime 2>/dev/null || true)
+  ((${#old[@]})) || { echo "No NVIDIA driver installed: you're on nouveau already."; return 0; }
+  sudo pacman -Rdd --noconfirm "${old[@]}"
+  sudo rm -f /etc/modprobe.d/lumen-nvidia.conf
+  sudo mkinitcpio -P >/dev/null 2>&1 || true
+  echo "✓ Back on the open-source driver. Restart to use it."
+}
+
+case "${1:-}" in
+  "" | status) report ;;
+  install) install_rec ;;
+  nouveau) to_nouveau ;;
+  check)
+    rec=$(recommended)
+    have=$(installed)
+    [[ -z "$rec" || "$rec" == nouveau || "$have" == "$rec" ]]
+    ;;
+  -h | --help | help) sed -n '2,14s/^# \{0,1\}//p' "$0" ;;
+  *) die "Unknown command '$1'. See: anarch-drivers --help" ;;
+esac
