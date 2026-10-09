@@ -25,13 +25,13 @@ an4rch OS takes inspiration from [Omarchy](https://omarchy.org) (an opinionated,
 - **Your phone and computer together:** notifications, files both ways and a shared clipboard, set up in one command.
 - **Your install, your way:** desktop, Game edition (starts in Steam's Big Picture, like a Steam Deck) or server, your choice of kernel (latest, LTS, zen or hardened) and shell (zsh, bash or fish), extra apps ticked while installing, or your own partitions.
 
-![The Start menu, the App Store, settings search in Start, and the welcome tour](docs/images/start-store-welcome.jpg)
-<sub>The Start menu, App Store, a settings search in Start, and the welcome tour, rendered from the real apps during testing (with a fallback font instead of Inter).</sub>
+![The Start menu, the App Store, the an4rch Hub's Backups page and the welcome tour, in the red and black an4rch theme](docs/images/start-store-welcome.jpg)
+<sub>The Start menu, the App Store, the an4rch Hub (every setting in one window) and the welcome tour, rendered from the real apps in the an4rch theme.</sub>
 
 Underneath is a polished [Hyprland](https://hypr.land) desktop. It sets up a clean top bar, a launcher and menus for everything, themes that restyle the whole system at once, and the everyday tools already wired in: screenshots, screen recording, clipboard history, reminders, an emoji picker, a calculator, OCR and web apps. Wi-Fi, Bluetooth, audio, displays, sleep, login, fingerprint, printing, updates and installing apps are each one key away.
 
-![an4rch's nine themes, each with its own generated wallpaper](docs/images/themes.jpg)
-<sub>Mock-ups of nine of the bundled themes (Cachy, the CachyOS-inspired teal, is in the installer below), drawn on the wallpapers an4rch paints for each one.</sub>
+![All twelve bundled themes: the Start menu in each, on the wallpaper an4rch paints for it](docs/images/themes.jpg)
+<sub>All twelve bundled themes, from the red and black an4rch to Catppuccin, Nord and High contrast: the real Start menu in each, on the wallpaper an4rch paints for it.</sub>
 
 ## Install
 
@@ -39,7 +39,7 @@ Underneath is a polished [Hyprland](https://hypr.land) desktop. It sets up a cle
 
 You land on a live an4rch desktop with **Install an4rch OS** open, Bazzite-style. Look around first if you like, then answer a few questions: keyboard, Wi-Fi, disk and encryption, your account, time zone, a theme and layout, and your apps. The stick carries every package a default install needs, so installing takes minutes rather than a long download. It sets up encrypted btrfs with snapshots, systemd-boot with an LTS fallback kernel, the boot splash and the desktop. Prefer text? Pick *an4rch OS installer (text mode)* in the boot menu. See [an4rch OS](docs/09-lumen-os.md).
 
-![The graphical installer: welcome, theme gallery, disk choice and progress](docs/images/installer.jpg)
+![The graphical installer: welcome, the kind of install (Desktop, Game or Server), disk choice and the theme gallery](docs/images/installer.jpg)
 
 **On an existing Arch install,** logged in as your user:
 
