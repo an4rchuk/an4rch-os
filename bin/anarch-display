@@ -7,6 +7,9 @@
 #
 #   anarch-display            interactive menu
 #   anarch-display save       write the current live layout to monitors.lua
+#   anarch-display autoscale  give displays without a rule of their own a
+#                             comfortable scale (at every login; high-resolution
+#                             screens get 150% or 200% so text isn't tiny)
 set -euo pipefail
 source "${LUMEN_PATH:-$HOME/.local/share/lumen}/lib/lumen.sh"
 
@@ -135,14 +138,37 @@ presets() {
   printf '%s\n' "󰍺  Extend: $external right of $internal" "󰍹  Only $external (laptop screen off)" "󰌢  Only $internal" "󰍺  Mirror $internal on $external"
 }
 
+# autoscale — scale each display you haven't set up yourself in monitors.lua
+# to suit its pixel density (lib/autoscale.py picks the scale).
+autoscale() {
+  local name scale mode desc current
+  while read -r name scale mode; do
+    [[ -n "$name" ]] || continue
+    desc=$(jq -r --arg n "$name" '.[] | select(.name == $n) | .description // ""' <<<"$state")
+    # Your own rule for this display wins.
+    if [[ -f "$conf" ]]; then
+      grep -qF "\"$name\"" "$conf" && continue
+      [[ -n "$desc" ]] && grep -qF "desc:$desc\"" "$conf" && continue
+    fi
+    current=$(jq -r --arg n "$name" '.[] | select(.name == $n) | .scale' <<<"$state")
+    if awk -v a="$current" -v b="$scale" 'BEGIN { exit !((a - b) < 0.01 && (b - a) < 0.01) }'; then continue; fi
+    hyprctl eval "hl.monitor({ output = \"$name\", mode = \"$mode\", position = \"auto\", scale = $scale })" >/dev/null 2>&1 &&
+      echo "$name: scale $scale"
+  done < <(python3 "$LUMEN_PATH/lib/autoscale.py" <<<"$state")
+}
+
 case "${1:-}" in
+  autoscale)
+    autoscale
+    exit 0
+    ;;
   save)
     mkdir -p "$(dirname "$conf")"
     render "$state" >"$conf"
     echo "Saved ${conf/#$HOME/\~}"
     exit 0
     ;;
-  -h | --help | help) sed -n '2,9s/^# \{0,1\}//p' "$0"; exit 0 ;;
+  -h | --help | help) sed -n '2,12s/^# \{0,1\}//p' "$0"; exit 0 ;;
 esac
 
 mapfile -t names < <(jq -r '.[].name' <<<"$state")

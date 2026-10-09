@@ -227,6 +227,12 @@ else
   printf '  - skipped (Pillow not installed)\n'
 fi
 
+step "Display scaling"
+picks=$(printf '[{"name":"Virtual-1","width":3840,"height":2160,"refreshRate":60},{"name":"DP-1","width":1920,"height":1080,"refreshRate":60},{"name":"eDP-1","width":2560,"height":1600,"refreshRate":60},{"name":"HDMI-A-1","width":5120,"height":2880,"refreshRate":60}]' |
+  python3 "$root/lib/autoscale.py" | awk '{printf "%s=%s ", $1, $2}')
+if [[ "$picks" == "Virtual-1=1.5 DP-1=1 eDP-1=1.6 HDMI-A-1=2 " ]]; then ok "auto scale: 4K 150%, 1080p 100%, laptop 160%, 5K 200%"
+else bad "auto scale picked: $picks"; fi
+
 step "Privacy, safety and other an4rch tools"
 # anarch carry: export, change a setting, import, and the setting is back.
 mkdir -p "$HOME/.config/lumen" "$HOME/.config/hypr"
