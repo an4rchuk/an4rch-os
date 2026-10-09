@@ -1,0 +1,2 @@
+#!/usr/bin/env bash
+uptime -p | sed "s/^up //; s/ hours\\?/h/; s/ minutes\\?/m/; s/ days\\?/d/; s/,//g"

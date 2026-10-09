@@ -13,7 +13,7 @@ Fifteen themes come with an4rch: the signature look, its light version, one per 
 
 | Theme | Look |
 | --- | --- |
-| `an4rch` | The signature look: black, with the red of the an4rch logo. Its wallpapers: the logo in the corner (the default), the wordmark, and the original an4rch splash |
+| `an4rch` | The signature look: black, with the red of the an4rch logo. Its wallpapers: the logo in the corner (the default) and the wordmark |
 | `an4rch-light` | The an4rch red on white: the light theme, and the one `anarch auto` uses by day |
 | `ancom` | Anarcho-communism: black and red |
 | `ansyn` | Anarcho-syndicalism: black and red with industrial grey |
@@ -147,3 +147,24 @@ The interface uses **Inter**; terminals and code use **JetBrains Mono Nerd Font*
 - Menus: `font=` in `~/.config/fuzzel/fuzzel.ini`
 - Notifications: `font=` in `~/.config/mako/config`
 - GTK apps: `gsettings set org.gnome.desktop.interface font-name 'Inter 11'`
+
+## Widgets on the top bar: `anarch widget`
+
+Widgets are small add-ons in the top bar, next to the media controls. an4rch comes with a few (**weather**, **cpu-temp**, **disk-free**, **uptime** and **countdown**), you can add community ones from a git link, and making your own takes one script.
+
+```sh
+anarch widget                  # what's on your bar, and what you can add
+anarch widget add weather      # add one from an4rch's collection
+anarch widget add https://github.com/someone/an4rch-widget-clock   # a community widget
+anarch widget new my-widget    # make your own, then edit ~/.config/lumen/widgets/my-widget/run
+anarch widget remove weather
+```
+
+A widget is a folder with `widget.conf` (name, description, how often it updates, what clicking does) and `run`, a script that prints what to show. Adding a community widget shows you its script first, because it runs on your computer. See `widgets/README.md` in an4rch's folder for the details and how to share one.
+
+## Your own wallpapers
+
+- `anarch wallpaper set ~/Pictures/photo.jpg` (or right-click a picture in Files) uses any image.
+- Put pictures in `~/Pictures/Wallpapers/`: they join every theme's wallpapers in the picker (<kbd>SUPER</kbd> + <kbd>CTRL</kbd> + <kbd>SHIFT</kbd> + <kbd>W</kbd>) and the rotation (<kbd>SUPER</kbd> + <kbd>CTRL</kbd> + <kbd>W</kbd>).
+- For one theme only, put them in `~/.config/lumen/backgrounds/<theme>/`.
+

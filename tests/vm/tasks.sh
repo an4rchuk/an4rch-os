@@ -505,6 +505,11 @@ else
   result "problem report (private details removed)" FAIL "$(grep -m3 -w -e "/home/$u" -e "$u" <<<"$rep" | tr '\n' ' ')"
 fi
 cli "anarch phone (status)" anarch phone
+# Widgets: add two from the collection; the top bar keeps running and shows them.
+cli "anarch widget add uptime" anarch widget add uptime
+cli "anarch widget add countdown" anarch widget add countdown
+sleep 4
+if pgrep -fx '(/usr/bin/)?waybar' >/dev/null && grep -q 'custom/w-uptime' "$home/.config/lumen/widgets.jsonc"; then result "widgets on the top bar" PASS; else result "widgets on the top bar" FAIL "$(head -c 300 "$home/.config/lumen/widgets.jsonc" 2>&1)"; fi
 if [[ -d /sys/firmware/efi ]]; then cli "anarch secureboot (status)" anarch secureboot; fi
 if [[ -d /sys/class/power_supply/BAT0 || -d /sys/class/power_supply/BAT1 ]]; then cli "anarch battery limit (show)" anarch battery limit; fi
 

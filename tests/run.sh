@@ -204,6 +204,8 @@ while i < len(text):
     i += 1
 cfg = json.loads("".join(out))
 mods = cfg["modules-left"] + cfg["modules-center"] + cfg["modules-right"]
+# group/widgets lives in the file anarch-widget writes (the config's "include").
+mods = [m for m in mods if m != "group/widgets"]
 for g in [m for m in mods if m.startswith("group/")]:
     mods += cfg[g]["modules"]
 missing = [m for m in mods if m not in cfg and not m.startswith(("hyprland/workspaces",))]

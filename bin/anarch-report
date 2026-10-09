@@ -71,8 +71,8 @@ text = text.replace(home, "~")
 # The default computer names (an4rch, archlinux…) are not private, and an4rch
 # is also the name of the OS all through the report: leave those.
 generic = {"an4rch", "lumen", "archlinux", "archiso", "localhost"}
-for word, repl in ((me, "<user>"), (host, "<computer>")):
-    if len(word) > 1 and word.lower() not in generic:
+for word, repl in ((me, "<user>"), (host if host.lower() not in generic else "", "<computer>")):
+    if len(word) > 1:
         text = re.sub(r"\b" + re.escape(word) + r"\b", repl, text)
 text = re.sub(r"\b([0-9a-fA-F]{2}[:-]){5}[0-9a-fA-F]{2}\b", "<mac>", text)
 text = re.sub(r"\b(?:\d{1,3}\.){3}\d{1,3}\b", "<ip>", text)

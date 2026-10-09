@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# Days left until the date in the "date" file (YYYY-MM-DD and an optional label),
+# e.g.:  2026-12-25 Christmas
+line=$(cat "$(dirname "$0")/date" 2>/dev/null || echo "$(date +%Y)-12-25 Christmas")
+when=${line%% *} label=${line#* }
+[[ "$label" == "$when" ]] && label=""
+days=$(( ( $(date -d "$when" +%s 2>/dev/null || date +%s) - $(date -d today +%s) ) / 86400 ))
+(( days >= 0 )) && echo "󰃭 ${days}d${label:+ to $label}" || echo ""

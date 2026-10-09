@@ -8,8 +8,11 @@
 
 an4rch OS takes inspiration from [Omarchy](https://omarchy.org) (an opinionated, keyboard-first Hyprland desktop on plain Arch), [Bazzite](https://bazzite.gg) (try it live before installing, roll back any update, gaming ready, a friendly app store) and [CachyOS](https://cachyos.org) (tuned for speed, a teal look of its own). It ships as a bootable USB image; the same desktop also installs on any existing Arch system.
 
-![The an4rch OS desktop: Files and Firefox with window buttons, the top bar, and the taskbar along the bottom](docs/images/desktop.jpg)
+![The an4rch OS desktop in red and black: a terminal, Files, Firefox, the calculator and the task manager, with the top bar and the taskbar](docs/images/desktop.jpg)
 <sub>A real an4rch OS install, screenshotted by the automated VM test: title bars with minimise, maximise and close on every window, and the taskbar along the bottom.</sub>
+
+![Starting up: the an4rch logo settles into place with a red glow, then the login screen asks only for the password](docs/images/boot-login.jpg)
+<sub>From power on to the desktop: the boot screen's logo stays where it is for the one-step login.</sub>
 
 - **Try it before you install.** The USB boots to a live an4rch desktop with the installer open. Pick a theme and the desktop restyles as you click, then install in a few minutes: the packages come on the stick.
 - **Windows behave like you expect:** title bars with minimise, maximise and close buttons, double-click to maximise, and a Windows-style taskbar along the bottom (on by default, one switch to turn off).
@@ -62,6 +65,7 @@ Answer a few questions (browser, terminal, editor, gaming), wait a few minutes, 
 | **Top bar** | Waybar: workspaces, window title, clock and calendar, reminders, media, privacy indicators, recording, toggles, tray, audio, Bluetooth, network, power profile, battery. Click anything to open its panel |
 | **Launcher and menus** | fuzzel for apps, windows, the an4rch menu, Wi-Fi, displays, power, themes, wallpapers, clipboard and emoji: one consistent look everywhere |
 | **Themes** | Fifteen: the red and black **an4rch**, **an4rch Light**, one per school of anarchism (Anarcho-communism, Anarcho-syndicalism, Mutualism, Individualist, Anarcho-capitalism, Green anarchism, Anarcho-primitivism, Anarcha-feminism, Anarcho-pacifism, Queer anarchism, Insurrectionary and Without adjectives) and High contrast. One key restyles borders, bar, menus, notifications, lock screen, terminal, prompt, `btop`, `fzf` and GTK apps. Every theme gets nine wallpapers painted from its colours, five of them long smooth gradients. [Make your own](docs/03-themes.md#making-your-own-theme) in ten lines |
+| **Widgets** | Add-ons for the top bar: weather, CPU temperature, disk space, uptime, a countdown, community widgets from a git link, or your own in one script (`anarch widget`) |
 | **Wallpapers** | Original abstract wallpapers painted from each theme's colours on your machine (no downloads, no licensing questions), plus your own |
 | **Everyday tools** | Screenshots with annotation, screen recording, clipboard history, reminders, emoji, calculator with units and currencies, colour picker, OCR, web search, web apps |
 | **System** | Wi-Fi menu, Bluetooth, audio mixer and output switcher, display arrangement with automatic revert, power profiles, night light, idle and sleep, lock screen, login screen with keyring unlock, fingerprint, printing, firewall |

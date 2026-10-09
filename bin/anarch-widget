@@ -1,0 +1,176 @@
+#!/usr/bin/env bash
+# anarch-widget — add your own widgets to the top bar, or community ones.
+#
+#   anarch-widget                 your widgets, and the ones you can add
+#   anarch-widget add NAME|URL    add a widget from an4rch's collection, or
+#                                 from a git repository (a community widget)
+#   anarch-widget remove NAME     take one off the bar
+#   anarch-widget new NAME        make your own (a script and a settings file
+#                                 in ~/.config/lumen/widgets/NAME), then edit it
+#   anarch-widget sync            rebuild the bar's widget list (after editing)
+#
+# A widget is a folder with two files:
+#   widget.conf   name = …, description = …, interval = 30 (seconds),
+#                 on-click = a command (optional), json = yes (optional)
+#   run           a script that prints the text to show (or, with json = yes,
+#                 {"text": …, "tooltip": …, "class": …} for Waybar)
+# Community widgets: see widgets/README.md in an4rch's folder.
+set -euo pipefail
+source "${LUMEN_PATH:-$HOME/.local/share/lumen}/lib/lumen.sh"
+
+mine="$LUMEN_CONFIG/widgets"
+bundled="$LUMEN_PATH/widgets"
+out="$LUMEN_CONFIG/widgets.jsonc"
+
+conf() { # conf DIR KEY → the value
+  sed -n -E "s/^[[:space:]]*$2[[:space:]]*=[[:space:]]*(.*[^[:space:]])[[:space:]]*\$/\1/p" "$1/widget.conf" 2>/dev/null | head -n1
+}
+
+valid() { [[ "$1" =~ ^[a-z0-9][a-z0-9-]{0,30}$ ]] || die "Widget names are lower-case letters, digits and dashes: '$1'"; }
+
+# sync — write the Waybar module list the bar includes (~/.config/lumen/widgets.jsonc).
+sync() {
+  mkdir -p "$LUMEN_CONFIG"
+  python3 - "$mine" "$out" <<'PY'
+import json, os, re, sys
+mine, out = sys.argv[1], sys.argv[2]
+def conf(d):
+    vals = {}
+    try:
+        for line in open(os.path.join(d, "widget.conf"), encoding="utf-8"):
+            m = re.match(r"\s*([a-z-]+)\s*=\s*(.*?)\s*$", line)
+            if m and not line.lstrip().startswith("#"):
+                vals[m.group(1)] = m.group(2)
+    except OSError:
+        pass
+    return vals
+mods, names = {}, []
+for name in sorted(os.listdir(mine)) if os.path.isdir(mine) else []:
+    d = os.path.join(mine, name)
+    run = os.path.join(d, "run")
+    if not (os.path.isfile(run) and os.access(run, os.X_OK)):
+        continue
+    c = conf(d)
+    try:
+        interval = max(1, int(c.get("interval", "30")))
+    except ValueError:
+        interval = 30
+    m = {"exec": run, "interval": interval, "format": "{}", "tooltip": True,
+         "escape": True}
+    if c.get("json", "no").lower() in ("yes", "true", "1"):
+        m["return-type"] = "json"
+    if c.get("on-click"):
+        m["on-click"] = c["on-click"]
+    if c.get("description") and "return-type" not in m:
+        m["tooltip-format"] = c["description"]
+    key = "custom/w-" + name
+    mods[key] = m
+    names.append(key)
+mods["group/widgets"] = {"orientation": "inherit", "modules": names}
+with open(out + ".new", "w", encoding="utf-8") as f:
+    f.write("// Written by anarch-widget: your top bar widgets. Edit them in ~/.config/lumen/widgets/.\n")
+    json.dump(mods, f, indent=2)
+os.replace(out + ".new", out)
+PY
+  pkill -SIGUSR2 -x waybar 2>/dev/null || true
+}
+
+list() {
+  local d n
+  echo "Your widgets (on the top bar):"
+  n=0
+  for d in "$mine"/*/; do
+    [[ -f "$d/widget.conf" ]] || continue
+    printf '  \e[1m%-16s\e[0m %s\n' "$(basename "$d")" "$(conf "$d" description)"
+    n=$((n + 1))
+  done
+  ((n)) || echo "  none yet"
+  echo
+  echo "Add with: anarch widget add NAME"
+  for d in "$bundled"/*/; do
+    [[ -f "$d/widget.conf" ]] || continue
+    [[ -d "$mine/$(basename "$d")" ]] && continue
+    printf '  %-16s %s\n' "$(basename "$d")" "$(conf "$d" description)"
+  done
+  echo
+  echo "Or a community widget from a git link: anarch widget add https://github.com/…"
+  echo "Make your own: anarch widget new NAME"
+}
+
+add() {
+  local what="${1:?usage: anarch-widget add NAME|URL}" name src tmp=""
+  if [[ "$what" == http*://* || "$what" == git@* ]]; then
+    has git || die "git is needed to add a widget from a link"
+    name=$(basename "${what%/}" .git)
+    name="${name#an4rch-widget-}"
+    name="${name#anarch-widget-}"
+    name="${name,,}"
+    valid "$name"
+    tmp=$(mktemp -d)
+    git clone --quiet --depth 1 "$what" "$tmp/w" || { rm -rf "$tmp"; die "Couldn't download $what"; }
+    src="$tmp/w"
+    echo "This widget runs a script on your computer every few seconds. Only add widgets from people you trust."
+    echo "Its script:"
+    sed 's/^/    /' "$src/run" 2>/dev/null | head -n 40
+  else
+    name="$what"
+    valid "$name"
+    src="$bundled/$name"
+  fi
+  [[ -f "$src/widget.conf" && -f "$src/run" ]] || { [[ -n "$tmp" ]] && rm -rf "$tmp"; die "No widget called '$what'. See: anarch widget"; }
+  mkdir -p "$mine"
+  rm -rf "${mine:?}/$name"
+  mkdir -p "$mine/$name"
+  cp "$src/widget.conf" "$src/run" "$mine/$name/"
+  [[ -f "$src/README.md" ]] && cp "$src/README.md" "$mine/$name/"
+  chmod +x "$mine/$name/run"
+  [[ -n "$tmp" ]] && rm -rf "$tmp"
+  sync
+  echo "✓ Added '$name' to the top bar. Change its settings in $mine/$name/widget.conf, then: anarch widget sync"
+}
+
+remove() {
+  local name="${1:?usage: anarch-widget remove NAME}"
+  valid "$name"
+  [[ -d "$mine/$name" ]] || die "No widget called '$name' on the bar"
+  rm -rf "${mine:?}/$name"
+  sync
+  echo "✓ Removed '$name'"
+}
+
+new() {
+  local name="${1:?usage: anarch-widget new NAME}"
+  valid "$name"
+  [[ -e "$mine/$name" ]] && die "$mine/$name already exists"
+  mkdir -p "$mine/$name"
+  cat >"$mine/$name/widget.conf" <<CONF
+name        = $name
+description = My widget
+# How often to run the script, in seconds.
+interval    = 30
+# A command to run when the widget is clicked (optional):
+# on-click  = anarch-term
+# Print {"text": …, "tooltip": …} instead of plain text:
+# json      = yes
+CONF
+  cat >"$mine/$name/run" <<'RUN'
+#!/usr/bin/env bash
+# Print what the widget shows on the top bar. Keep it short.
+date +'%a %d'
+RUN
+  chmod +x "$mine/$name/run"
+  sync
+  echo "✓ Made '$name': it's on the top bar now."
+  echo "  Edit $mine/$name/run (what it shows) and widget.conf, then: anarch widget sync"
+  echo "  To share it, put the two files in a git repository; others add it with: anarch widget add <link>"
+}
+
+case "${1:-}" in
+  "" | list) list ;;
+  add) add "${2:-}" ;;
+  remove | rm) remove "${2:-}" ;;
+  new) new "${2:-}" ;;
+  sync) sync ;;
+  -h | --help | help) sed -n '2,20s/^# \{0,1\}//p' "$0" ;;
+  *) die "Unknown command '$1'. See: anarch-widget --help" ;;
+esac

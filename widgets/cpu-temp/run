@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# The highest CPU temperature, red above 85 °C.
+t=0
+for f in /sys/class/thermal/thermal_zone*/temp /sys/class/hwmon/hwmon*/temp*_input; do
+  [[ -r "$f" ]] || continue
+  v=$(( $(cat "$f" 2>/dev/null || echo 0) / 1000 ))
+  (( v > t && v < 150 )) && t=$v
+done
+(( t > 0 )) || { echo "{\"text\": \"\"}"; exit 0; }
+class=normal; (( t >= 85 )) && class=hot
+printf "{\"text\": \"󰔏 %s°\", \"tooltip\": \"CPU %s °C\", \"class\": \"%s\"}\n" "$t" "$t" "$class"

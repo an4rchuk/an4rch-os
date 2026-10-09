@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# The current weather for your location (wttr.in guesses it from your network).
+# Set a place with: echo "London" > ~/.config/lumen/widgets/weather/place
+place=$(cat "$(dirname "$0")/place" 2>/dev/null || true)
+curl -sf --max-time 8 "https://wttr.in/${place// /+}?format=%c+%t" | tr -s " " || echo ""
