@@ -72,7 +72,13 @@ with open(out + ".new", "w", encoding="utf-8") as f:
     json.dump(mods, f, indent=2)
 os.replace(out + ".new", out)
 PY
-  pkill -SIGUSR2 -x waybar 2>/dev/null || true
+  # Restart the top bar (not the taskbar) so it reads the new list. (A reload
+  # signal can be lost when widgets are added one after another.)
+  if pgrep -fx '(/usr/bin/)?waybar' >/dev/null; then
+    pkill -fx '(/usr/bin/)?waybar' 2>/dev/null || true
+    for _ in 1 2 3 4 5 6 7 8 9 10; do pgrep -fx '(/usr/bin/)?waybar' >/dev/null || break; sleep 0.1; done
+    launch waybar || true
+  fi
 }
 
 list() {

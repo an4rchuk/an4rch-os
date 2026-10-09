@@ -12,6 +12,6 @@ if [[ -f "$bar" ]] && ! grep -q 'lumen/widgets.jsonc' "$bar" && grep -q '"reload
   cp "$bar" "$bar.before-widgets"
   sed -i -e 's|^  "reload_style_on_change": true,$|&\n  // Your widgets (anarch widget): written to this file, shown as "group/widgets".\n  "include": ["~/.config/lumen/widgets.jsonc"],|' \
     -e 's|^    "group/status",$|    "group/widgets",\n&|' "$bar"
-  pkill -SIGUSR2 -x waybar 2>/dev/null || true
+  "$LUMEN_PATH/bin/anarch-widget" sync >/dev/null 2>&1 || true
 fi
 true
