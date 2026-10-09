@@ -208,6 +208,7 @@ jobs:
             -drive file="$iso",media=cdrom,readonly=on \
             -kernel arch/boot/x86_64/vmlinuz-linux -initrd arch/boot/x86_64/initramfs-linux.img \
             -append "archisobasedir=arch archisolabel=$label console=tty0 console=ttyS0,115200 lumen.auto=1 lumen.disk=/dev/vda lumen.user=lumen lumen.pass=lumen lumen.autologin=$([ "$LOGIN" = true ] && echo 0 || echo 1) lumen.poweroff=1 lumen.serial=1 $INSTALL_APPEND" \
+            -vga none -device virtio-vga,xres=$VM_XRES,yres=$VM_YRES \
             -nic $INSTALL_NIC -display none -serial file:install-serial.log -no-reboot || true
           # The installer's own output, without systemd's boot/shutdown chatter.
           sed 's/\x1b\[[0-9;?]*[a-zA-Z]//g; s/\x1b\][^\x1b]*\x1b\\//g' install-serial.log |
