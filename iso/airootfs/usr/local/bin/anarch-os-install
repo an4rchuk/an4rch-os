@@ -958,14 +958,14 @@ printf 'Section "InputClass"\n    Identifier "system-keyboard"\n    MatchIsKeybo
 # Test runs (lumen.serial=1): the installed system also logs to the serial
 # port, and reports on its desktop session a few minutes after booting.
 if [[ "${K[serial]:-0}" == 1 ]]; then
-  sed -i '/^options / s/$/ console=tty0 console=ttyS0,115200/' "$MNT"/boot/loader/entries/*.conf 2>/dev/null || true
+  sed -i '/^options / s/$/ console=tty0 console=ttyS0,115200 plymouth.ignore-serial-consoles/' "$MNT"/boot/loader/entries/*.conf 2>/dev/null || true
   # lumen.bootlts=1: start the LTS kernel by default (tests both kernels).
   if [[ "${K[bootlts]:-0}" == 1 ]]; then
     for f in "$MNT/boot/loader/loader.conf" "$MNT/efi/loader/loader.conf"; do
       [[ -f "$f" && $FBPKG == linux-lts ]] && sed -i 's/^default .*/default lumen-lts.conf/' "$f"
     done
   fi
-  sed -i '/^  linux / s/$/ console=tty0 console=ttyS0,115200/' "$MNT"/boot/grub/grub.cfg 2>/dev/null || true
+  sed -i '/^  linux / s/$/ console=tty0 console=ttyS0,115200 plymouth.ignore-serial-consoles/' "$MNT"/boot/grub/grub.cfg 2>/dev/null || true
   # tests/vm: a report on the session (150 s after boot), then a run through
   # everyday tasks that the e2e workflow screenshots (240 s).
   for t in report:150 tasks:240; do

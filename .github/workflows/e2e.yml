@@ -273,7 +273,7 @@ jobs:
             -drive if=pflash,format=raw,file=boot-vars.fd \
             -drive file=disk.qcow2,if=virtio,format=qcow2 \
             -vga none -device virtio-vga,xres=$VM_XRES,yres=$VM_YRES \
-            -nic user,model=virtio-net-pci -display none \
+            -nic user,model=virtio-net-pci -display none -device qemu-xhci -device usb-tablet \
             -monitor unix:mon.sock,server,nowait -serial file:boot-serial.log &
           mon() { echo "$1" | socat - UNIX-CONNECT:mon.sock >/dev/null; }
           shot() { mon "screendump $PWD/$1.ppm"; sleep 2; python3 -c "from PIL import Image; Image.open('$1.ppm').save('$1.png')" && rm -f "$1.ppm" || true; }
@@ -305,7 +305,11 @@ jobs:
           if [ "$LOGIN" = true ]; then
             # The login screen: the logo where the boot screen left it. Log in.
             sleep 35; shot shots/01a-login
-            type_text lumen; sleep 1; shot shots/01b-login-typed
+            # Click Login (ReGreet then asks for the password): the form is
+            # centred, 300px lower than usual to sit below the logo.
+            mon "mouse_move $((VM_XRES / 2 + 212)) $((VM_YRES / 2 + 240))"; sleep 1
+            mon "mouse_button 1"; sleep 0.3; mon "mouse_button 0"; sleep 4
+            type_text lumen; sleep 1; shot shots/01b-login-password
             mon "sendkey ret"
           fi
           sleep 45;  shot shots/01-boot

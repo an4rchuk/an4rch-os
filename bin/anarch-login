@@ -31,7 +31,7 @@ sync() {
     {
       cat "$t/regreet.css"
       # Room for the logo: the login box sits below it.
-      if ((logo)); then printf '\n/* The an4rch logo is above it (anarch-login). */\nframe { margin-top: 300px; }\n'; fi
+      if ((logo)); then printf '\n/* The login form sits below the an4rch logo; the clock stays at the top (anarch-login). */\noverlay > frame:nth-child(2) { margin-top: 300px; }\n'; fi
     } >"$DIR/regreet.css.new" && chmod 644 "$DIR/regreet.css.new" && mv -f "$DIR/regreet.css.new" "$DIR/regreet.css"
   fi
   local LUMEN_THEME_MODE="dark" LUMEN_THEME_ICONS="Papirus-Dark"
