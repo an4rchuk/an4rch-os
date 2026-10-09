@@ -134,6 +134,18 @@ fi
 task "boot screen is an4rch's" bash -c 'grep -qx "Theme=an4rch" /etc/plymouth/plymouthd.conf &&
   for i in /boot/initramfs-*.img; do [[ $i == *fallback* ]] && continue; lsinitcpio "$i" | grep -q "usr/share/plymouth/themes/an4rch/an4rch.script" || { echo "missing from $i"; exit 1; }; done'
 
+# How the boot screen met the graphics (for diagnosing handovers): which
+# displays plymouth used and when, and the graphics drivers in the initramfs.
+say "--- boot screen displays"
+grep -aiE 'renderer|drm|simpledrm|/dev/dri|card[0-9]|add_device|remove_device|seat|show_splash|frame.?buffer' /var/log/plymouth-debug.log 2>/dev/null | cut -c1-200 | head -n 60
+for img in /boot/initramfs-*.img; do
+  [[ $img == *fallback* ]] && continue
+  lsinitcpio "$img" 2>/dev/null | grep -E 'drm|gpu|virtio' | head -n 20
+  break
+done
+journalctl -b -k --no-pager -o short-monotonic 2>/dev/null | grep -iE 'simpledrm|virtio_gpu|virtio-gpu|fb0|efifb|drm' | head -n 20
+say "--- end boot screen displays"
+
 # The boot animation gets its ~2 s before the boot screen hands over.
 shown=$(systemctl show plymouth-start.service -p ActiveEnterTimestampMonotonic --value 2>/dev/null)
 quit=$(systemctl show plymouth-quit.service -p ExecMainStartTimestampMonotonic --value 2>/dev/null)

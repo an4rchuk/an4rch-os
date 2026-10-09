@@ -1,9 +1,5 @@
 {
   "include": [
-    {
-      "vm": "f-manual-split",
-      "prepart": "split",
-      "install": "lumen.mode=manual lumen.root=/dev/vda3 lumen.efi=/dev/vda1 lumen.boot=/dev/vda2"
-    }
+    {"vm": "b-1080-login", "login": true}
   ]
 }
