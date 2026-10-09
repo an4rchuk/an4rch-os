@@ -157,6 +157,32 @@ else
   result "boot animation plays before the login" FAIL "shown=$shown quit=$quit"
 fi
 
+# --- an4rch Game edition: starts in Steam's Game Mode instead of the desktop --------------
+if [[ "$(choice edition)" == game ]]; then
+  say "Game edition: Steam's Game Mode at start-up"
+  if pacman -Q steam >/dev/null 2>&1; then result "Steam installed" PASS; else result "Steam installed" FAIL; fi
+  if pacman -Qq gamescope-session-steam-git >/dev/null 2>&1; then result "Game Mode session installed" PASS; else result "Game Mode session installed" FAIL; fi
+  if sed -n '/^\[initial_session\]/,$p' /etc/greetd/config.toml | grep -q gamescope; then result "starts straight into Game Mode" PASS "$(sed -n '/^\[initial_session\]/,$p' /etc/greetd/config.toml | tr '\n' ' ')"; else result "starts straight into Game Mode" FAIL "$(tail -n 5 /etc/greetd/config.toml | tr '\n' ' ')"; fi
+  if [[ -x /usr/local/bin/steamos-session-select ]]; then result "Switch to Desktop goes to the login screen" PASS; else result "Switch to Desktop goes to the login screen" FAIL; fi
+  if compgen -G "/usr/share/wayland-sessions/hyprland*.desktop" >/dev/null; then result "the desktop is still a choice at login" PASS; else result "the desktop is still a choice at login" FAIL; fi
+  sleep 40
+  say "--- game session: $(pgrep -a gamescope | head -n 2 | tr '\n' ' ') $(pgrep -ax steam | head -n1)"
+  journalctl -b --no-pager -q -u greetd | tail -n 15
+  shot 30-game-mode
+  # Steam → Power → Switch to Desktop: the login screen comes back.
+  if pgrep -x gamescope >/dev/null || pgrep -f gamescope-session >/dev/null; then
+    runuser -u "$u" -- env XDG_SESSION_ID="$(loginctl list-sessions --no-legend | awk -v u="$u" '$3 == u {print $1; exit}')" /usr/local/bin/steamos-session-select >/dev/null 2>&1 || true
+    sleep 20
+    if pgrep -f lumen_greeter.py >/dev/null || pgrep -x regreet >/dev/null; then result "Switch to Desktop shows the login screen" PASS; else result "Switch to Desktop shows the login screen" FAIL "$(pgrep -a cage | head -n1)"; fi
+    shot 31-game-switch-to-desktop
+  else
+    say "Game Mode didn't start here (gamescope needs Vulkan; this VM may have none)"
+  fi
+  say "E2E-SUMMARY $pass passed, $fail failed"
+  say "E2E-DONE"
+  exit 0
+fi
+
 # --- an4rch Server: no desktop; check the system, remote access and the tools -----------
 if [[ "$(choice edition)" == server ]]; then
   say "Server install: no desktop to test"
@@ -443,6 +469,41 @@ cli "anarch auto off" anarch auto off
 as_user anarch-theme set an4rch >/dev/null 2>&1
 as_user anarch-toggle nightlight off >/dev/null 2>&1
 cli "anarch reset --dry-run" anarch reset --dry-run
+
+# --- 1.1.1: scaling, backups, drivers, problem reports, phone, Secure Boot ------------------
+# Screens get the size an4rch picks for them (150% on 4K, 100% on 1080p),
+# unless a display rule of your own says otherwise.
+mons=$(as_user hyprctl monitors -j 2>/dev/null)
+read -r mname pick _ < <(as_user python3 "$lumen/lib/autoscale.py" <<<"$mons" 2>/dev/null | head -n1)
+if [[ -n "${mname:-}" ]] && ! grep -qs "\"$mname\"\|desc:" "$home/.config/hypr/monitors.lua"; then
+  got=$(jq -r --arg n "$mname" '.[] | select(.name == $n) | .scale' <<<"$mons")
+  size=$(jq -r --arg n "$mname" '.[] | select(.name == $n) | "\(.width)x\(.height)"' <<<"$mons")
+  if awk -v a="$pick" -v b="$got" 'BEGIN { exit !(a - b < 0.01 && b - a < 0.01) }'; then
+    result "display scaled for its size" PASS "$size at $got"
+  else
+    result "display scaled for its size" FAIL "$size: want $pick, have ${got:-?}"
+  fi
+fi
+cli "anarch display autoscale" anarch display autoscale
+# Backups: back up, lose a file, get it back.
+pacman -S --needed --noconfirm restic fuse3 >/dev/null 2>&1 || true
+as_user bash -c 'mkdir -p ~/Documents && echo "an4rch backup check" > ~/Documents/backup-check.txt'
+cli "anarch backup setup (to a folder)" anarch backup setup /var/tmp/an4rch-bk
+as_user rm -f "$home/Documents/backup-check.txt"
+cli "anarch backup restore" anarch backup restore "$home/Documents/backup-check.txt"
+if as_user bash -c 'grep -rqs "an4rch backup check" ~/Restored'; then result "backup brings a deleted file back" PASS; else result "backup brings a deleted file back" FAIL "$(as_user find "$home/Restored" -type f | head -n 5 | tr '\n' ' ')"; fi
+task "hourly backup timer" as_user systemctl --user is-enabled lumen-backup.timer
+cli "anarch backup off" anarch backup off
+cli "anarch drivers" anarch drivers
+task "anarch drivers check (nothing better to install)" as_user anarch drivers check
+rep=$(as_user anarch report --print 2>/dev/null)
+if [[ "$rep" == *"===== System"* && "$rep" != *"/home/$u"* && "$rep" != *"$(cat /etc/hostname)"* ]]; then
+  result "problem report (private details removed)" PASS "$(wc -l <<<"$rep") lines"
+else
+  result "problem report (private details removed)" FAIL "$(grep -m3 -e "/home/$u" -e "$(cat /etc/hostname)" <<<"$rep" | tr '\n' ' ')"
+fi
+cli "anarch phone (status)" anarch phone
+if [[ -d /sys/firmware/efi ]]; then cli "anarch secureboot (status)" anarch secureboot; fi
 if [[ -d /sys/class/power_supply/BAT0 || -d /sys/class/power_supply/BAT1 ]]; then cli "anarch battery limit (show)" anarch battery limit; fi
 
 # --- NVIDIA driver (installed with lumen.gpu=nvidia; this VM has no NVIDIA card) ----------
@@ -488,6 +549,16 @@ as_user anarch-settings windows >/dev/null 2>&1 &
 if wait_window "Settings opens" 'lumen.Settings' 40; then
   sleep 3
   shot 21a-settings
+fi
+# The an4rch Hub's 1.1.1 pages: every page built (a broken one fails here), then Backups shown.
+pkill -f lumen_settings.py
+sleep 2
+as_user env LUMEN_SETTINGS_ALL_PAGES=1 anarch-hub backups >/dev/null 2>&1 &
+if wait_window "an4rch Hub opens (all pages built)" 'lumen.Settings' 40; then
+  sleep 3
+  shot 21b-hub-backups
+  pkill -f lumen_settings.py
+  sleep 2
 fi
 # A change made in Settings reaches Hyprland (desktop.json → desktop.lua → reload).
 # Every option changed at once, as someone working through the Settings app would.

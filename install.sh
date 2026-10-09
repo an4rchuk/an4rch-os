@@ -11,6 +11,8 @@
 #   --editor NAME      code (default), zed, nvim
 #   --theme NAME       starting theme (default: an4rch)
 #   --gaming           also install the gaming stack (Steam, Proton tools, …)
+#   --game             the Game edition: gaming, and start straight into Steam's
+#                      Game Mode (like a Steam Deck)
 #   --shell NAME       zsh (default), bash or fish
 #   --apps ID,ID…      extra apps from the App Store's list (apps/lumen-store/catalog.json)
 #   --server           no desktop: the system, SSH, the firewall and an4rch's tools
@@ -36,7 +38,7 @@ source "$LUMEN_PATH/install/lib.sh"
 source "$LUMEN_PATH/install/packages.sh"
 
 BROWSER="" TERMINAL_APP="" EDITOR_APP="" THEME="an4rch" SHELL_CHOICE=zsh EXTRA_APPS="" SERVER=0
-GREETER=1 AUTOLOGIN=0 CONFIGS_ONLY=0 GAMING=0 DISTRO=0 REBOOT=1 TASKBAR=no TITLEBARS=yes
+GREETER=1 AUTOLOGIN=0 CONFIGS_ONLY=0 GAMING=0 GAME=0 DISTRO=0 REBOOT=1 TASKBAR=no TITLEBARS=yes
 while [[ $# -gt 0 ]]; do
   case "$1" in
     -y | --yes) export LUMEN_YES=1 ;;
@@ -49,6 +51,7 @@ while [[ $# -gt 0 ]]; do
     --taskbar) TASKBAR=yes ;;
     --no-titlebars) TITLEBARS=no ;;
     --gaming) GAMING=1 ;;
+    --game) GAMING=1 GAME=1 ;;
     --shell) SHELL_CHOICE="$2"; shift ;;
     --apps) EXTRA_APPS="$2"; shift ;;
     --server) SERVER=1 GREETER=0 ;;
@@ -494,6 +497,15 @@ setup_system() {
 
   if [[ $GREETER -eq 1 ]]; then
     setup_greeter
+    # The Game edition: Steam's Game Mode at start-up (needs the internet once).
+    if [[ $GAME -eq 1 ]]; then
+      if [[ "${LUMEN_OFFLINE:-0}" != 1 ]] && run "Setting up Steam Game Mode" env LUMEN_YES=1 "$LUMEN_PATH/bin/anarch-gaming" game-mode on &&
+        run "Starting in Game Mode" env LUMEN_YES=1 "$LUMEN_PATH/bin/anarch-gaming" game-mode boot on; then
+        :
+      else
+        warn "Game Mode couldn't be set up now; once online: anarch gaming game-mode on, then anarch gaming game-mode boot on"
+      fi
+    fi
   else
     info "No login screen: logging in on the first console starts an4rch (see ~/.zprofile)."
   fi

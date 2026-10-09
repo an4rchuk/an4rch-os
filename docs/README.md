@@ -18,6 +18,7 @@ Open it any time with <kbd>SUPER</kbd> + <kbd>F1</kbd>, or `anarch manual <topic
 | [Power tools](10-power-tools.md) | Performance tuning, one-command extras, a development environment, sharing themes |
 | [Privacy, safety and accessibility](11-privacy-and-safety.md) | The panic key, encrypted DNS, tracker blocking, vaults, sandboxes, removing hidden data, moving your setup, computer health, focus sessions, accessibility |
 | [Borrowed from other systems](12-borrowed-features.md) | Light by day and dark at night, quick notes, read aloud, share to a phone by QR code, screen time, tidy up, battery charge limit, reset the desktop |
+| [The Hub, backups and getting help](13-hub-backups-and-help.md) | The an4rch Hub, the login screen, display scaling, backups, your phone, graphics drivers, Secure Boot, automatic recovery, problem reports, the Game edition |
 
 ## The three things to remember
 

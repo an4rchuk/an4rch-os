@@ -24,7 +24,7 @@ exec 3>&1 # the real terminal, for gum while output goes to the log
 #   lumen.auto=1 lumen.disk=/dev/vda lumen.user=NAME lumen.pass=PASS
 #   [lumen.autologin=1] [lumen.gaming=1] [lumen.encrypt=PASSWORD] [lumen.poweroff=1]
 #   [lumen.kernel=linux|lts|zen|hardened] [lumen.shell=zsh|bash|fish]
-#   [lumen.edition=desktop|server] [lumen.apps=ID,ID…] (App Store ids)
+#   [lumen.edition=desktop|game|server] [lumen.apps=ID,ID…] (App Store ids)
 #   [lumen.mode=manual lumen.root=PART lumen.efi=PART [lumen.boot=PART] [lumen.formatefi=1]]
 # on the kernel command line. Progress is mirrored to the serial console.
 #
@@ -307,8 +307,9 @@ loadkeys "$keymap" 2>/dev/null || true
 title "What kind of install?"
 EDITION=$(gum choose --header "Choose one" \
   "Desktop: the full an4rch desktop (recommended)" \
+  "Game: starts straight into Steam's Big Picture, like a Steam Deck (the desktop is one menu away)" \
   "Server: no desktop, just the system, SSH and an4rch's tools (old computers, home servers)") || exit 0
-if [[ "$EDITION" == Server* ]]; then EDITION=server; else EDITION=desktop; fi
+case "$EDITION" in Server*) EDITION=server ;; Game*) EDITION=game ;; *) EDITION=desktop ;; esac
 
 # --- disk -----------------------------------------------------------------------------
 title "Where should an4rch OS go?"
@@ -431,7 +432,7 @@ case "$(gum choose --header "Shell (the language of the terminal)" \
   bash*) SHELL_CHOICE=bash ;; fish*) SHELL_CHOICE=fish ;; *) SHELL_CHOICE=zsh ;;
 esac
 BROWSER=firefox TERMINAL_APP=ghostty EDITOR_APP=code GAMING=0 THEME=an4rch EXTRA_APPS=""
-if [[ $EDITION == desktop ]]; then
+if [[ $EDITION != server ]]; then
   title "Apps"
   BROWSER=$(gum choose --header "Web browser" firefox chromium brave zen-browser) || BROWSER=firefox
   TERMINAL_APP=$(gum choose --header "Terminal" ghostty alacritty kitty) || TERMINAL_APP=ghostty
@@ -458,7 +459,7 @@ fi
 # --- review ---------------------------------------------------------------------------------
 title "Ready to install"
 gum style --border rounded --border-foreground "$ACCENT" --padding "1 3" --margin "0 2" \
-  "Install:     $([[ $EDITION == server ]] && echo "Server (no desktop)" || echo Desktop)" \
+  "Install:     $(case $EDITION in server) echo "Server (no desktop)" ;; game) echo "Game (starts in Steam's Game Mode)" ;; *) echo Desktop ;; esac)" \
   "Disk:        $disk_line$([[ $MODE == alongside ]] && echo "  ·  alongside Windows, ${ALONG_GB} GB for an4rch")" \
   "Encryption:  $([[ $ENCRYPT -eq 1 ]] && echo on || echo off)" \
   "User:        $USERNAME${FULLNAME:+ ($FULLNAME)}" \
@@ -501,7 +502,8 @@ fi
 # command line) end up in the same, checked form.
 case "${KERNEL:-linux}" in linux | lts | zen | hardened) ;; *) KERNEL=linux ;; esac
 case "${SHELL_CHOICE:-zsh}" in zsh | bash | fish) ;; *) SHELL_CHOICE=zsh ;; esac
-[[ "${EDITION:-desktop}" == server ]] || EDITION=desktop
+case "${EDITION:-desktop}" in server | game) ;; *) EDITION=desktop ;; esac
+[[ $EDITION == game ]] && GAMING=1
 [[ "${EXTRA_APPS:-}" =~ ^[a-z0-9.,_-]*$ ]] || EXTRA_APPS=""
 
 # --- install -----------------------------------------------------------------------------------
@@ -903,6 +905,7 @@ chmod 440 "$MNT/etc/sudoers.d/99-lumen-install"
 
 lumen_args=(--yes --distro --no-reboot --browser "$BROWSER" --terminal "$TERMINAL_APP" --editor "$EDITOR_APP" --theme "$THEME" --shell "$SHELL_CHOICE")
 [[ $EDITION == server ]] && lumen_args+=(--server)
+[[ $EDITION == game ]] && lumen_args+=(--game)
 [[ -n "$EXTRA_APPS" ]] && lumen_args+=(--apps "$EXTRA_APPS")
 [[ $GAMING -eq 1 ]] && lumen_args+=(--gaming)
 [[ "${K[autologin]:-0}" == 1 ]] && lumen_args+=(--autologin)
