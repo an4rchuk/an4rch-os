@@ -53,6 +53,12 @@ mkdir -p "$profile/airootfs/opt/lumen"
 tar -C "$root" --exclude=./out --exclude=./work --exclude='./iso/*.iso' --exclude='__pycache__' -cf - . |
   tar -C "$profile/airootfs/opt/lumen" -xf -
 git -C "$profile/airootfs/opt/lumen" remote set-url origin "${LUMEN_REPO:-https://github.com/an4rchuk/an4rch-os.git}" 2>/dev/null || true
+# No build-machine credentials on the ISO: a CI checkout can carry a login
+# token (it expires after the build, and then GitHub refuses anarch update).
+git -C "$profile/airootfs/opt/lumen" config --local --unset-all http.https://github.com/.extraheader 2>/dev/null || true
+git -C "$profile/airootfs/opt/lumen" config --local --remove-section credential 2>/dev/null || true
+git -C "$profile/airootfs/opt/lumen" config --local --get-regexp '^includeif\.' 2>/dev/null | awk '{print $1}' |
+  while read -r k; do git -C "$profile/airootfs/opt/lumen" config --local --unset-all "$k" || true; done
 
 # Wallpapers for the live desktop and the installer's theme picker, painted
 # now so booting stays fast (needs python-pillow on the build host).

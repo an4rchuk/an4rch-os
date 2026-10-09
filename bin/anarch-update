@@ -25,21 +25,39 @@ update_lumen() {
   # asks for a login); never prompt, just fail with a message.
   export GIT_TERMINAL_PROMPT=0
   "${g[@]}" config core.fileMode false
+  # ISOs up to 1.1.1 carried the build machine's GitHub login (expired since),
+  # which GitHub refuses: drop it. Also trust this checkout if it changed owner.
+  "${g[@]}" config --local --unset-all http.https://github.com/.extraheader 2>/dev/null || true
+  "${g[@]}" config --local --remove-section credential 2>/dev/null || true
+  if ! "${g[@]}" status --porcelain >/dev/null 2>&1; then
+    git config --global --add safe.directory "$LUMEN_PATH" 2>/dev/null || true
+  fi
+  local err
+  err=$(mktemp)
   # The project's home, then its name before the An4rch rename (GitHub
   # forwards that one once the repository is renamed).
   for repo in ${LUMEN_REPO:-https://github.com/an4rchuk/an4rch-os.git https://github.com/an4rchuk/lumen-os.git}; do
     if [[ "$("${g[@]}" remote get-url origin 2>/dev/null)" != "$repo" ]]; then
       "${g[@]}" remote set-url origin "$repo" 2>/dev/null || "${g[@]}" remote add origin "$repo"
     fi
-    if "${g[@]}" fetch --quiet --force --tags origin 2>/dev/null; then
+    if "${g[@]}" fetch --quiet --force --tags origin 2>"$err"; then
       fetched=1
       break
     fi
   done
   if ((!fetched)); then
-    echo "  Couldn't reach GitHub (no internet?); An4rch stays as it is."
+    # Say what actually went wrong: no internet, or GitHub refusing.
+    if curl -fsI --max-time 10 https://github.com >/dev/null 2>&1; then
+      echo "  GitHub is reachable, but downloading An4rch's update failed; An4rch stays as it is:"
+      sed 's/^/    /' "$err" | tail -n 4
+      echo "  (Please report this: anarch report.)"
+    else
+      echo "  Couldn't reach GitHub (no internet?); An4rch stays as it is."
+    fi
+    rm -f "$err"
     return 0
   fi
+  rm -f "$err"
   # Updates follow the releases (v1.0.8, v1.0.9, …), the same code as the ISOs.
   latest=$("${g[@]}" tag -l 'v[0-9]*' --sort=-v:refname | head -n1)
   before=$("${g[@]}" rev-parse HEAD)

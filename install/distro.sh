@@ -24,6 +24,20 @@ pacman -S --needed --noconfirm plymouth zram-generator pacman-contrib arch-insta
 # tries; if they all fail, the fallback (LTS) entry starts instead.
 install -Dm755 "$LUMEN_PATH/share/recover/arm-bootcount" /usr/local/lib/lumen/arm-bootcount
 install -d /etc/pacman.d/hooks
+# KDE Connect (phone link) through the firewall, however it gets installed.
+install -Dm755 "$LUMEN_PATH/share/phone/kdeconnect-firewall" /usr/local/lib/lumen/kdeconnect-firewall
+cat >/etc/pacman.d/hooks/90-an4rch-kdeconnect.hook <<'HOOK'
+[Trigger]
+Operation = Install
+Operation = Upgrade
+Type = Package
+Target = kdeconnect
+
+[Action]
+Description = Letting KDE Connect through the firewall...
+When = PostTransaction
+Exec = /usr/local/lib/lumen/kdeconnect-firewall
+HOOK
 cat >/etc/pacman.d/hooks/95-lumen-bootcount.hook <<'HOOK'
 [Trigger]
 Operation = Install
