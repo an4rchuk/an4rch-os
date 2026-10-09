@@ -1,0 +1,249 @@
+#!/usr/bin/env bash
+# anarch-backup — Time Machine for an4rch: your home folder, backed up every
+# hour to a drive, encrypted, with old versions kept.
+#
+#   anarch-backup                 what's backed up, where and when
+#   anarch-backup setup [DIR]     pick the backup drive (or a folder) and start
+#   anarch-backup now             back up now (the hourly backup does this)
+#   anarch-backup list            the versions you can go back to
+#   anarch-backup browse          open the backups in Files, by date
+#   anarch-backup restore [PATH] [VERSION]
+#                                 bring back a file or folder (or everything)
+#                                 into ~/Restored/<date> — nothing is overwritten
+#   anarch-backup key             show the backup's recovery key
+#   anarch-backup auto on|off     hourly backups (on after setup)
+#   anarch-backup off             stop backing up (the backups stay on the drive)
+#
+# Backups are encrypted with restic. Versions kept: every hour for a day,
+# every day for a week, every week for two months, every month for a year.
+# The recovery key is needed to read the backups from another computer:
+# `anarch-backup key` shows it; keep a copy somewhere safe.
+set -euo pipefail
+source "${LUMEN_PATH:-$HOME/.local/share/lumen}/lib/lumen.sh"
+
+conf="$LUMEN_CONFIG/backup.conf"
+keyfile="$LUMEN_CONFIG/backup.key"
+units="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user"
+TARGET="" UUID="" SUBDIR=""
+# shellcheck source=/dev/null
+[[ -f "$conf" ]] && source "$conf"
+
+human() { numfmt --to=iec --suffix=B "${1:-0}" 2>/dev/null || echo "${1:-0} bytes"; }
+
+# repo — the backup folder now, or nothing when the drive isn't plugged in.
+repo() {
+  local base="$TARGET"
+  if [[ -n "$UUID" ]]; then
+    base=$(findmnt -rno TARGET "/dev/disk/by-uuid/$UUID" 2>/dev/null | head -n1)
+    if [[ -z "$base" ]] && has udisksctl && [[ -e "/dev/disk/by-uuid/$UUID" ]]; then
+      udisksctl mount -b "/dev/disk/by-uuid/$UUID" >/dev/null 2>&1 || true
+      base=$(findmnt -rno TARGET "/dev/disk/by-uuid/$UUID" 2>/dev/null | head -n1)
+    fi
+    [[ -n "$base" ]] || return 1
+    base="$base/$SUBDIR"
+  fi
+  [[ -n "$base" && -d "$base" ]] || return 1
+  echo "$base"
+}
+
+restic_() { RESTIC_PASSWORD_FILE="$keyfile" RESTIC_REPOSITORY="$1" restic "${@:2}"; }
+
+save_conf() {
+  mkdir -p "$LUMEN_CONFIG"
+  printf '# an4rch backups (anarch-backup).\nTARGET=%q\nUUID=%q\nSUBDIR=%q\n' "$TARGET" "$UUID" "$SUBDIR" >"$conf"
+}
+
+# Drives you could back up to: mounted, not the system disk.
+drives() {
+  findmnt -rno TARGET,SOURCE,FSTYPE,SIZE,AVAIL -t ext4,btrfs,xfs,exfat,vfat,ntfs,ntfs3,f2fs |
+    awk '$1 ~ "^/(run/media|media|mnt)/" {print}'
+}
+
+setup() {
+  need restic fuse3
+  local dir="${1:-}" source="" fs=""
+  if [[ -z "$dir" ]]; then
+    in_terminal "$0" setup
+    mapfile -t list < <(drives)
+    if ((${#list[@]} == 0)); then
+      die "Plug in a USB drive or external disk (it opens in Files), then run this again. Or give a folder: anarch-backup setup /path"
+    fi
+    echo "Back up to which drive?"
+    local i=1 l
+    for l in "${list[@]}"; do
+      read -r t _ f s a <<<"$l"
+      printf '  %d) %s  (%s, %s, %s free)\n' "$i" "$t" "$f" "$s" "$a"
+      i=$((i + 1))
+    done
+    read -rp "Number: " i
+    if ! [[ "$i" =~ ^[0-9]+$ ]] || ((i < 1 || i > ${#list[@]})); then die "No such drive."; fi
+    read -r dir source fs _ <<<"${list[$((i - 1))]}"
+  else
+    mkdir -p "$dir"
+    dir=$(realpath "$dir")
+    source=$(findmnt -rno SOURCE -T "$dir" | head -n1)
+    fs=$(findmnt -rno FSTYPE -T "$dir" | head -n1)
+  fi
+  [[ "$fs" == vfat ]] && echo "  Note: this drive uses FAT, which can't hold files over 4 GB; restic splits them, so that's fine."
+
+  # Remember removable drives by their ID, so the backup finds them wherever
+  # they're mounted; anything else by its folder.
+  UUID="" SUBDIR="" TARGET=""
+  local uuid mnt
+  uuid=$(lsblk -no UUID "$source" 2>/dev/null | head -n1 || true)
+  mnt=$(findmnt -rno TARGET "$source" 2>/dev/null | head -n1 || true)
+  if [[ -n "$uuid" && "$mnt" == /run/media/* ]]; then
+    UUID=$uuid
+    SUBDIR="${dir#"$mnt"}/an4rch-backups/$(hostname)-${USER:-$(id -un)}"
+    SUBDIR=${SUBDIR#/}
+    TARGET=""
+  else
+    TARGET="$dir/an4rch-backups/$(hostname)-${USER:-$(id -un)}"
+  fi
+
+  local r
+  if [[ -n "$UUID" ]]; then r="$mnt/$SUBDIR"; else r="$TARGET"; fi
+  mkdir -p "$r"
+  if [[ ! -s "$keyfile" ]]; then
+    mkdir -p "$LUMEN_CONFIG"
+    (umask 077 && head -c 24 /dev/urandom | base32 | tr -d '=' | fold -w 6 | paste -sd- >"$keyfile")
+  fi
+  if [[ ! -f "$r/config" ]]; then
+    restic_ "$r" init >/dev/null || die "Couldn't create the backup on $r"
+  fi
+  save_conf
+  echo "✓ Backups go to $r"
+  echo
+  echo "  Recovery key (needed to read these backups on another computer):"
+  printf '      \e[1m%s\e[0m\n' "$(cat "$keyfile")"
+  echo "  Write it down or keep it in a password manager. \`anarch backup key\` shows it again."
+  echo
+  auto on
+  backup_now
+}
+
+backup_now() {
+  local r
+  if ! r=$(repo); then
+    echo "The backup drive isn't plugged in; nothing to do."
+    return 0
+  fi
+  has restic || die "restic isn't installed: anarch-backup setup"
+  local excludes=(
+    "$HOME/.cache" "$HOME/.local/share/Trash" "$HOME/.local/share/Steam/steamapps"
+    "$HOME/.local/share/containers" "$HOME/.local/share/flatpak" "$HOME/.var/app/*/cache"
+    "$HOME/Vaults" "$HOME/Restored" "$HOME/Backups" "$HOME/.thumbnails"
+    "*/node_modules" "*/.venv" "*/__pycache__" "*/target/debug" "*/target/release"
+  )
+  local args=() e
+  for e in "${excludes[@]}"; do args+=(--exclude "$e"); done
+  mkdir -p "$LUMEN_STATE"
+  if restic_ "$r" backup --quiet --one-file-system --exclude-caches "${args[@]}" "$HOME"; then
+    date +%s >"$LUMEN_STATE/backup-last"
+    # Thin out old versions once a day.
+    local pruned
+    pruned=$(cat "$LUMEN_STATE/backup-pruned" 2>/dev/null || echo 0)
+    if (($(date +%s) - pruned > 86400)); then
+      restic_ "$r" forget --quiet --prune --keep-hourly 24 --keep-daily 7 --keep-weekly 8 --keep-monthly 12 >/dev/null &&
+        date +%s >"$LUMEN_STATE/backup-pruned"
+    fi
+    echo "✓ Backed up"
+  else
+    notify "Backup failed" "Run anarch backup now in a terminal to see why." -u critical -i drive-harddisk
+    return 1
+  fi
+}
+
+status() {
+  if [[ ! -f "$conf" ]]; then
+    echo "Backups: off. Plug in a drive and run: anarch backup setup"
+    return 0
+  fi
+  local r last
+  last=$(cat "$LUMEN_STATE/backup-last" 2>/dev/null || echo 0)
+  echo "Backups: on$(systemctl --user is-enabled -q lumen-backup.timer 2>/dev/null && echo ", every hour" || echo " (hourly backups off: anarch backup auto on)")"
+  if r=$(repo); then
+    echo "  Drive:  $r"
+    local n
+    n=$(restic_ "$r" snapshots --json 2>/dev/null | python3 -c 'import json,sys; print(len(json.load(sys.stdin)))' 2>/dev/null || echo "?")
+    echo "  Versions: $n"
+  else
+    echo "  Drive:  not plugged in${UUID:+ (drive $UUID)}"
+  fi
+  if ((last > 0)); then echo "  Last backup: $(date -d "@$last" '+%A %-d %B, %H:%M')"; else echo "  Last backup: not yet"; fi
+}
+
+list() {
+  local r
+  r=$(repo) || die "Plug in the backup drive first."
+  restic_ "$r" snapshots --compact 2>/dev/null | sed 's/^/  /'
+}
+
+restore() {
+  local path="${1:-}" version="${2:-latest}" r
+  r=$(repo) || die "Plug in the backup drive first."
+  local out
+  out="$HOME/Restored/$(date +%Y-%m-%d-%H%M)"
+  mkdir -p "$out"
+  if [[ -n "$path" ]]; then
+    path=$(realpath -m "$path")
+    restic_ "$r" restore "$version" --target "$out" --include "$path" >/dev/null || die "Couldn't restore $path"
+  else
+    restic_ "$r" restore "$version" --target "$out" >/dev/null || die "Couldn't restore"
+  fi
+  echo "✓ Restored into ${out/#$HOME/\~} (your current files weren't touched)"
+  [[ -t 1 ]] || notify "Restored" "${out/#$HOME/\~}" -i drive-harddisk
+}
+
+browse() {
+  local r mnt="$HOME/Backups"
+  r=$(repo) || die "Plug in the backup drive first."
+  need fuse3
+  mkdir -p "$mnt"
+  if ! mountpoint -q "$mnt"; then
+    (RESTIC_PASSWORD_FILE="$keyfile" setsid restic -r "$r" mount "$mnt" >/dev/null 2>&1 &)
+    for _ in $(seq 30); do mountpoint -q "$mnt" && break; sleep 0.3; done
+  fi
+  echo "Your backups, by date: $mnt/snapshots (read-only). Close with: fusermount3 -u $mnt"
+  [[ -n "${WAYLAND_DISPLAY:-}" ]] && launch xdg-open "$mnt/snapshots"
+  return 0
+}
+
+auto() {
+  case "${1:-}" in
+    on)
+      mkdir -p "$units"
+      printf '[Unit]\nDescription=an4rch backup\n\n[Service]\nType=oneshot\nNice=10\nIOSchedulingClass=idle\nExecStart=%s now\n' "$LUMEN_PATH/bin/anarch-backup" >"$units/lumen-backup.service"
+      printf '[Unit]\nDescription=an4rch hourly backup\n\n[Timer]\nOnBootSec=10min\nOnUnitActiveSec=1h\nPersistent=true\n\n[Install]\nWantedBy=timers.target\n' >"$units/lumen-backup.timer"
+      systemctl --user daemon-reload 2>/dev/null
+      systemctl --user enable --now lumen-backup.timer >/dev/null 2>&1 || true
+      echo "✓ Hourly backups on"
+      ;;
+    off)
+      systemctl --user disable --now lumen-backup.timer >/dev/null 2>&1 || true
+      echo "✓ Hourly backups off"
+      ;;
+    *) die "usage: anarch-backup auto on|off" ;;
+  esac
+}
+
+case "${1:-}" in
+  "" | status) status ;;
+  setup) setup "${2:-}" ;;
+  now) backup_now ;;
+  list) list ;;
+  restore) restore "${2:-}" "${3:-latest}" ;;
+  browse) browse ;;
+  key)
+    [[ -s "$keyfile" ]] || die "No backups set up yet."
+    cat "$keyfile"
+    ;;
+  auto) auto "${2:-}" ;;
+  off)
+    auto off
+    rm -f "$conf"
+    echo "✓ Backups off. The backups already made are still on the drive (and your key in ${keyfile/#$HOME/\~})."
+    ;;
+  -h | --help | help) sed -n '2,22s/^# \{0,1\}//p' "$0" ;;
+  *) die "Unknown command '$1'. See: anarch-backup --help" ;;
+esac

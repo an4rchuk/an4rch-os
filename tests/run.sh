@@ -298,6 +298,26 @@ fi
 rm -f "$HOME/.config/lumen/auto.conf"
 
 # anarch note: a line added from the command line.
+# Backups: set up on a folder, back up, change a file, restore the first version.
+if command -v restic >/dev/null; then
+  b="$tmp/backup"
+  mkdir -p "$b/home/Documents" "$b/drive" "$b/bin"
+  printf '#!/bin/sh\nexit 0\n' >"$b/bin/pacman"; cp "$b/bin/pacman" "$b/bin/systemctl"; chmod +x "$b/bin/"*
+  echo v1 >"$b/home/Documents/note.txt"
+  benv=(env HOME="$b/home" XDG_CONFIG_HOME="$b/home/.config" XDG_STATE_HOME="$b/home/.local/state" PATH="$b/bin:$PATH" LUMEN_PATH="$root")
+  if "${benv[@]}" "$root/bin/anarch-backup" setup "$b/drive" >/dev/null 2>&1 && echo v2 >"$b/home/Documents/note.txt" &&
+    "${benv[@]}" "$root/bin/anarch-backup" now >/dev/null 2>&1; then
+    first=$(RESTIC_PASSWORD_FILE="$b/home/.config/lumen/backup.key" restic -r "$(echo "$b"/drive/an4rch-backups/*)" snapshots --json 2>/dev/null |
+      python3 -c 'import json,sys; print(json.load(sys.stdin)[0]["short_id"])')
+    "${benv[@]}" "$root/bin/anarch-backup" restore "$b/home/Documents/note.txt" "$first" >/dev/null 2>&1
+    if [[ "$(find "$b/home/Restored" -name note.txt -exec cat {} \; 2>/dev/null)" == v1 ]]; then ok "anarch backup: back up, then restore an earlier version"
+    else bad "anarch backup: the earlier version didn't come back"; fi
+  else
+    bad "anarch backup: setup or backup failed"
+  fi
+else
+  printf "  - anarch backup round trip skipped (restic isn't installed)\n"
+fi
 if LUMEN_NOTES="$tmp/notes.md" "$root/bin/anarch-note" buy milk >/dev/null && grep -q -- '- buy milk' "$tmp/notes.md"; then
   ok "anarch note adds a line"
 else
