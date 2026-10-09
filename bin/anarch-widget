@@ -77,7 +77,8 @@ PY
   if pgrep -fx '(/usr/bin/)?waybar' >/dev/null; then
     pkill -fx '(/usr/bin/)?waybar' 2>/dev/null || true
     for _ in 1 2 3 4 5 6 7 8 9 10; do pgrep -fx '(/usr/bin/)?waybar' >/dev/null || break; sleep 0.1; done
-    launch waybar || true
+    # In its own session, so closing the terminal this ran in doesn't take it down.
+    setsid -f waybar </dev/null >/dev/null 2>&1 || launch waybar || true
   fi
 }
 

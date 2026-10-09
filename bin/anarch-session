@@ -20,7 +20,7 @@ start_once() {
 
 restart() {
   case "$1" in
-    bar) pkill -fx '(/usr/bin/)?waybar'; sleep 0.2; launch waybar; "$LUMEN_PATH/bin/anarch-taskbar" restart ;;
+    bar) pkill -fx '(/usr/bin/)?waybar'; sleep 0.2; setsid -f waybar </dev/null >/dev/null 2>&1 || launch waybar; "$LUMEN_PATH/bin/anarch-taskbar" restart ;;
     notifications) pkill -x mako; sleep 0.2; launch mako ;;
     idle) pkill -x hypridle; sleep 0.2; launch hypridle ;;
     wallpaper) "$LUMEN_PATH/bin/anarch-wallpaper" restore ;;
