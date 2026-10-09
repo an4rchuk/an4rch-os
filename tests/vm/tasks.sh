@@ -218,14 +218,14 @@ if wait_window "terminal opens (anarch-launch)" 'ghostty|alacritty|kitty' 30; th
 fi
 
 # --- Themes --------------------------------------------------------------------------
-task "theme switch to nord" as_user anarch-theme set nord
-if [[ "$(cat "$home/.config/lumen/current/theme.name" 2>/dev/null)" == nord ]]; then
+task "theme switch to ancom" as_user anarch-theme set ancom
+if [[ "$(cat "$home/.config/lumen/current/theme.name" 2>/dev/null)" == ancom ]]; then
   result "theme files rendered" PASS
 else
   result "theme files rendered" FAIL "theme.name is '$(cat "$home/.config/lumen/current/theme.name" 2>/dev/null)'"
 fi
 sleep 3
-shot 12-theme-nord
+shot 12-theme-ancom
 task "next wallpaper" as_user anarch-wallpaper next
 
 # --- Notifications, reminders, clipboard, screenshots --------------------------------
@@ -497,12 +497,19 @@ cli "anarch backup off" anarch backup off
 cli "anarch drivers" anarch drivers
 task "anarch drivers check (nothing better to install)" as_user anarch drivers check
 rep=$(as_user anarch report --print 2>/dev/null)
-if [[ "$rep" == *"===== System"* && "$rep" != *"/home/$u"* && "$rep" != *"$(cat /etc/hostname)"* ]]; then
+# (The VM's computer name is an4rch, the OS's own name, which the report keeps;
+# the user name and home folder must be gone.)
+if [[ "$rep" == *"===== System"* && "$rep" != *"/home/$u"* ]] && ! grep -qw -- "$u" <<<"$rep"; then
   result "problem report (private details removed)" PASS "$(wc -l <<<"$rep") lines"
 else
-  result "problem report (private details removed)" FAIL "$(grep -m3 -e "/home/$u" -e "$(cat /etc/hostname)" <<<"$rep" | tr '\n' ' ')"
+  result "problem report (private details removed)" FAIL "$(grep -m3 -w -e "/home/$u" -e "$u" <<<"$rep" | tr '\n' ' ')"
 fi
 cli "anarch phone (status)" anarch phone
+# Widgets: add two from the collection; the top bar keeps running and shows them.
+cli "anarch widget add uptime" anarch widget add uptime
+cli "anarch widget add countdown" anarch widget add countdown
+sleep 4
+if pgrep -fx '(/usr/bin/)?waybar' >/dev/null && grep -q 'custom/w-uptime' "$home/.config/lumen/widgets.jsonc" && grep -q 'custom/w-countdown' "$home/.config/lumen/widgets.jsonc"; then result "widgets on the top bar" PASS; else result "widgets on the top bar" FAIL "$(head -c 300 "$home/.config/lumen/widgets.jsonc" 2>&1)"; fi
 if [[ -d /sys/firmware/efi ]]; then cli "anarch secureboot (status)" anarch secureboot; fi
 if [[ -d /sys/class/power_supply/BAT0 || -d /sys/class/power_supply/BAT1 ]]; then cli "anarch battery limit (show)" anarch battery limit; fi
 

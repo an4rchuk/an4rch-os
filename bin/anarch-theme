@@ -124,8 +124,7 @@ apply() {
 
 set_theme() {
   local name="$1"
-  # The signature theme was called "lumen" before 1.1.0.
-  [[ "$name" == lumen && ! -f "$LUMEN_CONFIG/themes/lumen/theme.conf" ]] && name=$DEFAULT_THEME
+  name=$(theme_renamed "$name")
   theme_dir "$name" >/dev/null || die "No theme called '$name'. Try: anarch-theme list"
   mkdir -p "$LUMEN_CURRENT"
   rm -rf "$LUMEN_CURRENT/theme.new"
@@ -180,6 +179,15 @@ list_packs() {
 # get PACK|THEME — copy the themes in, paint their wallpapers.
 get_themes() {
   local want="$1" dirs=() d slug size i=0
+  # The anarchism themes were a pack before 1.1.1; now they come with an4rch.
+  if [[ "$want" == anarchism ]]; then
+    echo "The anarchism themes come with an4rch now: pick one with SUPER + CTRL + T (or: anarch theme)."
+    return 0
+  fi
+  if [[ -f "$LUMEN_PATH/themes/$want/theme.conf" ]]; then
+    set_theme "$want"
+    return 0
+  fi
   if [[ -f "$PACKS/$want/pack.conf" ]]; then
     for d in "$PACKS/$want"/*/; do [[ -f "$d/theme.conf" ]] && dirs+=("${d%/}"); done
   else

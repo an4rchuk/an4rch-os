@@ -28,12 +28,12 @@
       "install": "lumen.taskbar=0 lumen.titlebars=0"
     },
     {
-      "vm": "alacritty-nord",
-      "install": "lumen.terminal=alacritty lumen.theme=nord"
+      "vm": "alacritty-ansyn",
+      "install": "lumen.terminal=alacritty lumen.theme=ansyn"
     },
     {
       "vm": "light-theme",
-      "install": "lumen.theme=catppuccin-latte"
+      "install": "lumen.theme=an4rch-light"
     },
     {
       "vm": "4k-screen",
@@ -68,7 +68,7 @@
       "cpus": 2,
       "mem": "4G",
       "bios": true,
-      "install": "lumen.theme=catppuccin-latte"
+      "install": "lumen.theme=an4rch-light"
     }
   ]
 }

@@ -242,7 +242,7 @@ def volume_of(kind: str) -> tuple[int, bool]:
 
 
 def row(title: str, subtitle: str = "", icon: str | None = None) -> Adw.ActionRow:
-    r = Adw.ActionRow(title=title, subtitle=subtitle)
+    r = Adw.ActionRow(title=title, subtitle=subtitle, use_markup=False)
     if icon:
         r.add_prefix(Gtk.Image.new_from_icon_name(icon))
     return r
@@ -257,7 +257,7 @@ def button_row(title: str, subtitle: str, icon: str, action) -> Adw.ActionRow:
 
 
 def switch_row(title: str, subtitle: str, active: bool, on_change) -> Adw.SwitchRow:
-    r = Adw.SwitchRow(title=title, subtitle=subtitle, active=active)
+    r = Adw.SwitchRow(title=title, subtitle=subtitle, active=active, use_markup=False)
     r.connect("notify::active", lambda w, *_: on_change(w.get_active()))
     return r
 

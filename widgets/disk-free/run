@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# Free space where your files live.
+df -h --output=avail "$HOME" | tail -n1 | tr -d " " | sed "s/^/󰋊 /"

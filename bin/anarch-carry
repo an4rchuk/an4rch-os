@@ -44,7 +44,7 @@ carried() {
 }
 
 export_() {
-  local out="${1:-$HOME/an4rch-carry-$(hostname -s 2>/dev/null || cat /etc/hostname)-$(date +%Y%m%d).tar.gz}"
+  local out="${1:-$HOME/an4rch-carry-$(uname -n)-$(date +%Y%m%d).tar.gz}"
   local stage="$work/out"
   mkdir -p "$stage/home" "$stage/meta"
   carried | sort -u | while read -r rel; do
@@ -59,7 +59,7 @@ export_() {
   {
     echo "an4rch=$(cat "$LUMEN_PATH/VERSION" 2>/dev/null || echo dev)"
     echo "made=$(date -Is)"
-    echo "host=$(hostname 2>/dev/null || cat /etc/hostname)"
+    echo "host=$(uname -n)"
     echo "theme=$(theme_current)"
     echo "edition=$(cat "$cfg/lumen/edition" 2>/dev/null || echo desktop)"
   } >"$stage/meta/carry.conf"

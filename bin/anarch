@@ -2,8 +2,9 @@
 # anarch — front door to every an4rch OS command.
 #
 #   anarch                 open the menu
-#   anarch <command> ...   run that command, e.g. `anarch theme set nord`
-#   anarch anarch          add the anarchism theme pack (12 themes + wallpapers)
+#   anarch <command> ...   run that command, e.g. `anarch theme set ancom`
+#   anarch anarch          pick a theme (one per school of anarchism, each with
+#                          its own gradient wallpapers)
 #   anarch help            list commands
 #
 # `lumen` (the OS's name before 1.1.0) still works and does the same.
@@ -23,7 +24,7 @@ case "$1" in
       summary=$(sed -n '2s/^# anarch-[a-z-]* — //p' "$f")
       printf '  \e[36m%-15s\e[0m %s\n' "$name" "$summary"
     done
-    printf '  \e[36m%-15s\e[0m %s\n' anarch "add the anarchism theme pack (12 themes, gradient wallpapers)"
+    printf '  \e[36m%-15s\e[0m %s\n' anarch "pick a theme: one per school of anarchism, with gradient wallpapers"
     printf '\nFull manual: anarch manual   ·   Key bindings: SUPER + /\n'
     ;;
   version | --version)
@@ -31,7 +32,7 @@ case "$1" in
     ;;
   anarch | anarchism)
     shift
-    exec "$LUMEN_PATH/bin/anarch-theme" get anarchism "$@"
+    exec "$LUMEN_PATH/bin/anarch-theme" "$@"
     ;;
   themes)
     shift

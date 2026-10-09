@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # anarch-auto — light theme by day, dark theme and night light after sunset (like macOS's Auto appearance and Night Shift).
 #
-#   anarch-auto on [LIGHT DARK]   turn it on; themes default to catppuccin-latte
+#   anarch-auto on [LIGHT DARK]   turn it on; themes default to an4rch-light
 #                                 by day and your current dark theme at night
 #   anarch-auto off               turn it off (the theme stays as it is)
 #   anarch-auto times HH:MM HH:MM use fixed times instead of sunrise and sunset
@@ -16,7 +16,7 @@ set -uo pipefail
 source "${LUMEN_PATH:-$HOME/.local/share/lumen}/lib/lumen.sh"
 
 conf="$LUMEN_CONFIG/auto.conf"
-ENABLED=no LIGHT=catppuccin-latte DARK=an4rch MODE=sun DAY=07:00 NIGHT=19:30 NIGHTLIGHT=yes
+ENABLED=no LIGHT=an4rch-light DARK=an4rch MODE=sun DAY=07:00 NIGHT=19:30 NIGHTLIGHT=yes
 # shellcheck source=/dev/null
 [[ -f "$conf" ]] && source "$conf"
 

@@ -182,7 +182,7 @@ class Welcome(Adw.ApplicationWindow):
         group = Adw.PreferencesGroup()
 
         def row(title, subtitle, icon, argv):
-            r = Adw.ActionRow(title=title, subtitle=subtitle, activatable=True)
+            r = Adw.ActionRow(title=title, subtitle=subtitle, activatable=True, use_markup=False)
             r.add_prefix(Gtk.Image.new_from_icon_name(icon))
             r.add_suffix(Gtk.Image.new_from_icon_name("go-next-symbolic"))
             r.connect("activated", lambda *_: tool(*argv))
@@ -228,7 +228,7 @@ class Welcome(Adw.ApplicationWindow):
                             "Apps open more slowly than they will once an4rch is installed, and nothing you "
                             "change here is kept. Use the installer when you're ready."))
         for icon, title, sub in tips:
-            r = Adw.ActionRow(title=title, subtitle=sub)
+            r = Adw.ActionRow(title=title, subtitle=sub, use_markup=False)
             r.add_prefix(Gtk.Image.new_from_icon_name(icon))
             group.add(r)
         return self.page("Good to know", "A few tips that make an4rch easier to live with.", group, self.nav())

@@ -60,6 +60,8 @@ start() {
   "$LUMEN_PATH/bin/anarch-login" sync >/dev/null 2>&1 &
   # Phone link, when it's on (anarch phone setup).
   [[ -f "$LUMEN_CONFIG/phone" ]] && { "$LUMEN_PATH/bin/anarch-phone" start >/dev/null 2>&1 & }
+  # Your top bar widgets (anarch widget); the bar includes the list it writes.
+  "$LUMEN_PATH/bin/anarch-widget" sync >/dev/null 2>&1 || true
   pgrep -fx '(/usr/bin/)?waybar' >/dev/null || launch waybar
   "$LUMEN_PATH/bin/anarch-taskbar" start
   pgrep -f 'anarch-session watch-bars' >/dev/null || launch "$LUMEN_PATH/bin/anarch-session" watch-bars

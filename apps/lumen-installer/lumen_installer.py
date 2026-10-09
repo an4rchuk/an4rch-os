@@ -263,9 +263,9 @@ def themes() -> list[tuple[str, dict]]:
     for d in sorted((LUMEN_PATH / "themes").iterdir()):
         if (d / "theme.conf").is_file():
             found[d.name] = read_theme(d / "theme.conf")
-    # an4rch first, CachyOS-inspired second, then the rest A–Z.
-    order = ["an4rch", "cachy"]
-    return sorted(found.items(), key=lambda kv: (order.index(kv[0]) if kv[0] in order else 9, kv[1].get("name", kv[0])))
+    # an4rch first, its light version second, then the rest A–Z (High contrast last).
+    order = ["an4rch", "an4rch-light"]
+    return sorted(found.items(), key=lambda kv: (order.index(kv[0]) if kv[0] in order else 99 if kv[0] == "high-contrast" else 9, kv[1].get("name", kv[0])))
 
 
 def wallpaper_for(slug: str) -> Path | None:
@@ -476,7 +476,7 @@ class Installer(Adw.ApplicationWindow):
             self.wifi_rows.append(row)
             return
         for ssid, signal, secured in nets[:12]:
-            row = Adw.ActionRow(title=ssid, subtitle=f"{signal}%{' · secured' if secured else ''}", activatable=True)
+            row = Adw.ActionRow(title=ssid, subtitle=f"{signal}%{' · secured' if secured else ''}", activatable=True, use_markup=False)
             icon = "network-wireless-signal-excellent-symbolic" if signal > 66 else \
                 "network-wireless-signal-good-symbolic" if signal > 33 else "network-wireless-signal-weak-symbolic"
             row.add_prefix(Gtk.Image(icon_name=icon))
@@ -514,7 +514,7 @@ class Installer(Adw.ApplicationWindow):
         for d in self.disk_list:
             check = Gtk.CheckButton(group=first)
             first = first or check
-            row = Adw.ActionRow(title=f"{d['label']} · {d['size']}", subtitle=d["detail"], activatable_widget=check)
+            row = Adw.ActionRow(title=f"{d['label']} · {d['size']}", subtitle=d["detail"], activatable_widget=check, use_markup=False)
             row.add_prefix(check)
             row.add_prefix(Gtk.Image(icon_name="drive-harddisk-symbolic"))
             if d.get("contents"):
@@ -724,7 +724,7 @@ class Installer(Adw.ApplicationWindow):
         for key, name, desc, taskbar, titlebars in LAYOUTS:
             check = Gtk.CheckButton(group=first)
             first = first or check
-            row = Adw.ActionRow(title=name, subtitle=desc, activatable_widget=check)
+            row = Adw.ActionRow(title=name, subtitle=desc, activatable_widget=check, use_markup=False)
             row.add_prefix(check)
             check.connect("toggled", lambda c, k=key, tb=taskbar: c.get_active() and self.pick_layout(k, tb))
             layouts.add(row)
@@ -753,7 +753,7 @@ class Installer(Adw.ApplicationWindow):
         for value, name, desc in options:
             check = Gtk.CheckButton(group=first)
             first = first or check
-            row = Adw.ActionRow(title=name, subtitle=desc, activatable_widget=check)
+            row = Adw.ActionRow(title=name, subtitle=desc, activatable_widget=check, use_markup=False)
             row.add_prefix(check)
             check.connect("toggled", lambda c, v=value: c.get_active() and self.answers.__setitem__(key, v))
             group.add(row)
@@ -774,10 +774,10 @@ class Installer(Adw.ApplicationWindow):
             cats = {}
         apps = catalog_apps()
         for cat in dict.fromkeys(a.get("category", "") for a in apps):
-            exp = Adw.ExpanderRow(title=cats.get(cat, cat.title() or "Other"))
+            exp = Adw.ExpanderRow(title=cats.get(cat, cat.title() or "Other"), use_markup=False)
             for a in [a for a in apps if a.get("category", "") == cat]:
                 check = Gtk.CheckButton(valign=Gtk.Align.CENTER)
-                row = Adw.ActionRow(title=a["name"], subtitle=a.get("summary", ""), activatable_widget=check)
+                row = Adw.ActionRow(title=a["name"], subtitle=a.get("summary", ""), activatable_widget=check, use_markup=False)
                 row.add_prefix(check)
                 check.connect("toggled", lambda c, i=a["id"]: (self.extra_apps.add if c.get_active() else self.extra_apps.discard)(i))
                 exp.add_row(row)
@@ -829,7 +829,7 @@ class Installer(Adw.ApplicationWindow):
                  + (f", and {len(self.extra_apps)} more" if self.extra_apps else "")),
             ]
         for icon, title, sub in rows:
-            row = Adw.ActionRow(title=title, subtitle=sub)
+            row = Adw.ActionRow(title=title, subtitle=sub, use_markup=False)
             row.add_prefix(Gtk.Image(icon_name=icon))
             new.add(row)
         if parent is not None:

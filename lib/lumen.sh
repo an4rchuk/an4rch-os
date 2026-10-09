@@ -230,11 +230,23 @@ bar_signal() {
 # --- themes --------------------------------------------------------------------
 DEFAULT_THEME=an4rch
 
+# theme_renamed NAME — the theme to use for NAME: themes that were renamed or
+# retired map to their replacement (unless you have a theme of your own by
+# that name). The signature theme was "lumen" before 1.1.0; the other old
+# palettes gave way to the anarchism themes in 1.1.1.
+theme_renamed() {
+  if [[ -f "$LUMEN_CONFIG/themes/$1/theme.conf" ]]; then echo "$1"; return; fi
+  case "$1" in
+    lumen | an4rch-violet | cachy | catppuccin-mocha | tokyo-night | gruvbox | nord | rose-pine | everforest | kanagawa) echo "$DEFAULT_THEME" ;;
+    catppuccin-latte) echo an4rch-light ;;
+    *) echo "$1" ;;
+  esac
+}
+
 # theme_dir NAME — user themes in ~/.config/lumen/themes shadow bundled ones.
 theme_dir() {
   local d
-  # The signature theme was called "lumen" before the an4rch rename.
-  [[ "$1" == lumen && ! -f "$LUMEN_CONFIG/themes/lumen/theme.conf" ]] && set -- "$DEFAULT_THEME"
+  set -- "$(theme_renamed "$1")"
   for d in "$LUMEN_CONFIG/themes/$1" "$LUMEN_PATH/themes/$1"; do
     [[ -f "$d/theme.conf" ]] && { echo "$d"; return 0; }
   done
@@ -251,8 +263,8 @@ theme_list() {
 theme_current() {
   local t
   t=$(cat "$LUMEN_CURRENT/theme.name" 2>/dev/null) || t=""
-  [[ -z "$t" || ( "$t" == lumen && ! -f "$LUMEN_CONFIG/themes/lumen/theme.conf" ) ]] && t=$DEFAULT_THEME
-  echo "$t"
+  [[ -z "$t" ]] && t=$DEFAULT_THEME
+  theme_renamed "$t"
 }
 
 # theme_get NAME KEY — read one value from a theme.conf.

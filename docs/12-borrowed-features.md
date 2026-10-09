@@ -16,8 +16,8 @@ The best ideas from macOS, Windows, ChromeOS and Android, rebuilt for an4rch OS.
 ## Light by day, dark at night: `anarch auto`
 
 ```sh
-anarch auto on                         # catppuccin-latte by day, your dark theme at night
-anarch auto on rose-pine nord          # pick both themes
+anarch auto on                         # an4rch-light by day, your dark theme at night
+anarch auto on pacifism ancom          # pick both themes
 anarch auto times 07:30 20:00          # fixed times instead of the sun
 anarch auto times sun                  # back to sunrise and sunset
 anarch auto nightlight off             # leave night light alone

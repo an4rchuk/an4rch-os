@@ -8,8 +8,11 @@
 
 an4rch OS takes inspiration from [Omarchy](https://omarchy.org) (an opinionated, keyboard-first Hyprland desktop on plain Arch), [Bazzite](https://bazzite.gg) (try it live before installing, roll back any update, gaming ready, a friendly app store) and [CachyOS](https://cachyos.org) (tuned for speed, a teal look of its own). It ships as a bootable USB image; the same desktop also installs on any existing Arch system.
 
-![The an4rch OS desktop: Files and Firefox with window buttons, the top bar, and the taskbar along the bottom](docs/images/desktop.jpg)
+![The an4rch OS desktop in red and black: a terminal, Files, Firefox, the calculator and the task manager, with the top bar and the taskbar](docs/images/desktop.jpg)
 <sub>A real an4rch OS install, screenshotted by the automated VM test: title bars with minimise, maximise and close on every window, and the taskbar along the bottom.</sub>
+
+![Starting up: the an4rch logo settles into place with a red glow, then the login screen asks only for the password](docs/images/boot-login.jpg)
+<sub>From power on to the desktop: the boot screen's logo stays where it is for the one-step login.</sub>
 
 - **Try it before you install.** The USB boots to a live an4rch desktop with the installer open. Pick a theme and the desktop restyles as you click, then install in a few minutes: the packages come on the stick.
 - **Windows behave like you expect:** title bars with minimise, maximise and close buttons, double-click to maximise, and a Windows-style taskbar along the bottom (on by default, one switch to turn off).
@@ -25,13 +28,13 @@ an4rch OS takes inspiration from [Omarchy](https://omarchy.org) (an opinionated,
 - **Your phone and computer together:** notifications, files both ways and a shared clipboard, set up in one command.
 - **Your install, your way:** desktop, Game edition (starts in Steam's Big Picture, like a Steam Deck) or server, your choice of kernel (latest, LTS, zen or hardened) and shell (zsh, bash or fish), extra apps ticked while installing, or your own partitions.
 
-![The Start menu, the App Store, settings search in Start, and the welcome tour](docs/images/start-store-welcome.jpg)
-<sub>The Start menu, App Store, a settings search in Start, and the welcome tour, rendered from the real apps during testing (with a fallback font instead of Inter).</sub>
+![The Start menu, the App Store, the an4rch Hub's Backups page and the welcome tour, in the red and black an4rch theme](docs/images/start-store-welcome.jpg)
+<sub>The Start menu, the App Store, the an4rch Hub (every setting in one window) and the welcome tour, rendered from the real apps in the an4rch theme.</sub>
 
 Underneath is a polished [Hyprland](https://hypr.land) desktop. It sets up a clean top bar, a launcher and menus for everything, themes that restyle the whole system at once, and the everyday tools already wired in: screenshots, screen recording, clipboard history, reminders, an emoji picker, a calculator, OCR and web apps. Wi-Fi, Bluetooth, audio, displays, sleep, login, fingerprint, printing, updates and installing apps are each one key away.
 
-![an4rch's nine themes, each with its own generated wallpaper](docs/images/themes.jpg)
-<sub>Mock-ups of nine of the bundled themes (Cachy, the CachyOS-inspired teal, is in the installer below), drawn on the wallpapers an4rch paints for each one.</sub>
+![The bundled themes: an4rch, an4rch Light and the anarchism themes, each with the Start menu on its own gradient wallpaper](docs/images/themes.jpg)
+<sub>The bundled themes: an4rch, an4rch Light and one per school of anarchism, each the real Start menu on the gradient wallpaper an4rch paints for it.</sub>
 
 ## Install
 
@@ -39,7 +42,7 @@ Underneath is a polished [Hyprland](https://hypr.land) desktop. It sets up a cle
 
 You land on a live an4rch desktop with **Install an4rch OS** open, Bazzite-style. Look around first if you like, then answer a few questions: keyboard, Wi-Fi, disk and encryption, your account, time zone, a theme and layout, and your apps. The stick carries every package a default install needs, so installing takes minutes rather than a long download. It sets up encrypted btrfs with snapshots, systemd-boot with an LTS fallback kernel, the boot splash and the desktop. Prefer text? Pick *an4rch OS installer (text mode)* in the boot menu. See [an4rch OS](docs/09-lumen-os.md).
 
-![The graphical installer: welcome, theme gallery, disk choice and progress](docs/images/installer.jpg)
+![The graphical installer: welcome, the kind of install (Desktop, Game or Server), disk choice and the theme gallery](docs/images/installer.jpg)
 
 **On an existing Arch install,** logged in as your user:
 
@@ -61,7 +64,8 @@ Answer a few questions (browser, terminal, editor, gaming), wait a few minutes, 
 | **Taskbar** | Optional Windows-style bar along the bottom: Start, open windows (click to minimise or restore, middle-click to close), minimised windows and the clock. Turn it on in Settings or the installer's *Classic* layout |
 | **Top bar** | Waybar: workspaces, window title, clock and calendar, reminders, media, privacy indicators, recording, toggles, tray, audio, Bluetooth, network, power profile, battery. Click anything to open its panel |
 | **Launcher and menus** | fuzzel for apps, windows, the an4rch menu, Wi-Fi, displays, power, themes, wallpapers, clipboard and emoji: one consistent look everywhere |
-| **Themes** | Eleven palettes (an4rch, Cachy, Tokyo Night, Catppuccin Mocha & Latte, Gruvbox, Nord, Rosé Pine, Everforest, Kanagawa, High contrast). One key restyles borders, bar, menus, notifications, lock screen, terminal, prompt, `btop`, `fzf` and GTK apps. `anarch anarch` adds twelve more: the [anarchism theme pack](docs/03-themes.md#theme-packs-anarch-anarch). Every theme gets nine wallpapers painted from its colours, five of them long smooth gradients. [Make your own](docs/03-themes.md#making-your-own-theme) in ten lines |
+| **Themes** | Fifteen: the red and black **an4rch**, **an4rch Light**, one per school of anarchism (Anarcho-communism, Anarcho-syndicalism, Mutualism, Individualist, Anarcho-capitalism, Green anarchism, Anarcho-primitivism, Anarcha-feminism, Anarcho-pacifism, Queer anarchism, Insurrectionary and Without adjectives) and High contrast. One key restyles borders, bar, menus, notifications, lock screen, terminal, prompt, `btop`, `fzf` and GTK apps. Every theme gets nine wallpapers painted from its colours, five of them long smooth gradients. [Make your own](docs/03-themes.md#making-your-own-theme) in ten lines |
+| **Widgets** | Add-ons for the top bar: weather, CPU temperature, disk space, uptime, a countdown, community widgets from a git link, or your own in one script (`anarch widget`) |
 | **Wallpapers** | Original abstract wallpapers painted from each theme's colours on your machine (no downloads, no licensing questions), plus your own |
 | **Everyday tools** | Screenshots with annotation, screen recording, clipboard history, reminders, emoji, calculator with units and currencies, colour picker, OCR, web search, web apps |
 | **System** | Wi-Fi menu, Bluetooth, audio mixer and output switcher, display arrangement with automatic revert, power profiles, night light, idle and sleep, lock screen, login screen with keyring unlock, fingerprint, printing, firewall |

@@ -10,6 +10,8 @@
   "margin-right": 10,
   "spacing": 0,
   "reload_style_on_change": true,
+  // Your widgets (anarch widget): written to this file, shown as "group/widgets".
+  "include": ["~/.config/lumen/widgets.jsonc"],
 
   "modules-left": ["custom/lumen", "hyprland/workspaces", "hyprland/submap", "hyprland/window"],
   "modules-center": ["clock", "custom/reminders"],
@@ -18,6 +20,7 @@
     "custom/camera",
     "custom/recording",
     "mpris",
+    "group/widgets",
     "group/status",
     "group/tray",
     "pulseaudio",

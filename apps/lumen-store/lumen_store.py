@@ -447,7 +447,7 @@ class DetailPage(Adw.NavigationPage):
         self.detail_rows = []
 
         def add(title, value, link=None):
-            row = Adw.ActionRow(title=title, subtitle=value, subtitle_selectable=True)
+            row = Adw.ActionRow(title=title, subtitle=value, subtitle_selectable=True, use_markup=False)
             if link:
                 b = Gtk.Button(icon_name="adw-external-link-symbolic", valign=Gtk.Align.CENTER, css_classes=["flat"])
                 b.connect("clicked", lambda *_: Gtk.UriLauncher.new(link).launch(self.win, None, None, None))

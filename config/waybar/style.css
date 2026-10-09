@@ -40,6 +40,7 @@ tooltip label {
 #window,
 #clock,
 #custom-reminders,
+#widgets > widget > *,
 #privacy,
 #custom-recording,
 #mpris,

@@ -12,13 +12,13 @@
     {"vm": "b-dvorak", "install": "lumen.keymap=dvorak lumen.timezone=America/New_York"},
     {"vm": "b-japan", "install": "lumen.keymap=jp106 lumen.timezone=Asia/Tokyo lumen.locale=ja_JP.UTF-8"},
     {"vm": "b-swiss", "install": "lumen.keymap=de_CH-latin1 lumen.timezone=Europe/Zurich"},
-    {"vm": "b-kitty-gruvbox", "install": "lumen.terminal=kitty lumen.theme=gruvbox"},
-    {"vm": "b-tokyo-notitlebars", "install": "lumen.theme=tokyo-night lumen.titlebars=0"},
-    {"vm": "b-rosepine-autologin", "install": "lumen.theme=rose-pine lumen.autologin=1"},
+    {"vm": "b-kitty-green", "install": "lumen.terminal=kitty lumen.theme=green-anarchism"},
+    {"vm": "b-queer-notitlebars", "install": "lumen.theme=queer lumen.titlebars=0"},
+    {"vm": "b-anfem-autologin", "install": "lumen.theme=anfem lumen.autologin=1"},
     {"vm": "b-dualboot-min", "windows": true, "install": "lumen.mode=alongside lumen.size=10"},
     {"vm": "b-dualboot-huge", "windows": true, "install": "lumen.mode=alongside lumen.size=500"},
     {"vm": "b-gamer-nvidia-lts", "install": "lumen.gaming=1 lumen.gpu=nvidia lumen.bootlts=1"},
-    {"vm": "b-everything-off", "install": "lumen.taskbar=0 lumen.titlebars=0 lumen.theme=everforest"},
+    {"vm": "b-everything-off", "install": "lumen.taskbar=0 lumen.titlebars=0 lumen.theme=mutualism"},
     {"vm": "b-8cpu-16gb", "cpus": 8, "mem": "16G", "xres": 2560, "yres": 1440}
   ]
 }
