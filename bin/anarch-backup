@@ -187,6 +187,18 @@ restore() {
   mkdir -p "$out"
   if [[ -n "$path" ]]; then
     path=$(realpath -m "$path")
+    # "latest" for one file means the newest backup that has it: a deleted
+    # file may be missing from the backups made since.
+    if [[ "$version" == latest ]]; then
+      version=$(restic_ "$r" find --json "$path" 2>/dev/null | python3 -c '
+import json, sys
+try:
+    hits = [h for h in json.load(sys.stdin) if h.get("hits") or h.get("matches")]
+except ValueError:
+    hits = []
+print(hits[-1]["snapshot"] if hits else "")') || version=""
+      [[ -n "$version" ]] || die "No backup has $path"
+    fi
     restic_ "$r" restore "$version" --target "$out" --include "$path" >/dev/null || die "Couldn't restore $path"
   else
     restic_ "$r" restore "$version" --target "$out" >/dev/null || die "Couldn't restore"
@@ -214,7 +226,7 @@ auto() {
     on)
       mkdir -p "$units"
       printf '[Unit]\nDescription=an4rch backup\n\n[Service]\nType=oneshot\nNice=10\nIOSchedulingClass=idle\nExecStart=%s now\n' "$LUMEN_PATH/bin/anarch-backup" >"$units/lumen-backup.service"
-      printf '[Unit]\nDescription=an4rch hourly backup\n\n[Timer]\nOnBootSec=10min\nOnUnitActiveSec=1h\nPersistent=true\n\n[Install]\nWantedBy=timers.target\n' >"$units/lumen-backup.timer"
+      printf '[Unit]\nDescription=an4rch hourly backup\n\n[Timer]\nOnActiveSec=1h\nOnUnitActiveSec=1h\n\n[Install]\nWantedBy=timers.target\n' >"$units/lumen-backup.timer"
       systemctl --user daemon-reload 2>/dev/null
       systemctl --user enable --now lumen-backup.timer >/dev/null 2>&1 || true
       echo "✓ Hourly backups on"
