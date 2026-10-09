@@ -1,0 +1,11 @@
+#!/bin/sh
+# an4rch: let the boot animation finish (the logo shrinking into place takes
+# about two seconds) before the boot screen hands over to the login screen.
+# Run by plymouth-quit.service (install/plymouth.sh); never waits more than 2.4 s.
+grep -qsx 'Theme=an4rch' /etc/plymouth/plymouthd.conf || exit 0
+pid=$(pidof plymouthd) || exit 0
+start=$(awk '{print $22}' "/proc/$pid/stat" 2>/dev/null) || exit 0
+hz=$(getconf CLK_TCK 2>/dev/null || echo 100)
+up=$(cut -d' ' -f1 /proc/uptime)
+wait=$(awk -v s="$start" -v hz="$hz" -v u="$up" 'BEGIN { w = 2.4 - (u - s / hz); if (w > 2.4) w = 2.4; if (w < 0) w = 0; printf "%.2f", w }')
+exec sleep "$wait"

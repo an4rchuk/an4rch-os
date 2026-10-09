@@ -25,6 +25,18 @@ Theme=an4rch
 ShowDelay=0
 DeviceTimeout=8
 PLY
+# Hand over to the login screen smoothly: once the animation has played, and
+# keeping the last frame on screen until the login screen draws (no black gap).
+install -Dm755 "$LUMEN_PATH/share/plymouth/splash-wait" "$root/usr/local/lib/lumen/splash-wait"
+install -d "$root/etc/systemd/system/plymouth-quit.service.d"
+cat >"$root/etc/systemd/system/plymouth-quit.service.d/an4rch.conf" <<'UNIT'
+# an4rch: let the boot animation finish, and keep its last frame until the
+# login screen (or desktop) draws over it.
+[Service]
+ExecStartPre=-/usr/local/lib/lumen/splash-wait
+ExecStart=
+ExecStart=-/usr/bin/plymouth quit --retain-splash
+UNIT
 after=$( { cat "$dest"/* "$conf" 2>/dev/null || true; } | md5sum)
 
 # The theme is copied into the initramfs, so a change needs a rebuild (only

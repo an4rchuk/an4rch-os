@@ -274,9 +274,20 @@ jobs:
             -drive file=disk.qcow2,if=virtio,format=qcow2 \
             -vga none -device virtio-vga,xres=$VM_XRES,yres=$VM_YRES \
             -nic user,model=virtio-net-pci -display none -device qemu-xhci -device usb-tablet \
-            -monitor unix:mon.sock,server,nowait -serial file:boot-serial.log &
+            -monitor unix:mon.sock,server,nowait -qmp unix:qmp.sock,server,nowait -serial file:boot-serial.log &
           mon() { echo "$1" | socat - UNIX-CONNECT:mon.sock >/dev/null; }
           shot() { mon "screendump $PWD/$1.ppm"; sleep 2; python3 -c "from PIL import Image; Image.open('$1.ppm').save('$1.png')" && rm -f "$1.ppm" || true; }
+          # click X Y: a left click at a screen position (the USB tablet takes
+          # absolute positions, 0-32767 across the screen, through QMP).
+          qmp() { printf '{"execute":"qmp_capabilities"}\n%s\n' "$1" | socat -t 2 - UNIX-CONNECT:qmp.sock >/dev/null; }
+          click() {
+            local x=$(($1 * 32767 / VM_XRES)) y=$(($2 * 32767 / VM_YRES))
+            qmp '{"execute":"input-send-event","arguments":{"events":[{"type":"abs","data":{"axis":"x","value":'$x'}},{"type":"abs","data":{"axis":"y","value":'$y'}}]}}'
+            sleep 0.5
+            qmp '{"execute":"input-send-event","arguments":{"events":[{"type":"btn","data":{"down":true,"button":"left"}}]}}'
+            sleep 0.2
+            qmp '{"execute":"input-send-event","arguments":{"events":[{"type":"btn","data":{"down":false,"button":"left"}}]}}'
+          }
           type_text() {
             local s="$1" i c k
             for ((i = 0; i < ${#s}; i++)); do
@@ -307,8 +318,7 @@ jobs:
             sleep 35; shot shots/01a-login
             # Click Login (ReGreet then asks for the password): the form is
             # centred, 300px lower than usual to sit below the logo.
-            mon "mouse_move $((VM_XRES / 2 + 212)) $((VM_YRES / 2 + 240))"; sleep 1
-            mon "mouse_button 1"; sleep 0.3; mon "mouse_button 0"; sleep 4
+            click $((VM_XRES / 2 + 212)) $((VM_YRES / 2 + 240)); sleep 4
             type_text lumen; sleep 1; shot shots/01b-login-password
             mon "sendkey ret"
           fi
@@ -390,8 +400,8 @@ jobs:
       - name: Print screenshots as text
         if: always()
         run: |
-          # Live USB shots last: the job-log API only returns the log's tail.
-          for f in $(ls shots/*.png | grep -v '/00') $(ls shots/*.png | grep '/00'); do
+          # Live USB, boot and login shots last: the job-log API only returns the log's tail.
+          for f in $(ls shots/*.png | grep -v '/00\|/01[ab]') $(ls shots/*.png | grep '/00') $(ls shots/*.png | grep '/01[ab]'); do
             [ -f "$f" ] || continue
             python3 -c "from PIL import Image; im=Image.open('$f').convert('RGB'); im.thumbnail((1280,720)); im.save('/tmp/s.jpg', quality=60)"
             echo "=== SHOT $(basename "$f" .png) ==="
