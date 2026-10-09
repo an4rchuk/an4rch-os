@@ -1,10 +1,10 @@
 [Desktop Entry]
 Type=Application
-Name=Settings
+Name=an4rch Hub
 GenericName=System Settings
-Comment=Wi-Fi, Bluetooth, sound, displays, themes and more
+Comment=Every setting: looks, Wi-Fi, sound, displays, privacy, backups, your phone, drivers and more
 Exec=anarch-settings
 Icon=anarch-settings
 Terminal=false
 Categories=Settings;System;
-Keywords=settings;preferences;control;panel;wifi;bluetooth;display;
+Keywords=settings;preferences;control;panel;wifi;bluetooth;display;Settings;Hub;Backup;Privacy;Phone;Drivers;Accessibility;

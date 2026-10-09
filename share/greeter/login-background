@@ -1,0 +1,48 @@
+#!/usr/bin/env python3
+"""The login screen's background: the an4rch logo on black, exactly where the
+boot screen (share/plymouth/an4rch/an4rch.script) leaves it, so booting flows
+straight into logging in.
+
+    login-background --size 1920x1080 --out /var/lib/lumen/login/wallpaper
+"""
+import argparse
+import os
+import sys
+
+from PIL import Image
+
+here = os.path.dirname(os.path.abspath(__file__))
+art = os.path.join(here, "..", "plymouth", "an4rch")
+
+ap = argparse.ArgumentParser()
+ap.add_argument("--size", default="2560x1440")
+ap.add_argument("--out", required=True)
+a = ap.parse_args()
+try:
+    W, H = (int(v) for v in a.size.lower().split("x"))
+except ValueError:
+    sys.exit(f"login-background: bad size {a.size!r} (want WIDTHxHEIGHT)")
+
+logo = Image.open(os.path.join(art, "logo.png")).convert("RGBA")
+glow = Image.open(os.path.join(art, "glow.png")).convert("RGBA")
+aspect = logo.width / logo.height
+
+# The boot screen's end state: 32% of the height (at most 45% of the width),
+# centred 26% of the way down; the glow at the middle of its breath.
+h = H * 0.32
+if h * aspect > W * 0.45:
+    h = W * 0.45 / aspect
+cy = H * 0.26
+scale = h / logo.height
+
+canvas = Image.new("RGBA", (W, H), (0, 0, 0, 255))
+g = glow.resize((max(1, round(glow.width * scale)), max(1, round(glow.height * scale))), Image.LANCZOS)
+g.putalpha(g.getchannel("A").point(lambda v: int(v * 0.4)))
+canvas.alpha_composite(g, (round(W / 2 - g.width / 2), round(cy - g.height / 2)))
+l = logo.resize((max(1, round(h * aspect)), max(1, round(h))), Image.LANCZOS)
+canvas.alpha_composite(l, (round(W / 2 - l.width / 2), round(cy - l.height / 2)))
+
+tmp = a.out + ".new"
+canvas.convert("RGB").save(tmp, "PNG")
+os.chmod(tmp, 0o644)
+os.replace(tmp, a.out)

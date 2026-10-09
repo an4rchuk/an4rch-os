@@ -101,6 +101,12 @@ sed -i '/^\[options\]/a NoExtract = usr/share/doc/* usr/share/gtk-doc/* usr/shar
 find "$profile/efiboot" "$profile/syslinux" "$profile/grub" -type f \( -name '*.conf' -o -name '*.cfg' \) \
   -exec sed -i -e 's/Arch Linux install medium/an4rch OS installer/g' -e 's/Arch Linux/an4rch OS/g' {} +
 [[ -f "$root/iso/splash.png" ]] && cp "$root/iso/splash.png" "$profile/syslinux/splash.png"
+# The BIOS menu's colours: red highlight and title instead of archiso's blue.
+# (#AARRGGBB; a no-op if archiso changes its defaults.)
+sed -i -E -e 's/^(MENU COLOR title +[^ ]+ +)#[0-9a-fA-F]{8}/\1#ffe01b24/' \
+  -e 's/^(MENU COLOR sel +[^ ]+ +)#[0-9a-fA-F]{8} +#[0-9a-fA-F]{8}/\1#ffffffff #c0b00010/' \
+  -e 's/^(MENU COLOR border +[^ ]+ +)#[0-9a-fA-F]{8}/\1#40e01b24/' \
+  "$profile"/syslinux/*.cfg 2>/dev/null || true
 
 # Run from the stick rather than copying the (large) image into memory first.
 # (Network boot entries keep copying: there's no stick to run from.)

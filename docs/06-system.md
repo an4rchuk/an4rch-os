@@ -73,7 +73,7 @@ Closing the laptop lid suspends, and the screen is always locked before the comp
 
 ## Logging in, passwords and the keyring
 
-an4rch's login screen is **greetd** with the graphical **ReGreet** greeter, showing your wallpaper and your theme's colours (both follow you when you change them: `anarch-login sync`). It remembers the last user, so you usually just type your password. If it can't start on your graphics hardware, the text login screen (tuigreet) appears instead; `anarch-login text on` always uses the text one, and `anarch-login preview` shows the graphical one in a window.
+an4rch's login screen is **greetd** with the graphical **ReGreet** greeter. It carries on from the boot screen: the an4rch logo starts large as the computer boots, shrinks to the top of the screen, and the login appears below it, in your theme's colours (they follow you when you change theme: `anarch-login sync`). `anarch-login wallpaper on` shows your desktop wallpaper behind the login instead of the logo. It remembers the last user, so you usually just type your password. If it can't start on your graphics hardware, the text login screen (tuigreet) appears instead; `anarch-login text on` always uses the text one, and `anarch-login preview` shows the graphical one in a window.
 
 - Your login password also unlocks the **GNOME keyring**, where browsers, Git and other apps store secrets. You won't get a second password prompt.
 - When an app needs administrator rights (changing the time zone, mounting a disk), a centred password dialog appears. This is the Hyprland polkit agent.

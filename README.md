@@ -1,6 +1,10 @@
-# an4rch OS
+<p align="center"><img src="docs/images/logo.png" alt="The an4rch OS logo: a red, hand-drawn circled A" width="160"></p>
 
-**An Arch-based Linux distribution that's calm, fast, and ready for work and play the moment you log in.**
+<h1 align="center">an4rch OS</h1>
+
+<p align="center"><strong>An Arch-based Linux distribution that's calm, fast, private, and ready for work and play the moment you log in.</strong></p>
+
+<p align="center"><a href="https://github.com/an4rchuk/an4rch-os/releases">Download</a> · <a href="docs/README.md">Manual</a> · <a href="docs/releases/v1.1.0.md">What's new in 1.1</a> · <a href="docs/ROADMAP.md">Roadmap</a> · <a href="https://an4rch.uk">an4rch.uk</a></p>
 
 an4rch OS takes inspiration from [Omarchy](https://omarchy.org) (an opinionated, keyboard-first Hyprland desktop on plain Arch), [Bazzite](https://bazzite.gg) (try it live before installing, roll back any update, gaming ready, a friendly app store) and [CachyOS](https://cachyos.org) (tuned for speed, a teal look of its own). It ships as a bootable USB image; the same desktop also installs on any existing Arch system.
 
@@ -15,6 +19,9 @@ an4rch OS takes inspiration from [Omarchy](https://omarchy.org) (an opinionated,
 - **Gaming in one click:** Steam, Proton tools, GameMode, MangoHud, gamescope and an optional Steam Game Mode session.
 - **Tuned out of the box,** CachyOS-style: per-disk I/O schedulers, NTSYNC and gaming sysctls, plus live-switchable sched-ext CPU schedulers and the zen kernel with `anarch tune`.
 - **Extras in one command,** like Bazzite's `ujust`: game streaming (Sunshine), Decky, RGB, GPU control, Android apps, containers, VMs, Tailscale.
+- **Private and safe by default:** a panic key that hides everything in one press, encrypted folders, sandboxed apps, encrypted DNS with tracker blocking, made-up hardware addresses on every network, and drive health monitoring.
+- **The best ideas from other systems:** automatic light and dark by sunset (macOS), sticky notes (Windows), Quick Share by QR code (Android), Screen Time, Storage Sense, battery charge limits and a Powerwash-style reset (ChromeOS).
+- **Your install, your way:** desktop or server, your choice of kernel (latest, LTS, zen or hardened) and shell (zsh, bash or fish), extra apps ticked while installing, or your own partitions.
 
 ![The Start menu, the App Store, settings search in Start, and the welcome tour](docs/images/start-store-welcome.jpg)
 <sub>The Start menu, App Store, a settings search in Start, and the welcome tour, rendered from the real apps during testing (with a fallback font instead of Inter).</sub>
@@ -22,7 +29,7 @@ an4rch OS takes inspiration from [Omarchy](https://omarchy.org) (an opinionated,
 Underneath is a polished [Hyprland](https://hypr.land) desktop. It sets up a clean top bar, a launcher and menus for everything, themes that restyle the whole system at once, and the everyday tools already wired in: screenshots, screen recording, clipboard history, reminders, an emoji picker, a calculator, OCR and web apps. Wi-Fi, Bluetooth, audio, displays, sleep, login, fingerprint, printing, updates and installing apps are each one key away.
 
 ![an4rch's nine themes, each with its own generated wallpaper](docs/images/themes.jpg)
-<sub>Mock-ups of nine of the ten bundled themes (the tenth, Cachy, is the CachyOS-inspired teal in the installer below), drawn on the wallpapers an4rch paints for each one.</sub>
+<sub>Mock-ups of nine of the bundled themes (Cachy, the CachyOS-inspired teal, is in the installer below), drawn on the wallpapers an4rch paints for each one.</sub>
 
 ## Install
 
@@ -52,7 +59,7 @@ Answer a few questions (browser, terminal, editor, gaming), wait a few minutes, 
 | **Taskbar** | Optional Windows-style bar along the bottom: Start, open windows (click to minimise or restore, middle-click to close), minimised windows and the clock. Turn it on in Settings or the installer's *Classic* layout |
 | **Top bar** | Waybar: workspaces, window title, clock and calendar, reminders, media, privacy indicators, recording, toggles, tray, audio, Bluetooth, network, power profile, battery. Click anything to open its panel |
 | **Launcher and menus** | fuzzel for apps, windows, the an4rch menu, Wi-Fi, displays, power, themes, wallpapers, clipboard and emoji: one consistent look everywhere |
-| **Themes** | Ten palettes (an4rch, Cachy, Tokyo Night, Catppuccin Mocha & Latte, Gruvbox, Nord, Rosé Pine, Everforest, Kanagawa). One key restyles borders, bar, menus, notifications, lock screen, terminal, prompt, `btop`, `fzf` and GTK apps. `anarch anarch` adds twelve more: the [anarchism theme pack](docs/03-themes.md#theme-packs-anarch-anarch). Every theme gets nine wallpapers painted from its colours, five of them long smooth gradients. [Make your own](docs/03-themes.md#making-your-own-theme) in ten lines |
+| **Themes** | Eleven palettes (an4rch, Cachy, Tokyo Night, Catppuccin Mocha & Latte, Gruvbox, Nord, Rosé Pine, Everforest, Kanagawa, High contrast). One key restyles borders, bar, menus, notifications, lock screen, terminal, prompt, `btop`, `fzf` and GTK apps. `anarch anarch` adds twelve more: the [anarchism theme pack](docs/03-themes.md#theme-packs-anarch-anarch). Every theme gets nine wallpapers painted from its colours, five of them long smooth gradients. [Make your own](docs/03-themes.md#making-your-own-theme) in ten lines |
 | **Wallpapers** | Original abstract wallpapers painted from each theme's colours on your machine (no downloads, no licensing questions), plus your own |
 | **Everyday tools** | Screenshots with annotation, screen recording, clipboard history, reminders, emoji, calculator with units and currencies, colour picker, OCR, web search, web apps |
 | **System** | Wi-Fi menu, Bluetooth, audio mixer and output switcher, display arrangement with automatic revert, power profiles, night light, idle and sleep, lock screen, login screen with keyring unlock, fingerprint, printing, firewall |
@@ -61,6 +68,10 @@ Answer a few questions (browser, terminal, editor, gaming), wait a few minutes, 
 | **Performance** | Tuned sysctls, I/O schedulers and NTSYNC by default; `anarch tune` for sched-ext CPU schedulers (bpfland, lavd, …), the zen kernel and mirror ranking |
 | **Extras** | `anarch extras`: Sunshine, Decky Loader, controllers, Handheld Daemon, OpenRGB, LACT, Distrobox, Waydroid, virt-manager, Tailscale |
 | **Development** | `anarch dev`: languages through mise, Docker, and local Postgres, MySQL, Redis or MongoDB in one command |
+| **Privacy and safety** | The panic key (<kbd>SUPER</kbd> + <kbd>SHIFT</kbd> + <kbd>Esc</kbd>), `anarch privacy` (random MAC, encrypted DNS, tracker blocking), `anarch vault` encrypted folders, `anarch sandbox`, `anarch scrub` for hidden file data, camera, microphone and screen-share indicators |
+| **Health and upkeep** | `anarch health` (drives, filesystem, space, battery, services, temperatures, checked daily), `anarch tidy`, `anarch battery limit`, `anarch reset`, `anarch carry` to move your setup to another computer |
+| **Accessibility** | `anarch a11y`: screen reader, bigger text and cursor, no animations, and a High contrast theme |
+| **Everyday extras** | `anarch auto` light/dark by sunset, `anarch note` drop-down notes, `anarch say` read aloud, `anarch share` QR codes for your phone, `anarch screentime`, `anarch focus` |
 | **Updates** | One key updates an4rch, packages, Flatpaks and firmware. Your config files are never overwritten |
 
 ## The keyboard in one minute
@@ -97,6 +108,8 @@ The pattern: <kbd>SUPER</kbd> for apps and windows, <kbd>+SHIFT</kbd> to move an
 | [How an4rch works](docs/08-architecture.md) | Architecture, theme engine, tests |
 | [an4rch OS](docs/09-lumen-os.md) | The ISO and installer, Start menu, App Store, gaming, snapshots and rescue |
 | [Power tools](docs/10-power-tools.md) | `anarch tune`, `anarch extras`, `anarch dev`, theme sharing, battery warnings |
+| [Privacy, safety and accessibility](docs/11-privacy-and-safety.md) | The panic key, network privacy, vaults, sandboxes, health checks, accessibility |
+| [Borrowed from other systems](docs/12-borrowed-features.md) | Auto light/dark, notes, read aloud, Quick Share, Screen Time, tidy, battery limit, reset |
 
 On the desktop: <kbd>SUPER</kbd> + <kbd>F1</kbd>, or `anarch manual` in a terminal.
 
@@ -116,5 +129,9 @@ tests/run.sh
 checks the Hyprland Lua config against an API snapshot taken from Hyprland's source (unknown options, rule fields, dispatchers, events, duplicate bindings), renders every theme, runs shellcheck on every script, validates the Waybar config and generates sample wallpapers. See [How an4rch works](docs/08-architecture.md).
 
 The *e2e* workflow tests the real thing: it builds the ISO, boots the live USB, installs an4rch OS unattended in a virtual machine, then logs in and runs through everyday tasks (apps, Start search, themes, screenshots, minimise and the taskbar, audio, network, lock and unlock), screenshotting the desktop as it goes.
+
+## Where it's going
+
+The plan for the next releases (an4rch Hub, OTA image updates, a handheld edition and more) is in the [roadmap](docs/ROADMAP.md). Ideas and bug reports are welcome as issues.
 
 Built on [Hyprland](https://hypr.land), [uwsm](https://github.com/Vladimir-csp/uwsm), [Waybar](https://github.com/Alexays/Waybar), [fuzzel](https://codeberg.org/dnkl/fuzzel), [mako](https://github.com/emersion/mako), [Ghostty](https://ghostty.org), [greetd](https://sr.ht/~kennylevinsen/greetd/), [cliphist](https://github.com/sentriz/cliphist), [Satty](https://github.com/gabm/Satty) and the rest of the excellent Wayland ecosystem.

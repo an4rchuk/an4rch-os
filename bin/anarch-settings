@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# anarch-settings — the Settings app: look, desktop, windows, sound, network,
-# displays, keyboard and mouse, power, default apps and the system.
+# anarch-settings — the an4rch Hub: every setting in one window (also `anarch hub`).
 #
-#   anarch-settings [PAGE]    open, optionally at a page (look, desktop, windows,
-#                            sound, network, displays, input, power, apps, system)
+#   anarch-settings [PAGE]    open, optionally at a page: look, desktop, windows,
+#                            sound, network, displays, input, power, apps, privacy,
+#                            backups, phone, a11y, wellbeing, hardware, system
 set -euo pipefail
 LUMEN_PATH="${LUMEN_PATH:-$HOME/.local/share/lumen}"
 exec python3 "$LUMEN_PATH/apps/lumen-settings/lumen_settings.py" "$@"

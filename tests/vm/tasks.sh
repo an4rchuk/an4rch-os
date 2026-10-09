@@ -130,6 +130,33 @@ if [[ "$(choice mode)" == manual ]]; then
   task "installed on the chosen partitions" bash -c 'findmnt -no SOURCE / | grep -q "^/dev/vda[0-9]" ; lsblk -no FSTYPE "$(findmnt -no SOURCE / | sed "s/\[.*//")" | grep -q btrfs'
 fi
 
+# The an4rch boot screen: set as the theme, and inside every initramfs.
+task "boot screen is an4rch's" bash -c 'grep -qx "Theme=an4rch" /etc/plymouth/plymouthd.conf &&
+  for i in /boot/initramfs-*.img; do [[ $i == *fallback* ]] && continue; lsinitcpio "$i" | grep -q "usr/share/plymouth/themes/an4rch/an4rch.script" || { echo "missing from $i"; exit 1; }; done'
+
+# How the boot screen met the graphics (for diagnosing handovers): which
+# displays plymouth used and when, and the graphics drivers in the initramfs.
+say "--- boot screen displays"
+grep -aiE 'renderer|drm|simpledrm|/dev/dri|card[0-9]|add_device|remove_device|seat|show_splash|frame.?buffer' /var/log/plymouth-debug.log 2>/dev/null | cut -c1-200 | head -n 60
+for img in /boot/initramfs-*.img; do
+  [[ $img == *fallback* ]] && continue
+  lsinitcpio "$img" 2>/dev/null | grep -E 'drm|gpu|virtio' | head -n 20
+  break
+done
+journalctl -b -k --no-pager -o short-monotonic 2>/dev/null | grep -iE 'simpledrm|virtio_gpu|virtio-gpu|fb0|efifb|drm' | head -n 20
+say "--- end boot screen displays"
+
+# The boot animation gets its ~2 s before the boot screen hands over.
+shown=$(systemctl show plymouth-start.service -p ActiveEnterTimestampMonotonic --value 2>/dev/null)
+quit=$(systemctl show plymouth-quit.service -p ExecMainStartTimestampMonotonic --value 2>/dev/null)
+if [[ "$shown" =~ ^[0-9]+$ && "$quit" =~ ^[0-9]+$ && $shown -gt 0 && $quit -gt 0 ]]; then
+  played=$(awk -v a="$shown" -v b="$quit" 'BEGIN { printf "%.1f", (b - a) / 1000000 }')
+  if awk -v p="$played" 'BEGIN { exit !(p >= 1.9) }'; then result "boot animation plays before the login" PASS "${played}s"
+  else result "boot animation plays before the login" FAIL "handed over after ${played}s"; fi
+else
+  result "boot animation plays before the login" FAIL "shown=$shown quit=$quit"
+fi
+
 # --- an4rch Server: no desktop; check the system, remote access and the tools -----------
 if [[ "$(choice edition)" == server ]]; then
   say "Server install: no desktop to test"
@@ -507,17 +534,17 @@ if [[ -x /usr/local/bin/lumen-greeter ]] && grep -q lumen-greeter /etc/greetd/co
 else
   result "login screen installed" FAIL "$(grep -m1 command /etc/greetd/config.toml 2>&1)"
 fi
-if [[ -s /var/lib/lumen/login/wallpaper && -s /var/lib/lumen/login/regreet.css ]]; then
+if [[ -s /var/lib/lumen/login/wallpaper && -s /var/lib/lumen/login/greeter.css && -f /usr/local/share/lumen/greeter/lumen_greeter.py ]]; then
   result "login screen has the theme and wallpaper" PASS
 else
   result "login screen has the theme and wallpaper" FAIL "$(ls -la /var/lib/lumen/login 2>&1 | tr '\n' ' ')"
 fi
 as_user anarch-login preview >/dev/null 2>&1
-if wait_window "login screen preview" 'regreet' 30; then
+if wait_window "login screen preview" 'os.an4rch.Greeter' 30; then
   sleep 3
   shot 21c-login-screen
 fi
-pkill -x regreet
+pkill -f 'lumen-greeter/lumen_greeter.py' 
 
 # --- Lock screen ---------------------------------------------------------------------------
 pkill -x firefox

@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
     inputs:
       set:
-        description: "VM set: standard (5), scenarios (14), brutal (20), features (installer choices) or retest"
+        description: "VM set: standard (5), scenarios (14), brutal (20), features (installer choices), brand (boot screen, login, sizes) or retest"
         default: standard
 
 jobs:
@@ -49,6 +49,8 @@ jobs:
       BOOT_PASS: ${{ matrix.bootpass || '' }}
       # Partitions made before installing (manual partitioning): simple or split.
       PREPART: ${{ matrix.prepart || '' }}
+      # Stop at the login screen (no automatic login), screenshot it, log in.
+      LOGIN: ${{ matrix.login || false }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -76,6 +78,32 @@ jobs:
           sudo apt-get update -q
           sudo apt-get install -y -q qemu-system-x86 qemu-utils ovmf libarchive-tools socat python3-pil
           ls -l /dev/kvm
+
+      # The USB's boot menus, as a computer shows them: UEFI (systemd-boot) and
+      # legacy BIOS (syslinux, with the an4rch splash).
+      - name: Screenshot the USB's boot menus
+        if: matrix.menus
+        continue-on-error: true
+        run: |
+          iso=$(ls out/an4rch-os-*.iso | head -n1)
+          mkdir -p shots
+          menu() { # menu NAME QEMU-ARGS...
+            local name=$1; shift
+            qemu-system-x86_64 -enable-kvm -machine q35 -cpu host -m 2G "$@" \
+              -drive file="$iso",media=cdrom,readonly=on -boot d \
+              -vga none -device virtio-vga,xres=$VM_XRES,yres=$VM_YRES -display none \
+              -monitor unix:menu.sock,server,nowait &
+            local q=$!
+            sleep 7
+            echo "screendump $PWD/shots/$name.ppm" | socat - UNIX-CONNECT:menu.sock >/dev/null; sleep 2
+            echo quit | socat - UNIX-CONNECT:menu.sock >/dev/null || true
+            wait "$q" 2>/dev/null || true
+            python3 -c "from PIL import Image; Image.open('shots/$name.ppm').save('shots/$name.png')" && rm -f "shots/$name.ppm"
+          }
+          cp /usr/share/OVMF/OVMF_VARS_4M.fd menu-vars.fd
+          menu 00m-usb-menu-uefi -drive if=pflash,format=raw,readonly=on,file=/usr/share/OVMF/OVMF_CODE_4M.fd -drive if=pflash,format=raw,file=menu-vars.fd
+          menu 00n-usb-menu-bios
+          ls -l shots
 
       - name: Boot the live USB (desktop with the graphical installer)
         continue-on-error: true
@@ -179,7 +207,8 @@ jobs:
             -drive file=disk.qcow2,if=virtio,format=qcow2 \
             -drive file="$iso",media=cdrom,readonly=on \
             -kernel arch/boot/x86_64/vmlinuz-linux -initrd arch/boot/x86_64/initramfs-linux.img \
-            -append "archisobasedir=arch archisolabel=$label console=tty0 console=ttyS0,115200 lumen.auto=1 lumen.disk=/dev/vda lumen.user=lumen lumen.pass=lumen lumen.autologin=1 lumen.poweroff=1 lumen.serial=1 $INSTALL_APPEND" \
+            -append "archisobasedir=arch archisolabel=$label console=tty0 console=ttyS0,115200 lumen.auto=1 lumen.disk=/dev/vda lumen.user=lumen lumen.pass=lumen lumen.autologin=$([ "$LOGIN" = true ] && echo 0 || echo 1) lumen.poweroff=1 lumen.serial=1 $INSTALL_APPEND" \
+            -vga none -device virtio-vga,xres=$VM_XRES,yres=$VM_YRES \
             -nic $INSTALL_NIC -display none -serial file:install-serial.log -no-reboot || true
           # The installer's own output, without systemd's boot/shutdown chatter.
           sed 's/\x1b\[[0-9;?]*[a-zA-Z]//g; s/\x1b\][^\x1b]*\x1b\\//g' install-serial.log |
@@ -245,10 +274,21 @@ jobs:
             -drive if=pflash,format=raw,file=boot-vars.fd \
             -drive file=disk.qcow2,if=virtio,format=qcow2 \
             -vga none -device virtio-vga,xres=$VM_XRES,yres=$VM_YRES \
-            -nic user,model=virtio-net-pci -display none \
-            -monitor unix:mon.sock,server,nowait -serial file:boot-serial.log &
+            -nic user,model=virtio-net-pci -display none -device qemu-xhci -device usb-tablet \
+            -monitor unix:mon.sock,server,nowait -qmp unix:qmp.sock,server,nowait -serial file:boot-serial.log &
           mon() { echo "$1" | socat - UNIX-CONNECT:mon.sock >/dev/null; }
           shot() { mon "screendump $PWD/$1.ppm"; sleep 2; python3 -c "from PIL import Image; Image.open('$1.ppm').save('$1.png')" && rm -f "$1.ppm" || true; }
+          # click X Y: a left click at a screen position (the USB tablet takes
+          # absolute positions, 0-32767 across the screen, through QMP).
+          qmp() { printf '{"execute":"qmp_capabilities"}\n%s\n' "$1" | socat -t 2 - UNIX-CONNECT:qmp.sock >/dev/null; }
+          click() {
+            local x=$(($1 * 32767 / VM_XRES)) y=$(($2 * 32767 / VM_YRES))
+            qmp '{"execute":"input-send-event","arguments":{"events":[{"type":"abs","data":{"axis":"x","value":'$x'}},{"type":"abs","data":{"axis":"y","value":'$y'}}]}}'
+            sleep 0.5
+            qmp '{"execute":"input-send-event","arguments":{"events":[{"type":"btn","data":{"down":true,"button":"left"}}]}}'
+            sleep 0.2
+            qmp '{"execute":"input-send-event","arguments":{"events":[{"type":"btn","data":{"down":false,"button":"left"}}]}}'
+          }
           type_text() {
             local s="$1" i c k
             for ((i = 0; i < ${#s}; i++)); do
@@ -260,6 +300,12 @@ jobs:
             done
           }
           mkdir -p shots
+          # The boot screen, as it plays: a quick picture every 1.5 s (just the
+          # raw dump now; converted afterwards so the timing stays even).
+          if [ "$WINDOWS" != true ]; then
+            for i in $(seq -w 1 14); do sleep 1.5; mon "screendump $PWD/shots/00e-boot-$i.ppm"; done
+            for f in shots/00e-boot-*.ppm; do python3 -c "from PIL import Image; Image.open('$f').save('${f%.ppm}.png')" && rm -f "$f"; done
+          fi
           if [ "$WINDOWS" = true ]; then sleep 4; shot shots/00c-boot-menu; fi
           # Encrypted disk: unlock it at the boot prompt.
           if [ -n "$BOOT_PASS" ]; then
@@ -268,6 +314,14 @@ jobs:
           fi
           # First login: desktop with the welcome tour, Start (Windows-key tap)
           # and the App Store (Windows + A).
+          if [ "$LOGIN" = true ]; then
+            # The login screen: the logo where the boot screen left it. Log in.
+            sleep 35; shot shots/01a-login
+            # The user name is filled in and the password box has the cursor:
+            # type the password and press Enter, as a person would.
+            type_text lumen; sleep 1; shot shots/01b-login-password
+            mon "sendkey ret"
+          fi
           sleep 45;  shot shots/01-boot
           sleep 95;  shot shots/02-desktop
           mon "sendkey meta_l"; sleep 6; shot shots/03-start-menu
@@ -346,8 +400,8 @@ jobs:
       - name: Print screenshots as text
         if: always()
         run: |
-          # Live USB shots last: the job-log API only returns the log's tail.
-          for f in $(ls shots/*.png | grep -v '/00') $(ls shots/*.png | grep '/00'); do
+          # Live USB, boot and login shots last: the job-log API only returns the log's tail.
+          for f in $(ls shots/*.png | grep -v '/00\|/01[ab]') $(ls shots/*.png | grep '/00') $(ls shots/*.png | grep '/01[ab]'); do
             [ -f "$f" ] || continue
             python3 -c "from PIL import Image; im=Image.open('$f').convert('RGB'); im.thumbnail((1280,720)); im.save('/tmp/s.jpg', quality=60)"
             echo "=== SHOT $(basename "$f" .png) ==="

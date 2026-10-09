@@ -9,7 +9,8 @@ window {
   color: {{fg}};
 }
 
-frame {
+/* ReGreet's boxes: the login form and the clock (not the hidden message box). */
+overlay > frame {
   padding: 20px;
   border-radius: 24px;
   background-color: alpha({{bg_alt}}, 0.84);

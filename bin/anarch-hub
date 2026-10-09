@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# anarch-hub — the an4rch Hub: every setting in one window (same as anarch-settings).
+#
+#   anarch-hub [PAGE]   open, optionally at a page (see anarch-settings --help)
+exec "${LUMEN_PATH:-$HOME/.local/share/lumen}/bin/anarch-settings" "$@"

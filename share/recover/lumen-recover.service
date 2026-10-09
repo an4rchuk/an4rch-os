@@ -1,0 +1,6 @@
+[Unit]
+Description=an4rch: undo the last update (asked for by the login screen)
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/lib/lumen/lumen-recover

@@ -15,8 +15,8 @@ LUMEN_SRC=/opt/lumen
 source "$LUMEN_SRC/install/packages.sh"
 LOG=/var/log/lumen-os-install.log
 MNT=/mnt
-ACCENT="#9d8cff"
-DIM="#8b90aa"
+ACCENT="#e01b24"
+DIM="#a39a9a"
 
 exec 3>&1 # the real terminal, for gum while output goes to the log
 
@@ -786,6 +786,8 @@ CMDLINE="$ROOT_ARGS rootflags=subvol=@ rw quiet splash loglevel=3 rd.udev.log_le
 ESP_UUID=$(blkid -s UUID -o value "$EFI")
 
 step "Configuring the system"
+# The an4rch boot screen, so the initramfs built below has it.
+LUMEN_PATH="$LUMEN_SRC" bash "$LUMEN_SRC/install/plymouth.sh" --root "$MNT" >>"$LOG" 2>&1 || true
 arch-chroot "$MNT" /bin/bash -e >>"$LOG" 2>&1 <<CHROOT || fail "System configuration failed"
 ln -sf "/usr/share/zoneinfo/$TIMEZONE" /etc/localtime
 if [[ $WIN_CLOCK == 1 ]]; then
@@ -956,14 +958,14 @@ printf 'Section "InputClass"\n    Identifier "system-keyboard"\n    MatchIsKeybo
 # Test runs (lumen.serial=1): the installed system also logs to the serial
 # port, and reports on its desktop session a few minutes after booting.
 if [[ "${K[serial]:-0}" == 1 ]]; then
-  sed -i '/^options / s/$/ console=tty0 console=ttyS0,115200/' "$MNT"/boot/loader/entries/*.conf 2>/dev/null || true
+  sed -i '/^options / s/$/ console=tty0 console=ttyS0,115200 plymouth.ignore-serial-consoles plymouth.debug/' "$MNT"/boot/loader/entries/*.conf 2>/dev/null || true
   # lumen.bootlts=1: start the LTS kernel by default (tests both kernels).
   if [[ "${K[bootlts]:-0}" == 1 ]]; then
     for f in "$MNT/boot/loader/loader.conf" "$MNT/efi/loader/loader.conf"; do
       [[ -f "$f" && $FBPKG == linux-lts ]] && sed -i 's/^default .*/default lumen-lts.conf/' "$f"
     done
   fi
-  sed -i '/^  linux / s/$/ console=tty0 console=ttyS0,115200/' "$MNT"/boot/grub/grub.cfg 2>/dev/null || true
+  sed -i '/^  linux / s/$/ console=tty0 console=ttyS0,115200 plymouth.ignore-serial-consoles plymouth.debug/' "$MNT"/boot/grub/grub.cfg 2>/dev/null || true
   # tests/vm: a report on the session (150 s after boot), then a run through
   # everyday tasks that the e2e workflow screenshots (240 s).
   for t in report:150 tasks:240; do

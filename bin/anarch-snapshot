@@ -63,8 +63,10 @@ restore() {
 
   printf '\nRoll back the system to snapshot %s (“%s”)?\n' "$n" "$desc"
   printf 'Your files in /home are not affected. The current system is kept as a backup.\n\n'
-  read -rp "Type yes to continue: " answer
-  [[ "$answer" == yes ]] || { echo "Cancelled."; exit 1; }
+  if [[ "${LUMEN_YES:-0}" != 1 ]]; then
+    read -rp "Type yes to continue: " answer
+    [[ "$answer" == yes ]] || { echo "Cancelled."; exit 1; }
+  fi
 
   local top
   top=$(mktemp -d)

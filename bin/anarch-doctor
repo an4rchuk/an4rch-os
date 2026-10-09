@@ -155,6 +155,9 @@ for s in pipewire wireplumber; do
   if systemctl --user is-active -q "$s" 2>/dev/null; then pass "$s"; else fail "$s not active — systemctl --user enable --now $s"; fi
 done
 if systemctl is-enabled -q greetd 2>/dev/null; then pass "greetd login screen"; else note "no display manager; logging in on tty1 starts the desktop"; fi
+if ! "$LUMEN_PATH/bin/anarch-drivers" check >/dev/null 2>&1; then
+  note "a better graphics driver is available — anarch drivers"
+fi
 if ! has ufw; then
   note "no firewall (anarch-pkg add ufw)"
 elif systemctl is-active -q ufw 2>/dev/null || sudo -n ufw status 2>/dev/null | grep -q 'Status: active'; then

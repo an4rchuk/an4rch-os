@@ -128,7 +128,12 @@ kernel() {
     *) die "usage: anarch-tune kernel zen|hardened|lts|linux  (or remove-zen, remove-hardened, …)" ;;
   esac
   case "$name" in lts) label="LTS kernel" ;; linux) label="standard kernel" ;; *) label="$name kernel" ;; esac
-  main=$(sed -n 's#^linux[[:space:]]*/vmlinuz-##p' "$entries/lumen.conf" 2>/dev/null)
+  # The main entry is lumen.conf, or lumen+N[-M].conf while boot counting
+  # checks the first boots after a kernel update.
+  local mainentry
+  mainentry=$(find "$entries" -maxdepth 1 \( -name 'lumen.conf' -o -name 'lumen+*.conf' \) 2>/dev/null | head -n1)
+  mainentry=${mainentry:-$entries/lumen.conf}
+  main=$(sed -n 's#^linux[[:space:]]*/vmlinuz-##p' "$mainentry" 2>/dev/null)
   if [[ "$arg" == remove-* ]]; then
     [[ "$main" == "$pkg" ]] && die "The $label is the main one in the boot menu; it can't be removed."
     [[ "$(uname -r)" == *"-$name"* || ( $name == linux && "$(uname -r)" == *-arch* ) ]] &&
@@ -143,11 +148,11 @@ kernel() {
   add "$pkg"
   # NVIDIA's driver is built for each kernel: it needs the kernel's headers.
   pacman -Qq nvidia-open-dkms >/dev/null 2>&1 && add "$pkg-headers"
-  if [[ -f $entries/lumen.conf && -n "$main" ]]; then
+  if [[ -f $mainentry && -n "$main" ]]; then
     sudo sed -e "s/^title .*/title   an4rch OS ($label)/" \
       -e "s#/vmlinuz-$main\$#/vmlinuz-$pkg#" \
       -e "s#/initramfs-$main\\.img\$#/initramfs-$pkg.img#" \
-      "$entries/lumen.conf" | sudo tee "$entries/lumen-$name.conf" >/dev/null
+      "$mainentry" | sudo tee "$entries/lumen-$name.conf" >/dev/null
     say "Added \"an4rch OS ($label)\" to the boot menu"
     printf '  Make it the default? [y/N] '
     read -r yn

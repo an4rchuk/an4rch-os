@@ -1,0 +1,15 @@
+#!/bin/bash
+# arm-bootcount — after a kernel update, give the main boot entry three tries
+# (systemd-boot boot counting). A boot that starts properly marks it good
+# again (systemd-bless-boot); three failed ones and systemd-boot starts the
+# fallback (LTS) entry instead. Run by the 95-lumen-bootcount pacman hook.
+set -u
+command -v bootctl >/dev/null || exit 0
+bootctl is-installed >/dev/null 2>&1 || exit 0
+for dir in "$(bootctl --print-boot-path 2>/dev/null)" "$(bootctl --print-esp-path 2>/dev/null)"; do
+  e="$dir/loader/entries"
+  [[ -f "$e/lumen.conf" ]] || continue
+  mv "$e/lumen.conf" "$e/lumen+3.conf"
+  echo "Boot entry armed: if the next three starts fail, the fallback kernel starts instead."
+  exit 0
+done

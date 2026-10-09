@@ -1,0 +1,25 @@
+/* an4rch login screen. Colours: colors.css, then greeter.css from your theme. */
+window { background-color: @g_bg; color: @g_fg; font-family: "Inter", sans-serif; }
+.clock { background: alpha(@g_card, 0.8); color: @g_fg; }
+.card {
+  background-color: alpha(@g_card, 0.88);
+  border: 1px solid alpha(@g_accent, 0.35);
+  box-shadow: 0 24px 70px alpha(black, 0.55);
+}
+.who { font-weight: 700; color: @g_fg; }
+.field {
+  background: alpha(@g_field, 0.92);
+  color: @g_fg;
+  border: 1px solid alpha(@g_fg, 0.08);
+  padding: 0 12px;
+}
+.field:focus-within { border-color: @g_accent; box-shadow: 0 0 0 3px alpha(@g_accent, 0.30); }
+.message { color: @g_dim; }
+.message.error { color: @g_red; }
+button { background: alpha(@g_field, 0.92); color: @g_fg; border: none; box-shadow: none; }
+button:hover { background: alpha(@g_accent, 0.22); }
+button.go { background: @g_accent; color: @g_accent_fg; font-weight: 700; }
+button.go:hover { background: shade(@g_accent, 1.1); }
+button.power { background: alpha(@g_card, 0.8); color: @g_dim; }
+dropdown > button { background: alpha(@g_field, 0.92); }
+.trouble { padding-bottom: 6px; border-bottom: 1px solid alpha(@g_accent, 0.3); }

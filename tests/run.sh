@@ -227,6 +227,17 @@ else
   printf '  - skipped (Pillow not installed)\n'
 fi
 
+step "Graphics drivers"
+picks=$(bash -c 'source "$1/lib/gpu.sh"; for d in 2684 1f08 1c03 13c2 1180 0a65; do printf "%s " "$(nvidia_driver $d)"; done' _ "$root")
+if [[ "$picks" == "open open 580xx 580xx 470xx nouveau " ]]; then ok "NVIDIA driver by card: RTX 40/20 open, GTX 10/900 580xx, GTX 600 470xx, older nouveau"
+else bad "NVIDIA driver picks: $picks"; fi
+
+step "Display scaling"
+picks=$(printf '[{"name":"Virtual-1","width":3840,"height":2160,"refreshRate":60},{"name":"DP-1","width":1920,"height":1080,"refreshRate":60},{"name":"eDP-1","width":2560,"height":1600,"refreshRate":60},{"name":"HDMI-A-1","width":5120,"height":2880,"refreshRate":60}]' |
+  python3 "$root/lib/autoscale.py" | awk '{printf "%s=%s ", $1, $2}')
+if [[ "$picks" == "Virtual-1=1.5 DP-1=1 eDP-1=1.6 HDMI-A-1=2 " ]]; then ok "auto scale: 4K 150%, 1080p 100%, laptop 160%, 5K 200%"
+else bad "auto scale picked: $picks"; fi
+
 step "Privacy, safety and other an4rch tools"
 # anarch carry: export, change a setting, import, and the setting is back.
 mkdir -p "$HOME/.config/lumen" "$HOME/.config/hypr"
@@ -292,6 +303,26 @@ fi
 rm -f "$HOME/.config/lumen/auto.conf"
 
 # anarch note: a line added from the command line.
+# Backups: set up on a folder, back up, change a file, restore the first version.
+if command -v restic >/dev/null; then
+  b="$tmp/backup"
+  mkdir -p "$b/home/Documents" "$b/drive" "$b/bin"
+  printf '#!/bin/sh\nexit 0\n' >"$b/bin/pacman"; cp "$b/bin/pacman" "$b/bin/systemctl"; chmod +x "$b/bin/"*
+  echo v1 >"$b/home/Documents/note.txt"
+  benv=(env HOME="$b/home" XDG_CONFIG_HOME="$b/home/.config" XDG_STATE_HOME="$b/home/.local/state" PATH="$b/bin:$PATH" LUMEN_PATH="$root")
+  if "${benv[@]}" "$root/bin/anarch-backup" setup "$b/drive" >/dev/null 2>&1 && echo v2 >"$b/home/Documents/note.txt" &&
+    "${benv[@]}" "$root/bin/anarch-backup" now >/dev/null 2>&1; then
+    first=$(RESTIC_PASSWORD_FILE="$b/home/.config/lumen/backup.key" restic -r "$(echo "$b"/drive/an4rch-backups/*)" snapshots --json 2>/dev/null |
+      python3 -c 'import json,sys; print(json.load(sys.stdin)[0]["short_id"])')
+    "${benv[@]}" "$root/bin/anarch-backup" restore "$b/home/Documents/note.txt" "$first" >/dev/null 2>&1
+    if [[ "$(find "$b/home/Restored" -name note.txt -exec cat {} \; 2>/dev/null)" == v1 ]]; then ok "anarch backup: back up, then restore an earlier version"
+    else bad "anarch backup: the earlier version didn't come back"; fi
+  else
+    bad "anarch backup: setup or backup failed"
+  fi
+else
+  printf "  - anarch backup round trip skipped (restic isn't installed)\n"
+fi
 if LUMEN_NOTES="$tmp/notes.md" "$root/bin/anarch-note" buy milk >/dev/null && grep -q -- '- buy milk' "$tmp/notes.md"; then
   ok "anarch note adds a line"
 else

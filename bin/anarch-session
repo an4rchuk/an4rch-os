@@ -47,6 +47,8 @@ start() {
   # A theme must exist before the bar and notifications read it.
   [[ -d "$LUMEN_CURRENT/theme" ]] || "$LUMEN_PATH/bin/anarch-theme" set lumen
 
+  # High-resolution screens get a comfortable scale (unless you set one).
+  "$LUMEN_PATH/bin/anarch-display" autoscale || true
   "$LUMEN_PATH/bin/anarch-wallpaper" restore
   # Accessibility choices (text and cursor size, screen reader…).
   "$LUMEN_PATH/bin/anarch-a11y" apply &
@@ -56,6 +58,8 @@ start() {
     pgrep -f 'anarch-auto daemon' >/dev/null || launch "$LUMEN_PATH/bin/anarch-auto" daemon
   fi
   "$LUMEN_PATH/bin/anarch-login" sync >/dev/null 2>&1 &
+  # Phone link, when it's on (anarch phone setup).
+  [[ -f "$LUMEN_CONFIG/phone" ]] && { "$LUMEN_PATH/bin/anarch-phone" start >/dev/null 2>&1 & }
   pgrep -fx '(/usr/bin/)?waybar' >/dev/null || launch waybar
   "$LUMEN_PATH/bin/anarch-taskbar" start
   pgrep -f 'anarch-session watch-bars' >/dev/null || launch "$LUMEN_PATH/bin/anarch-session" watch-bars
