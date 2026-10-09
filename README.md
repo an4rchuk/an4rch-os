@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/images/logo.png" alt="The an4rch OS logo: a red, hand-drawn circled A" width="160"></p>
 
-<h1 align="center">an4rch OS</h1>
+<h1 align="center">An4rch OS</h1>
 
 <p align="center"><strong>An Arch-based Linux distribution that's calm, fast, private, and ready for work and play the moment you log in.</strong></p>
 
