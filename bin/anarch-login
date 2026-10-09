@@ -95,7 +95,7 @@ setup() {
   # Undo-the-last-update from the login screen (when the desktop won't start).
   sudo install -Dm755 "$LUMEN_PATH/share/recover/lumen-recover" /usr/local/lib/lumen/lumen-recover
   sudo install -Dm644 -t /etc/systemd/system "$LUMEN_PATH/share/recover/lumen-recover.path" "$LUMEN_PATH/share/recover/lumen-recover.service"
-  sudo systemctl daemon-reload
+  sudo systemctl daemon-reload 2>/dev/null || true
   sudo systemctl enable lumen-recover.path >/dev/null 2>&1 || true
   # Where the login screen remembers who logged in last.
   sudo install -d -m755 -o greeter -g greeter /var/cache/lumen-greeter 2>/dev/null || sudo install -d -m777 /var/cache/lumen-greeter
