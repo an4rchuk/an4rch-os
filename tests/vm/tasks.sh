@@ -134,6 +134,17 @@ fi
 task "boot screen is an4rch's" bash -c 'grep -qx "Theme=an4rch" /etc/plymouth/plymouthd.conf &&
   for i in /boot/initramfs-*.img; do [[ $i == *fallback* ]] && continue; lsinitcpio "$i" | grep -q "usr/share/plymouth/themes/an4rch/an4rch.script" || { echo "missing from $i"; exit 1; }; done'
 
+# The boot animation gets its ~2 s before the boot screen hands over.
+shown=$(systemctl show plymouth-start.service -p ActiveEnterTimestampMonotonic --value 2>/dev/null)
+quit=$(systemctl show plymouth-quit.service -p ExecMainStartTimestampMonotonic --value 2>/dev/null)
+if [[ "$shown" =~ ^[0-9]+$ && "$quit" =~ ^[0-9]+$ && $shown -gt 0 && $quit -gt 0 ]]; then
+  played=$(awk -v a="$shown" -v b="$quit" 'BEGIN { printf "%.1f", (b - a) / 1000000 }')
+  if awk -v p="$played" 'BEGIN { exit !(p >= 1.9) }'; then result "boot animation plays before the login" PASS "${played}s"
+  else result "boot animation plays before the login" FAIL "handed over after ${played}s"; fi
+else
+  result "boot animation plays before the login" FAIL "shown=$shown quit=$quit"
+fi
+
 # --- an4rch Server: no desktop; check the system, remote access and the tools -----------
 if [[ "$(choice edition)" == server ]]; then
   say "Server install: no desktop to test"

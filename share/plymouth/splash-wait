@@ -1,11 +1,14 @@
 #!/bin/sh
 # an4rch: let the boot animation finish (the logo shrinking into place takes
-# about two seconds) before the boot screen hands over to the login screen.
-# Run by plymouth-quit.service (install/plymouth.sh); never waits more than 2.4 s.
+# about two seconds from when the boot screen appears) before the boot screen
+# hands over to the login screen. Run by plymouth-quit.service
+# (install/plymouth.sh); never waits more than 2.2 s.
 grep -qsx 'Theme=an4rch' /etc/plymouth/plymouthd.conf || exit 0
-pid=$(pidof plymouthd) || exit 0
-start=$(awk '{print $22}' "/proc/$pid/stat" 2>/dev/null) || exit 0
-hz=$(getconf CLK_TCK 2>/dev/null || echo 100)
+pidof plymouthd >/dev/null || exit 0
+# When the splash was shown: plymouth-start.service (in the initramfs; systemd
+# keeps its timestamps across the switch to the real system).
+shown=$(systemctl show plymouth-start.service -p ActiveEnterTimestampMonotonic --value 2>/dev/null)
+case "$shown" in '' | 0 | *[!0-9]*) exit 0 ;; esac
 up=$(cut -d' ' -f1 /proc/uptime)
-wait=$(awk -v s="$start" -v hz="$hz" -v u="$up" 'BEGIN { w = 2.4 - (u - s / hz); if (w > 2.4) w = 2.4; if (w < 0) w = 0; printf "%.2f", w }')
+wait=$(awk -v s="$shown" -v u="$up" 'BEGIN { w = 2.2 - (u - s / 1000000); if (w > 2.2) w = 2.2; if (w < 0) w = 0; printf "%.2f", w }')
 exec sleep "$wait"
