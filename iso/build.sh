@@ -52,13 +52,21 @@ sort -u -o "$profile/packages.x86_64" "$profile/packages.x86_64"
 mkdir -p "$profile/airootfs/opt/lumen"
 tar -C "$root" --exclude=./out --exclude=./work --exclude='./iso/*.iso' --exclude='__pycache__' -cf - . |
   tar -C "$profile/airootfs/opt/lumen" -xf -
-git -C "$profile/airootfs/opt/lumen" remote set-url origin "${LUMEN_REPO:-https://github.com/an4rchuk/an4rch-os.git}" 2>/dev/null || true
+# (The copy belongs to whoever checked it out, not the builder: tell git it's
+# fine, or it refuses with "dubious ownership".)
+ogit() { git -c safe.directory='*' -C "$profile/airootfs/opt/lumen" "$@"; }
+ogit remote set-url origin "${LUMEN_REPO:-https://github.com/an4rchuk/an4rch-os.git}" 2>/dev/null || true
 # No build-machine credentials on the ISO: a CI checkout can carry a login
 # token (it expires after the build, and then GitHub refuses anarch update).
-git -C "$profile/airootfs/opt/lumen" config --local --unset-all http.https://github.com/.extraheader 2>/dev/null || true
-git -C "$profile/airootfs/opt/lumen" config --local --remove-section credential 2>/dev/null || true
-git -C "$profile/airootfs/opt/lumen" config --local --get-regexp '^includeif\.' 2>/dev/null | awk '{print $1}' |
-  while read -r k; do git -C "$profile/airootfs/opt/lumen" config --local --unset-all "$k" || true; done
+ogit config --local --unset-all http.https://github.com/.extraheader 2>/dev/null || true
+ogit config --local --remove-section credential 2>/dev/null || true
+for k in $(ogit config --local --name-only --get-regexp '^includeif\.' 2>/dev/null || true); do
+  ogit config --local --unset-all "$k" 2>/dev/null || true
+done
+if ogit config --local --get-regexp '^http\..*extraheader' >/dev/null 2>&1; then
+  echo "error: the An4rch copy on the ISO still has a git login header" >&2
+  exit 1
+fi
 
 # Wallpapers for the live desktop and the installer's theme picker, painted
 # now so booting stays fast (needs python-pillow on the build host).
