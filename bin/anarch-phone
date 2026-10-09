@@ -1,0 +1,164 @@
+#!/usr/bin/env bash
+# anarch-phone — your phone and computer together (KDE Connect): notifications,
+# files both ways, a shared clipboard, the phone as a remote.
+#
+#   anarch-phone                  connected phones and what's on
+#   anarch-phone setup            install it, open the firewall for it, start it
+#                                 at login, and show where to get the phone app
+#   anarch-phone pair             pair with a phone on the same Wi-Fi
+#   anarch-phone send FILE...     send files to the phone (also: right-click in
+#                                 Files → Scripts → Send to phone)
+#   anarch-phone ring             make the phone ring (to find it)
+#   anarch-phone off              stop it and close the firewall again
+#
+# The phone needs the KDE Connect app (Google Play, F-Droid or the App Store)
+# and the same Wi-Fi network. Nothing goes through the internet.
+set -euo pipefail
+source "${LUMEN_PATH:-$HOME/.local/share/lumen}/lib/lumen.sh"
+
+flag="$LUMEN_CONFIG/phone"
+scripts="${XDG_DATA_HOME:-$HOME/.local/share}/nautilus/scripts"
+APP_URL="https://kdeconnect.kde.org/download.html"
+
+daemon_bin() {
+  local d
+  for d in /usr/lib/kdeconnectd /usr/lib/x86_64-linux-gnu/libexec/kdeconnectd /usr/libexec/kdeconnectd; do
+    [[ -x "$d" ]] && { echo "$d"; return 0; }
+  done
+  command -v kdeconnectd || return 1
+}
+
+start_daemon() {
+  pgrep -x kdeconnectd >/dev/null && return 0
+  local d
+  d=$(daemon_bin) || return 1
+  launch "$d"
+  for _ in $(seq 20); do pgrep -x kdeconnectd >/dev/null && break; sleep 0.25; done
+  kdeconnect-cli --refresh >/dev/null 2>&1 || true
+}
+
+# devices [--available|--paired] → "ID<TAB>name" per device
+devices() {
+  kdeconnect-cli "${1:---list-devices}" --id-name-only 2>/dev/null | awk '{id=$1; $1=""; sub(/^ /,""); print id "\t" $0}'
+}
+
+pick() { # pick [kdeconnect-cli filter] → one device ID (asks when there are several)
+  local list n
+  mapfile -t list < <(devices "${1:---list-available}")
+  n=${#list[@]}
+  ((n > 0)) || return 1
+  if ((n == 1)); then cut -f1 <<<"${list[0]}"; return 0; fi
+  local choice
+  if [[ -t 0 ]]; then
+    local i=1 l
+    for l in "${list[@]}"; do printf '  %d) %s\n' "$i" "$(cut -f2 <<<"$l")" >&2; i=$((i + 1)); done
+    read -rp "Which phone? " choice
+    if ! [[ "$choice" =~ ^[0-9]+$ ]] || ((choice < 1 || choice > n)); then return 1; fi
+    cut -f1 <<<"${list[$((choice - 1))]}"
+  else
+    choice=$(printf '%s\n' "${list[@]}" | cut -f2 | menu "Phone" --index --lines "$n") || return 1
+    cut -f1 <<<"${list[$choice]}"
+  fi
+}
+
+setup() {
+  need kdeconnect qrencode
+  if has ufw; then
+    sudo ufw allow 1714:1764/udp comment 'KDE Connect' >/dev/null
+    sudo ufw allow 1714:1764/tcp comment 'KDE Connect' >/dev/null
+  fi
+  mkdir -p "$LUMEN_CONFIG" "$scripts"
+  touch "$flag"
+  cat >"$scripts/Send to phone" <<'EOF'
+#!/usr/bin/env bash
+# an4rch: send the selected files to your phone (see `anarch phone --help`).
+mapfile -t files <<<"$NAUTILUS_SCRIPT_SELECTED_FILE_PATHS"
+exec "${LUMEN_PATH:-$HOME/.local/share/lumen}/bin/anarch-phone" send "${files[@]}"
+EOF
+  chmod +x "$scripts/Send to phone"
+  start_daemon || die "KDE Connect didn't start."
+  echo "✓ Phone link is on (and starts with your desktop)."
+  echo
+  echo "  1. Install KDE Connect on your phone (scan this, or search your app store):"
+  qrencode -t ANSIUTF8 -m 2 -- "$APP_URL" 2>/dev/null | sed 's/^/     /' || echo "     $APP_URL"
+  echo "  2. Connect the phone to the same Wi-Fi, then run: anarch phone pair"
+}
+
+pair() {
+  start_daemon || die "Phone link isn't set up: anarch phone setup"
+  echo "Looking for phones on this network…"
+  local id=""
+  for _ in $(seq 10); do
+    id=$(pick --list-available) && break
+    kdeconnect-cli --refresh >/dev/null 2>&1 || true
+    sleep 1
+  done
+  [[ -n "$id" ]] || die "No phone found. Open KDE Connect on the phone, on the same Wi-Fi, and try again."
+  kdeconnect-cli --pair -d "$id" >/dev/null 2>&1 || true
+  echo "→ Accept the request on your phone."
+  for _ in $(seq 30); do
+    if kdeconnect-cli --paired --id-only 2>/dev/null | grep -qx "$id"; then
+      echo "✓ Paired with $(kdeconnect-cli --paired --id-name-only 2>/dev/null | awk -v i="$id" '$1==i {$1=""; sub(/^ /,""); print}')"
+      return 0
+    fi
+    sleep 1
+  done
+  die "The phone didn't accept in time. Run anarch phone pair again."
+}
+
+send() {
+  (($# > 0)) || die "usage: anarch-phone send FILE..."
+  start_daemon || die "Phone link isn't set up: anarch phone setup"
+  local id f
+  id=$(pick --paired) || { notify "No phone connected" "Open KDE Connect on the phone (same Wi-Fi), or pair: anarch phone pair" -i phone; exit 1; }
+  for f in "$@"; do
+    [[ -e "$f" ]] || continue
+    kdeconnect-cli -d "$id" --share "$(realpath "$f")" >/dev/null
+  done
+  notify "Sent to your phone" "$(printf '%s\n' "${@##*/}" | head -n 3)" -i phone -t 3000
+}
+
+status() {
+  if [[ ! -f "$flag" ]] || ! has kdeconnect-cli; then
+    echo "Phone link: off. Turn it on with: anarch phone setup"
+    return 0
+  fi
+  start_daemon || true
+  echo "Phone link: on"
+  local paired reach
+  paired=$(kdeconnect-cli --paired --id-name-only 2>/dev/null || true)
+  reach=$(kdeconnect-cli --paired --list-available --id-only 2>/dev/null || true)
+  if [[ -z "$paired" ]]; then
+    echo "  No phone paired yet: anarch phone pair"
+    return 0
+  fi
+  local id name
+  while read -r id name; do
+    [[ -n "$id" ]] || continue
+    if grep -qx "$id" <<<"$reach"; then echo "  ● $name (connected)"; else echo "  ○ $name (not nearby)"; fi
+  done <<<"$paired"
+}
+
+case "${1:-}" in
+  "" | status) status ;;
+  setup) in_terminal "$0" setup; setup ;;
+  pair) in_terminal "$0" pair; pair ;;
+  send) shift; send "$@" ;;
+  ring)
+    start_daemon || die "Phone link isn't set up: anarch phone setup"
+    id=$(pick --paired) || die "No phone connected."
+    kdeconnect-cli -d "$id" --ring
+    ;;
+  start) if [[ -f "$flag" ]]; then start_daemon; fi ;;
+  off)
+    pkill -x kdeconnectd 2>/dev/null || true
+    rm -f "$flag" "$scripts/Send to phone"
+    if has ufw; then
+      sudo ufw delete allow 1714:1764/udp >/dev/null 2>&1 || true
+      sudo ufw delete allow 1714:1764/tcp >/dev/null 2>&1 || true
+    fi
+    echo "✓ Phone link off"
+    ;;
+  -h | --help | help) sed -n '2,16s/^# \{0,1\}//p' "$0" ;;
+  *) die "Unknown command '$1'. See: anarch-phone --help" ;;
+esac
