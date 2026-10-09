@@ -263,9 +263,9 @@ def themes() -> list[tuple[str, dict]]:
     for d in sorted((LUMEN_PATH / "themes").iterdir()):
         if (d / "theme.conf").is_file():
             found[d.name] = read_theme(d / "theme.conf")
-    # an4rch first, CachyOS-inspired second, then the rest A–Z.
-    order = ["an4rch", "cachy"]
-    return sorted(found.items(), key=lambda kv: (order.index(kv[0]) if kv[0] in order else 9, kv[1].get("name", kv[0])))
+    # an4rch first, its light version second, then the rest A–Z (High contrast last).
+    order = ["an4rch", "an4rch-light"]
+    return sorted(found.items(), key=lambda kv: (order.index(kv[0]) if kv[0] in order else 99 if kv[0] == "high-contrast" else 9, kv[1].get("name", kv[0])))
 
 
 def wallpaper_for(slug: str) -> Path | None:

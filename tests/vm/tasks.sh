@@ -218,14 +218,14 @@ if wait_window "terminal opens (anarch-launch)" 'ghostty|alacritty|kitty' 30; th
 fi
 
 # --- Themes --------------------------------------------------------------------------
-task "theme switch to nord" as_user anarch-theme set nord
-if [[ "$(cat "$home/.config/lumen/current/theme.name" 2>/dev/null)" == nord ]]; then
+task "theme switch to ancom" as_user anarch-theme set ancom
+if [[ "$(cat "$home/.config/lumen/current/theme.name" 2>/dev/null)" == ancom ]]; then
   result "theme files rendered" PASS
 else
   result "theme files rendered" FAIL "theme.name is '$(cat "$home/.config/lumen/current/theme.name" 2>/dev/null)'"
 fi
 sleep 3
-shot 12-theme-nord
+shot 12-theme-ancom
 task "next wallpaper" as_user anarch-wallpaper next
 
 # --- Notifications, reminders, clipboard, screenshots --------------------------------

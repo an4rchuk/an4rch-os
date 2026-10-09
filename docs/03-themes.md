@@ -6,37 +6,34 @@ One palette styles the whole desktop: window borders, the bar, the launcher and 
 
 - <kbd>SUPER</kbd> + <kbd>CTRL</kbd> + <kbd>T</kbd> opens the theme picker.
 - <kbd>SUPER</kbd> + <kbd>CTRL</kbd> + <kbd>SHIFT</kbd> + <kbd>T</kbd> moves to the next theme.
-- From a terminal: `anarch theme set nord`, `anarch theme list`, `anarch theme next`.
+- From a terminal: `anarch theme set ancom`, `anarch theme list`, `anarch theme next`.
+- `anarch anarch` opens the picker too.
 
-Bundled themes:
+Fifteen themes come with an4rch: the signature look, its light version, one per school of anarchism (black with that school's colour, and wallpapers painted from its gradient), and high contrast.
 
-| Theme | Mood |
+| Theme | Look |
 | --- | --- |
-| `an4rch` | The signature look: black, with the red of the an4rch logo, and its own logo wallpapers (called `lumen` before 1.1.0) |
-| `an4rch-violet` | The original an4rch look: deep indigo night, violet and cyan light (the default before 1.1.0) |
-| `cachy` | CachyOS-inspired: deep navy with teal-green and cyan |
-| `tokyo-night` | Neon city blues |
-| `catppuccin-mocha` | Soft pastels on dark |
-| `catppuccin-latte` | Soft pastels on light, the bundled light theme |
-| `gruvbox` | Warm retro browns and yellows |
-| `nord` | Arctic, muted blue-grey |
-| `rose-pine` | Muted rose, gold and pine |
-| `everforest` | Gentle forest greens |
-| `kanagawa` | Ink-wash blues inspired by Hokusai |
+| `an4rch` | The signature look: black, with the red of the an4rch logo, and its own logo wallpapers |
+| `an4rch-light` | The an4rch red on white: the light theme, and the one `anarch auto` uses by day |
+| `ancom` | Anarcho-communism: black and red |
+| `ansyn` | Anarcho-syndicalism: black and red with industrial grey |
+| `mutualism` | Mutualism: black and orange |
+| `individualist` | Individualist: black and steel |
+| `ancap` | Anarcho-capitalism: black and yellow |
+| `green-anarchism` | Green anarchism: black and green |
+| `primitivism` | Anarcho-primitivism: earth and moss |
+| `anfem` | Anarcha-feminism: black and purple |
+| `pacifism` | Anarcho-pacifism: black and white |
+| `queer` | Queer anarchism: black and pink |
+| `insurrection` | Insurrectionary: black and ember |
+| `no-adjectives` | Without adjectives: plain black |
+| `high-contrast` | Black and white with bright yellow focus, for low vision (`anarch a11y contrast on`) |
 
-## Theme packs: `anarch anarch`
+The palettes from before 1.1.1 (Cachy, Tokyo Night, Catppuccin, Gruvbox, Nord, Rosé Pine, Everforest, Kanagawa and the violet an4rch) are retired: if you were using one, updating switched you to `an4rch` (or `an4rch-light` from Catppuccin Latte). A theme you made yourself in `~/.config/lumen/themes/` is never touched.
 
-More themes come in packs you add with one command. The **anarchism** pack has twelve themes, black with one colour each, one per school of anarchism: Anarcho-communism, Anarcho-syndicalism, Mutualism, Individualist, Anarcho-capitalism, Green anarchism, Anarcho-primitivism, Anarcha-feminism, Anarcho-pacifism, Queer anarchism, Insurrectionary and Without adjectives.
+### Theme packs
 
-```sh
-anarch anarch                 # add the anarchism pack (12 themes and their wallpapers)
-anarch theme packs            # list the packs, and which you've added
-anarch theme get ancom        # add just one theme from a pack, and switch to it
-anarch theme set queer        # switch (or use the picker: SUPER + CTRL + T)
-anarch theme drop anarchism   # remove the pack's themes again
-```
-
-Pack themes then work like any other theme. Packs live in `themes-extra/` in an4rch's folder; see its README to make one.
+More themes can come in packs added with one command (`anarch theme packs` lists them, `anarch theme get PACK` adds one, `anarch theme drop PACK` removes it). Packs live in `themes-extra/` in an4rch's folder; see its README to make one.
 
 ## Wallpapers
 

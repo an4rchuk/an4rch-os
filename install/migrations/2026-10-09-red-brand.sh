@@ -1,13 +1,12 @@
 #!/usr/bin/env bash
 # an4rch OS 1.1.0: the final artwork. The an4rch logo on the boot screen, the
 # logo icon and console colours, and the an4rch theme in black and red (the
-# old violet look is now the an4rch-violet theme).
+# old violet look gave way to the anarchism themes in 1.1.1).
 set -euo pipefail
 LUMEN_PATH="${LUMEN_PATH:-$HOME/.local/share/lumen}"
 source "$LUMEN_PATH/lib/lumen.sh"
 
 echo "  New: the an4rch logo on the boot screen, and the an4rch theme in black and red"
-echo "       (the violet look is now its own theme: anarch theme set an4rch-violet)"
 
 # The an4rch theme's painted wallpapers were violet: paint them again in red,
 # and show the new logo wallpaper if an an4rch wallpaper was in use.

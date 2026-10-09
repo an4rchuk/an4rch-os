@@ -51,7 +51,7 @@ Useful options (pass them after `bash -s --` when piping, e.g. `… | bash -s --
 | `--browser chromium` | Pick the browser up front (`firefox`, `chromium`, `brave`, `zen-browser`) |
 | `--terminal alacritty` | `ghostty`, `alacritty` or `kitty` |
 | `--editor zed` | `code`, `zed` or `nvim` |
-| `--theme nord` | Start with a different theme |
+| `--theme ancom` | Start with a different theme |
 | `--autologin` | Skip the login screen. Only sensible with full-disk encryption |
 | `--no-greeter` | No login screen; logging in on the first console starts the desktop |
 | `--gaming` | Also install the gaming stack (Steam, Proton tools, GameMode, MangoHud) |

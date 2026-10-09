@@ -4,7 +4,7 @@
     {"vm": "b-laptop-encrypted", "cpus": 2, "mem": "4G", "xres": 1366, "yres": 768, "install": "lumen.encrypt=lumenpass1", "bootpass": "lumenpass1", "login": true, "bios": true},
     {"vm": "b-ultrawide", "xres": 2560, "yres": 1080, "login": true},
     {"vm": "b-4k", "mem": "12G", "xres": 3840, "yres": 2160, "login": true},
-    {"vm": "b-violet", "install": "lumen.theme=an4rch-violet"},
+    {"vm": "b-light", "install": "lumen.theme=an4rch-light"},
     {"vm": "b-server", "install": "lumen.edition=server"},
     {"vm": "b-game", "mem": "8G", "install": "lumen.edition=game"}
   ]

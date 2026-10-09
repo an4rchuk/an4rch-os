@@ -30,8 +30,8 @@ an4rch OS takes inspiration from [Omarchy](https://omarchy.org) (an opinionated,
 
 Underneath is a polished [Hyprland](https://hypr.land) desktop. It sets up a clean top bar, a launcher and menus for everything, themes that restyle the whole system at once, and the everyday tools already wired in: screenshots, screen recording, clipboard history, reminders, an emoji picker, a calculator, OCR and web apps. Wi-Fi, Bluetooth, audio, displays, sleep, login, fingerprint, printing, updates and installing apps are each one key away.
 
-![All twelve bundled themes: the Start menu in each, on the wallpaper an4rch paints for it](docs/images/themes.jpg)
-<sub>All twelve bundled themes, from the red and black an4rch to Catppuccin, Nord and High contrast: the real Start menu in each, on the wallpaper an4rch paints for it.</sub>
+![The bundled themes: an4rch, an4rch Light and the anarchism themes, each with the Start menu on its own gradient wallpaper](docs/images/themes.jpg)
+<sub>The bundled themes: an4rch, an4rch Light and one per school of anarchism, each the real Start menu on the gradient wallpaper an4rch paints for it.</sub>
 
 ## Install
 
@@ -61,7 +61,7 @@ Answer a few questions (browser, terminal, editor, gaming), wait a few minutes, 
 | **Taskbar** | Optional Windows-style bar along the bottom: Start, open windows (click to minimise or restore, middle-click to close), minimised windows and the clock. Turn it on in Settings or the installer's *Classic* layout |
 | **Top bar** | Waybar: workspaces, window title, clock and calendar, reminders, media, privacy indicators, recording, toggles, tray, audio, Bluetooth, network, power profile, battery. Click anything to open its panel |
 | **Launcher and menus** | fuzzel for apps, windows, the an4rch menu, Wi-Fi, displays, power, themes, wallpapers, clipboard and emoji: one consistent look everywhere |
-| **Themes** | Eleven palettes (an4rch, Cachy, Tokyo Night, Catppuccin Mocha & Latte, Gruvbox, Nord, Rosé Pine, Everforest, Kanagawa, High contrast). One key restyles borders, bar, menus, notifications, lock screen, terminal, prompt, `btop`, `fzf` and GTK apps. `anarch anarch` adds twelve more: the [anarchism theme pack](docs/03-themes.md#theme-packs-anarch-anarch). Every theme gets nine wallpapers painted from its colours, five of them long smooth gradients. [Make your own](docs/03-themes.md#making-your-own-theme) in ten lines |
+| **Themes** | Fifteen: the red and black **an4rch**, **an4rch Light**, one per school of anarchism (Anarcho-communism, Anarcho-syndicalism, Mutualism, Individualist, Anarcho-capitalism, Green anarchism, Anarcho-primitivism, Anarcha-feminism, Anarcho-pacifism, Queer anarchism, Insurrectionary and Without adjectives) and High contrast. One key restyles borders, bar, menus, notifications, lock screen, terminal, prompt, `btop`, `fzf` and GTK apps. Every theme gets nine wallpapers painted from its colours, five of them long smooth gradients. [Make your own](docs/03-themes.md#making-your-own-theme) in ten lines |
 | **Wallpapers** | Original abstract wallpapers painted from each theme's colours on your machine (no downloads, no licensing questions), plus your own |
 | **Everyday tools** | Screenshots with annotation, screen recording, clipboard history, reminders, emoji, calculator with units and currencies, colour picker, OCR, web search, web apps |
 | **System** | Wi-Fi menu, Bluetooth, audio mixer and output switcher, display arrangement with automatic revert, power profiles, night light, idle and sleep, lock screen, login screen with keyring unlock, fingerprint, printing, firewall |

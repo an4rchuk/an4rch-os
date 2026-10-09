@@ -51,6 +51,13 @@ if "$root/bin/anarch-theme" set lumen >/dev/null 2>&1 && [[ "$("$root/bin/anarch
 else
   bad "theme 'lumen' doesn't map to an4rch"
 fi
+# Retired themes (the old palettes before 1.1.1) land on their replacement.
+if "$root/bin/anarch-theme" set nord >/dev/null 2>&1 && [[ "$("$root/bin/anarch-theme" current)" == an4rch ]] &&
+  "$root/bin/anarch-theme" set catppuccin-latte >/dev/null 2>&1 && [[ "$("$root/bin/anarch-theme" current)" == an4rch-light ]]; then
+  ok "retired themes switch to an4rch / an4rch Light"
+else
+  bad "retired theme names don't map to their replacement"
+fi
 "$root/bin/anarch-theme" set an4rch >/dev/null
 
 step "Hyprland config (Lua)"
@@ -217,9 +224,9 @@ fi
 
 step "Wallpapers"
 if python3 -c 'import PIL' 2>/dev/null; then
-  if python3 "$root/bin/anarch-wallgen" --theme an4rch --theme catppuccin-latte --theme ancom --size 640x360 --out "$tmp/walls" >/dev/null &&
+  if python3 "$root/bin/anarch-wallgen" --theme an4rch --theme an4rch-light --theme ancom --size 640x360 --out "$tmp/walls" >/dev/null &&
     [[ $(find "$tmp/walls" -type f | wc -l) -eq 27 ]]; then
-    ok "$(find "$tmp/walls" -type f | wc -l) wallpapers generated (incl. a pack theme)"
+    ok "$(find "$tmp/walls" -type f | wc -l) wallpapers generated (dark, light and an anarchism theme)"
   else
     bad "anarch-wallgen failed"
   fi

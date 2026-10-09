@@ -7,7 +7,7 @@ own colours, so switching themes always lands on a background that matches.
 Output is deterministic per theme (seeded), and needs only Pillow.
 
     anarch-wallgen --all --out ~/.local/share/backgrounds/lumen
-    anarch-wallgen --theme nord --size 2560x1440 --out /tmp/walls
+    anarch-wallgen --theme ancom --size 2560x1440 --out /tmp/walls
 """
 
 from __future__ import annotations

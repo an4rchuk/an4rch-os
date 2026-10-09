@@ -35,7 +35,7 @@ sudo dd if=lumen-*.iso of=/dev/sdX bs=4M status=progress oflag=sync
 | Account | Your name, username, password and computer name. The root account is locked; you use `sudo` |
 | Region | Time zone and language, guessed from your internet connection |
 | System | **Desktop** or **Server** (no desktop: the system, SSH with the firewall allowing it, and an4rch's command-line tools, for old computers and home servers). The **kernel**: latest (default), long-term support, zen (tuned for desktops and gaming) or hardened (extra security; some apps, like Steam, may not run). A second kernel is always in the boot menu as a fallback, and `anarch tune kernel NAME` adds more later. The **shell**: zsh (default), bash or fish, each set up with an4rch's prompt, aliases and tools |
-| Look | Pick a theme from a gallery (including **Cachy**, a CachyOS-inspired teal) and a layout: an4rch (top bar + taskbar, the default), Top bar only or Minimal. The live desktop restyles as you click, so you see it before installing |
+| Look | Pick a theme from a gallery (an4rch, an4rch Light, or one per school of anarchism) and a layout: an4rch (top bar + taskbar, the default), Top bar only or Minimal. The live desktop restyles as you click, so you see it before installing |
 | Apps | Browser, terminal and code editor, gaming yes/no, and **extra apps**: tick any from the App Store's list (by category) to have them installed too (from the Arch repositories when possible, then the AUR, then Flathub) |
 | Review | A summary, then **Erase and install**, with a progress bar and the live log |
 
