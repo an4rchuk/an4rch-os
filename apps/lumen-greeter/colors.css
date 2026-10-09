@@ -1,0 +1,10 @@
+/* The login screen's default colours (the an4rch theme). greeter.css,
+   written from your theme by `anarch-login sync`, overrides them. */
+@define-color g_bg     #0b0b0b;
+@define-color g_card   #161112;
+@define-color g_field  #2e1416;
+@define-color g_fg     #f2eded;
+@define-color g_dim    #a39a9a;
+@define-color g_accent #e01b24;
+@define-color g_accent_fg #ffffff;
+@define-color g_red    #ff6b6b;

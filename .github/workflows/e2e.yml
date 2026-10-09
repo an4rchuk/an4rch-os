@@ -317,9 +317,8 @@ jobs:
           if [ "$LOGIN" = true ]; then
             # The login screen: the logo where the boot screen left it. Log in.
             sleep 35; shot shots/01a-login
-            # Click Login (ReGreet then asks for the password): the form is
-            # centred, 300px lower than usual to sit below the logo.
-            click $((VM_XRES / 2 + 212)) $((VM_YRES / 2 + 240)); sleep 4
+            # The user name is filled in and the password box has the cursor:
+            # type the password and press Enter, as a person would.
             type_text lumen; sleep 1; shot shots/01b-login-password
             mon "sendkey ret"
           fi

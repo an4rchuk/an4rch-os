@@ -534,17 +534,17 @@ if [[ -x /usr/local/bin/lumen-greeter ]] && grep -q lumen-greeter /etc/greetd/co
 else
   result "login screen installed" FAIL "$(grep -m1 command /etc/greetd/config.toml 2>&1)"
 fi
-if [[ -s /var/lib/lumen/login/wallpaper && -s /var/lib/lumen/login/regreet.css ]]; then
+if [[ -s /var/lib/lumen/login/wallpaper && -s /var/lib/lumen/login/greeter.css && -f /usr/local/share/lumen/greeter/lumen_greeter.py ]]; then
   result "login screen has the theme and wallpaper" PASS
 else
   result "login screen has the theme and wallpaper" FAIL "$(ls -la /var/lib/lumen/login 2>&1 | tr '\n' ' ')"
 fi
 as_user anarch-login preview >/dev/null 2>&1
-if wait_window "login screen preview" 'regreet' 30; then
+if wait_window "login screen preview" 'os.an4rch.Greeter' 30; then
   sleep 3
   shot 21c-login-screen
 fi
-pkill -x regreet
+pkill -f 'lumen-greeter/lumen_greeter.py' 
 
 # --- Lock screen ---------------------------------------------------------------------------
 pkill -x firefox

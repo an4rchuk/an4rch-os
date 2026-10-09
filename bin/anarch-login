@@ -27,6 +27,9 @@ sync() {
   if ((!logo)) && [[ -e "$wall" ]]; then
     cp -L "$wall" "$DIR/wallpaper.new" && chmod 644 "$DIR/wallpaper.new" && mv -f "$DIR/wallpaper.new" "$DIR/wallpaper"
   fi
+  if [[ -f "$t/greeter.css" ]]; then
+    install -m644 "$t/greeter.css" "$DIR/greeter.css.new" && mv -f "$DIR/greeter.css.new" "$DIR/greeter.css"
+  fi
   if [[ -f "$t/regreet.css" ]]; then
     {
       cat "$t/regreet.css"
@@ -77,11 +80,20 @@ screen_size() {
   [[ "$s" =~ ^[0-9]{3,5}x[0-9]{3,5}$ ]] && echo "$s" || echo 1920x1080
 }
 
+# The login screen app, where the greeter user can read it (not in your home).
+install_app() {
+  sudo install -d /usr/local/share/lumen/greeter
+  sudo install -m644 "$LUMEN_PATH"/apps/lumen-greeter/*.py "$LUMEN_PATH"/apps/lumen-greeter/*.css /usr/local/share/lumen/greeter/
+}
+
 setup() {
   local pkgs=() p
   for p in greetd greetd-regreet greetd-tuigreet cage; do pacman -Q "$p" >/dev/null 2>&1 || pkgs+=("$p"); done
   ((${#pkgs[@]} == 0)) || sudo pacman -S --needed --noconfirm "${pkgs[@]}"
   sudo install -D -m755 "$LUMEN_PATH/share/greeter/lumen-greeter" /usr/local/bin/lumen-greeter
+  install_app
+  # Where the login screen remembers who logged in last.
+  sudo install -d -m755 -o greeter -g greeter /var/cache/lumen-greeter 2>/dev/null || sudo install -d -m777 /var/cache/lumen-greeter
   sudo install -D -m644 -t /usr/local/share/lumen/wayland-sessions "$LUMEN_PATH"/share/greeter/wayland-sessions/*.desktop
   sudo rm -rf /usr/local/share/lumen/sessions
   sudo install -d -m755 -o "$(id -un)" -g "$(id -gn)" "$DIR"
@@ -102,13 +114,12 @@ case "${1:-sync}" in
   sync) sync ;;
   setup) setup ;;
   preview)
-    has regreet || die "The graphical login screen isn't installed: anarch-login setup"
     sync
-    args=(--demo --logs "${XDG_RUNTIME_DIR:-/tmp}/regreet-preview.log")
-    [[ -f "$DIR/regreet.toml" ]] && args+=(--config "$DIR/regreet.toml")
-    [[ -f "$DIR/regreet.css" ]] && args+=(--style "$DIR/regreet.css")
-    XDG_DATA_DIRS="/usr/local/share/lumen:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}" launch regreet "${args[@]}"
+    LUMEN_LOGIN_DIR="$DIR" LUMEN_GREETER_CACHE="${XDG_RUNTIME_DIR:-/tmp}/greeter-preview" \
+      XDG_DATA_DIRS="/usr/local/share/lumen:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}" \
+      launch python3 "$LUMEN_PATH/apps/lumen-greeter/lumen_greeter.py" --demo
     ;;
+  update-app) install_app ;;
   wallpaper)
     case "${2:-}" in
       on) touch "$DIR/use-wallpaper" && sync && echo "✓ The login screen shows your wallpaper." ;;
