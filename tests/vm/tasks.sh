@@ -130,6 +130,10 @@ if [[ "$(choice mode)" == manual ]]; then
   task "installed on the chosen partitions" bash -c 'findmnt -no SOURCE / | grep -q "^/dev/vda[0-9]" ; lsblk -no FSTYPE "$(findmnt -no SOURCE / | sed "s/\[.*//")" | grep -q btrfs'
 fi
 
+# The an4rch boot screen: set as the theme, and inside every initramfs.
+task "boot screen is an4rch's" bash -c 'grep -qx "Theme=an4rch" /etc/plymouth/plymouthd.conf &&
+  for i in /boot/initramfs-*.img; do [[ $i == *fallback* ]] && continue; lsinitcpio "$i" | grep -q "usr/share/plymouth/themes/an4rch/an4rch.script" || { echo "missing from $i"; exit 1; }; done'
+
 # --- an4rch Server: no desktop; check the system, remote access and the tools -----------
 if [[ "$(choice edition)" == server ]]; then
   say "Server install: no desktop to test"

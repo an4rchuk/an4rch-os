@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
-# anarch-login — the login screen: your wallpaper and theme's colours.
+# anarch-login — the login screen: the an4rch logo (where the boot screen
+# leaves it) and your theme's colours.
 #
-#   anarch-login sync      copy the current wallpaper and theme to the login screen
+#   anarch-login sync      copy the current theme (and wallpaper) to the login screen
 #                         (done automatically when either changes)
+#   anarch-login wallpaper on|off   your desktop wallpaper behind the login
+#                         instead of the logo (or not)
 #   anarch-login preview   show the login screen in a window
 #   anarch-login setup     install the graphical login screen (asks for your password)
 #   anarch-login text on|off   use the plain text login screen instead (or not)
@@ -14,9 +17,22 @@ DIR=/var/lib/lumen/login
 sync() {
   [[ -d "$DIR" && -w "$DIR" ]] || return 0
   local t="$LUMEN_CURRENT/theme" wall="$LUMEN_CURRENT/wallpaper"
-  if [[ -f "$t/regreet.css" ]]; then install -m644 "$t/regreet.css" "$DIR/regreet.css"; fi
-  if [[ -e "$wall" ]]; then
+  local logo=1
+  [[ -e "$DIR/use-wallpaper" ]] && logo=0
+  # The logo background, drawn for this screen (the boot screen ends on the
+  # same picture). Without Python's imaging library, the wallpaper instead.
+  if ((logo)) && ! python3 "$LUMEN_PATH/share/greeter/login-background" --size "$(screen_size)" --out "$DIR/wallpaper" 2>/dev/null; then
+    logo=0
+  fi
+  if ((!logo)) && [[ -e "$wall" ]]; then
     cp -L "$wall" "$DIR/wallpaper.new" && chmod 644 "$DIR/wallpaper.new" && mv -f "$DIR/wallpaper.new" "$DIR/wallpaper"
+  fi
+  if [[ -f "$t/regreet.css" ]]; then
+    {
+      cat "$t/regreet.css"
+      # Room for the logo: the login box sits below it.
+      if ((logo)); then printf '\n/* The an4rch logo is above it (anarch-login). */\nframe { margin-top: 300px; }\n'; fi
+    } >"$DIR/regreet.css.new" && chmod 644 "$DIR/regreet.css.new" && mv -f "$DIR/regreet.css.new" "$DIR/regreet.css"
   fi
   local LUMEN_THEME_MODE="dark" LUMEN_THEME_ICONS="Papirus-Dark"
   # shellcheck source=/dev/null
@@ -41,6 +57,24 @@ poweroff = ["systemctl", "poweroff"]
 [appearance]
 greeting_msg = "Welcome back"
 TOML
+}
+
+# The largest screen's size (the login screen draws its background for it).
+screen_size() {
+  local s=""
+  if has hyprctl && has jq; then
+    s=$(hyprctl monitors -j 2>/dev/null | jq -r 'max_by(.width * .height) | "\(.width)x\(.height)"' 2>/dev/null || true)
+  fi
+  # No desktop yet (while installing): the connected screens' preferred modes.
+  if [[ ! "$s" =~ ^[0-9]{3,5}x[0-9]{3,5}$ ]]; then
+    local c
+    for c in /sys/class/drm/card*-*; do
+      [[ "$(cat "$c/status" 2>/dev/null)" == connected ]] || continue
+      s=$(head -n1 "$c/modes" 2>/dev/null)
+      [[ "$s" =~ ^[0-9]{3,5}x[0-9]{3,5}$ ]] && break
+    done
+  fi
+  [[ "$s" =~ ^[0-9]{3,5}x[0-9]{3,5}$ ]] && echo "$s" || echo 1920x1080
 }
 
 setup() {
@@ -75,6 +109,13 @@ case "${1:-sync}" in
     [[ -f "$DIR/regreet.css" ]] && args+=(--style "$DIR/regreet.css")
     XDG_DATA_DIRS="/usr/local/share/lumen:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}" launch regreet "${args[@]}"
     ;;
+  wallpaper)
+    case "${2:-}" in
+      on) touch "$DIR/use-wallpaper" && sync && echo "✓ The login screen shows your wallpaper." ;;
+      off) rm -f "$DIR/use-wallpaper" && sync && echo "✓ The login screen shows the an4rch logo." ;;
+      *) die "usage: anarch-login wallpaper on|off" ;;
+    esac
+    ;;
   text)
     case "${2:-}" in
       on) touch "$DIR/text-only" && echo "The next login uses the text login screen." ;;
@@ -82,6 +123,6 @@ case "${1:-sync}" in
       *) die "usage: anarch-login text on|off" ;;
     esac
     ;;
-  -h | --help | help) sed -n '2,8s/^# \{0,1\}//p' "$0" ;;
+  -h | --help | help) sed -n '2,11s/^# \{0,1\}//p' "$0" ;;
   *) die "Unknown command '$1'. See: anarch-login --help" ;;
 esac

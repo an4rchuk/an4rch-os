@@ -35,7 +35,7 @@ show() {
     launch swaybg -i "$link" -m fill
   else
     local bg
-    bg=$(theme_get "$theme" bg || echo '#12131c')
+    bg=$(theme_get "$theme" bg || echo '#0b0b0b')
     launch swaybg -c "$bg"
   fi
   if [[ -n "$old" ]]; then

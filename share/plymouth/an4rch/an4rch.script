@@ -1,0 +1,183 @@
+# an4rch OS boot screen: the an4rch logo fills the screen, then shrinks and
+# rises to where the login screen shows it (anarch-login draws the same
+# layout), and glows. The disk password is asked for below it.
+# (Plymouth script; see https://www.freedesktop.org/wiki/Software/Plymouth/Scripts/)
+#
+# Keep the end size and place (32% of the height, centred 26% of the
+# way down) in step with share/greeter/login-background.
+
+Window.SetBackgroundTopColor(0, 0, 0);
+Window.SetBackgroundBottomColor(0, 0, 0);
+
+W = Window.GetWidth();
+H = Window.GetHeight();
+X = Window.GetX();
+Y = Window.GetY();
+
+logo_image = Image("logo.png");
+glow_image = Image("glow.png");
+aspect = logo_image.GetWidth() / logo_image.GetHeight();
+
+# Where the logo starts (almost the screen's height) and ends (the login
+# screen's spot).
+start_h = H * 0.86;
+if (start_h * aspect > W * 0.9) start_h = W * 0.9 / aspect;
+end_h = H * 0.32;
+if (end_h * aspect > W * 0.45) end_h = W * 0.45 / aspect;
+start_cy = H * 0.5;
+end_cy = H * 0.26;
+
+logo_sprite = Sprite();
+logo_sprite.SetZ(2);
+logo_sprite.SetOpacity(0);
+
+# The glow only appears once the logo has settled, at its final size.
+gscale = end_h / logo_image.GetHeight();
+glow = glow_image.Scale(glow_image.GetWidth() * gscale, glow_image.GetHeight() * gscale);
+glow_sprite = Sprite(glow);
+glow_sprite.SetPosition(X + W / 2 - glow.GetWidth() / 2, Y + end_cy - glow.GetHeight() / 2, 1);
+glow_sprite.SetOpacity(0);
+
+# Everything below the settled logo is for messages and the password.
+bottom_y = Y + end_cy + end_h / 2 + H * 0.07;
+
+shown_h = -1;
+fun place_logo(h, cy) {
+  # Scaling is the slow part: skip it when the size hasn't changed.
+  if (Math.Int(h) != shown_h) {
+    logo_sprite.SetImage(logo_image.Scale(h * aspect, h));
+    shown_h = Math.Int(h);
+  }
+  logo_sprite.SetPosition(X + W / 2 - h * aspect / 2, Y + cy - h / 2, 2);
+}
+
+# --- Animation ------------------------------------------------------------------------
+# 0–0.6 s fade in, big; 0.9–2.3 s shrink and rise; then the glow breathes.
+# (50 frames a second.) A password request hurries the shrink along.
+frame = 0;
+settled = 0;
+settled_at = 0;
+hurry = 0;
+place_logo(start_h, start_cy);
+
+fun refresh_callback() {
+  frame++;
+  if (hurry && frame < 45) frame = 45;
+  logo_sprite.SetOpacity(Math.Min(frame / 30, 1));
+
+  p = (frame - 45) / 70;
+  if (hurry) p = (frame - 45) / 25;
+  if (p < 0) p = 0;
+  if (p > 1) p = 1;
+  if (!settled) {
+    e = (1 - Math.Cos(Math.Pi * p)) / 2;          # ease in and out
+    place_logo(start_h + (end_h - start_h) * e, start_cy + (end_cy - start_cy) * e);
+    if (p >= 1) {
+      settled = 1;
+      settled_at = frame;
+      show_password_now();
+    }
+  }
+
+  if (settled) {
+    t = frame - settled_at;
+    fade = Math.Min(t / 40, 1);
+    breath = (Math.Sin(t / 50 * Math.Pi * 0.6 - Math.Pi / 2) + 1) / 2;   # a slow breath every ~3 s
+    glow_sprite.SetOpacity(fade * (0.2 + 0.4 * breath));
+  }
+}
+Plymouth.SetRefreshFunction(refresh_callback);
+
+# --- Disk password ---------------------------------------------------------------------
+# Sizes follow the screen: 1 on a 1080p screen, between 0.75 and 2 elsewhere.
+ui = H / 1080;
+if (ui < 0.75) ui = 0.75;
+if (ui > 2) ui = 2;
+entry_image = Image("entry.png");
+bullet_image = Image("bullet.png");
+entry_w = entry_image.GetWidth() * ui;
+if (entry_w > W * 0.8) entry_w = W * 0.8;
+entry = entry_image.Scale(entry_w, entry_image.GetHeight() * ui);
+bullet_image = bullet_image.Scale(bullet_image.GetWidth() * ui, bullet_image.GetHeight() * ui);
+
+# The prompt is a picture: text needs a font in the initramfs, which not every
+# system has. Messages use text when it's available and are skipped when not.
+prompt_image = Image("prompt.png");
+prompt_image = prompt_image.Scale(prompt_image.GetWidth() * ui * 0.62, prompt_image.GetHeight() * ui * 0.62);
+
+entry_sprite = Sprite();
+prompt_sprite = Sprite();
+bullet_sprites = [];
+bullets_shown = 0;
+asking = 0;
+typed = 0;
+
+fun text(s, alpha) {
+  return Image.Text(s, 0.82, 0.78, 0.78, alpha, "Sans 13");
+}
+
+fun hide_password() {
+  entry_sprite.SetOpacity(0);
+  prompt_sprite.SetOpacity(0);
+  for (i = 0; i < bullets_shown; i++) bullet_sprites[i].SetOpacity(0);
+}
+
+fun show_password_now() {
+  if (!asking || !settled) return;
+  prompt_sprite.SetImage(prompt_image);
+  prompt_sprite.SetPosition(X + W / 2 - prompt_image.GetWidth() / 2, bottom_y, 10);
+  prompt_sprite.SetOpacity(1);
+
+  entry_y = bottom_y + prompt_image.GetHeight() + H * 0.018;
+  entry_sprite.SetImage(entry);
+  entry_sprite.SetPosition(X + W / 2 - entry.GetWidth() / 2, entry_y, 10);
+  entry_sprite.SetOpacity(1);
+
+  # One red dot per character, centred; long passwords stop at the box's edge.
+  step = bullet_image.GetWidth() + 8 * ui;
+  max = Math.Int((entry.GetWidth() - 40 * ui) / step);
+  shown = typed;
+  if (shown > max) shown = max;
+  start_x = X + W / 2 - (shown * step - 8 * ui) / 2;
+  for (i = 0; i < shown; i++) {
+    if (!bullet_sprites[i]) bullet_sprites[i] = Sprite(bullet_image);
+    bullet_sprites[i].SetPosition(start_x + i * step, entry_y + entry.GetHeight() / 2 - bullet_image.GetHeight() / 2, 11);
+    bullet_sprites[i].SetOpacity(1);
+  }
+  for (i = shown; i < bullets_shown; i++) bullet_sprites[i].SetOpacity(0);
+  if (shown > bullets_shown) bullets_shown = shown;
+}
+
+fun display_password_callback(prompt, bullets) {
+  asking = 1;
+  typed = bullets;
+  hurry = 1;
+  show_password_now();
+}
+Plymouth.SetDisplayPasswordFunction(display_password_callback);
+
+fun display_normal_callback() {
+  asking = 0;
+  hide_password();
+}
+Plymouth.SetDisplayNormalFunction(display_normal_callback);
+
+# --- Messages (disk checks, "Press any key", updates) ----------------------------------
+message_sprite = Sprite();
+fun message_callback(message) {
+  message_image = text(message, 0.85);
+  message_sprite.SetImage(message_image);
+  message_sprite.SetPosition(X + W / 2 - message_image.GetWidth() / 2, Y + H * 0.92, 10);
+}
+Plymouth.SetMessageFunction(message_callback);
+
+# On the way out, jump to the settled layout so the login screen takes over
+# from exactly the same picture.
+fun quit_callback() {
+  asking = 0;
+  hide_password();
+  settled = 1;
+  place_logo(end_h, end_cy);
+  logo_sprite.SetOpacity(1);
+}
+Plymouth.SetQuitFunction(quit_callback);

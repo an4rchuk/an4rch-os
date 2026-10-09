@@ -20,14 +20,8 @@ bash "$LUMEN_PATH/install/enable-multilib.sh"
 pacman -S --needed --noconfirm plymouth zram-generator pacman-contrib arch-install-scripts >/dev/null
 
 # --- Boot splash --------------------------------------------------------------------
-# bgrt shows the firmware's logo with a spinner and handles disk passwords.
-install -d /etc/plymouth
-cat >/etc/plymouth/plymouthd.conf <<'PLY'
-[Daemon]
-Theme=bgrt
-ShowDelay=0
-DeviceTimeout=8
-PLY
+# The an4rch logo on black, and the disk password in the same style.
+bash "$LUMEN_PATH/install/plymouth.sh"
 
 # --- Memory ---------------------------------------------------------------------------
 cat >/etc/systemd/zram-generator.conf <<'ZRAM'

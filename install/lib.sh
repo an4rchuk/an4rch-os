@@ -8,7 +8,7 @@ mkdir -p "$LOG_DIR"
 
 if [[ -t 1 ]]; then
   BOLD=$'\e[1m' DIM=$'\e[2m' RESET=$'\e[0m'
-  ACCENT=$'\e[38;2;157;140;255m' CYAN=$'\e[38;2;106;215;229m'
+  ACCENT=$'\e[38;2;224;27;36m' CYAN=$'\e[38;2;255;95;87m'
   GREEN=$'\e[38;2;159;220;155m' YELLOW=$'\e[38;2;241;211;139m' RED=$'\e[38;2;242;119;122m'
 else
   BOLD="" DIM="" RESET="" ACCENT="" CYAN="" GREEN="" YELLOW="" RED=""

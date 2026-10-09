@@ -15,8 +15,8 @@ LUMEN_SRC=/opt/lumen
 source "$LUMEN_SRC/install/packages.sh"
 LOG=/var/log/lumen-os-install.log
 MNT=/mnt
-ACCENT="#9d8cff"
-DIM="#8b90aa"
+ACCENT="#e01b24"
+DIM="#a39a9a"
 
 exec 3>&1 # the real terminal, for gum while output goes to the log
 
@@ -786,6 +786,8 @@ CMDLINE="$ROOT_ARGS rootflags=subvol=@ rw quiet splash loglevel=3 rd.udev.log_le
 ESP_UUID=$(blkid -s UUID -o value "$EFI")
 
 step "Configuring the system"
+# The an4rch boot screen, so the initramfs built below has it.
+LUMEN_PATH="$LUMEN_SRC" bash "$LUMEN_SRC/install/plymouth.sh" --root "$MNT" >>"$LOG" 2>&1 || true
 arch-chroot "$MNT" /bin/bash -e >>"$LOG" 2>&1 <<CHROOT || fail "System configuration failed"
 ln -sf "/usr/share/zoneinfo/$TIMEZONE" /etc/localtime
 if [[ $WIN_CLOCK == 1 ]]; then

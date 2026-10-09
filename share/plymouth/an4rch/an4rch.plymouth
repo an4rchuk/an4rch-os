@@ -1,0 +1,8 @@
+[Plymouth Theme]
+Name=an4rch
+Description=The an4rch OS logo on black, with a slow red glow
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/an4rch
+ScriptFile=/usr/share/plymouth/themes/an4rch/an4rch.script

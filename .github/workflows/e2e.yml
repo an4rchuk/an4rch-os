@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
     inputs:
       set:
-        description: "VM set: standard (5), scenarios (14), brutal (20), features (installer choices) or retest"
+        description: "VM set: standard (5), scenarios (14), brutal (20), features (installer choices), brand (boot screen, login, sizes) or retest"
         default: standard
 
 jobs:
@@ -49,6 +49,8 @@ jobs:
       BOOT_PASS: ${{ matrix.bootpass || '' }}
       # Partitions made before installing (manual partitioning): simple or split.
       PREPART: ${{ matrix.prepart || '' }}
+      # Stop at the login screen (no automatic login), screenshot it, log in.
+      LOGIN: ${{ matrix.login || false }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -76,6 +78,32 @@ jobs:
           sudo apt-get update -q
           sudo apt-get install -y -q qemu-system-x86 qemu-utils ovmf libarchive-tools socat python3-pil
           ls -l /dev/kvm
+
+      # The USB's boot menus, as a computer shows them: UEFI (systemd-boot) and
+      # legacy BIOS (syslinux, with the an4rch splash).
+      - name: Screenshot the USB's boot menus
+        if: matrix.menus
+        continue-on-error: true
+        run: |
+          iso=$(ls out/an4rch-os-*.iso | head -n1)
+          mkdir -p shots
+          menu() { # menu NAME QEMU-ARGS...
+            local name=$1; shift
+            qemu-system-x86_64 -enable-kvm -machine q35 -cpu host -m 2G "$@" \
+              -drive file="$iso",media=cdrom,readonly=on -boot d \
+              -vga none -device virtio-vga,xres=$VM_XRES,yres=$VM_YRES -display none \
+              -monitor unix:menu.sock,server,nowait &
+            local q=$!
+            sleep 7
+            echo "screendump $PWD/shots/$name.ppm" | socat - UNIX-CONNECT:menu.sock >/dev/null; sleep 2
+            echo quit | socat - UNIX-CONNECT:menu.sock >/dev/null || true
+            wait "$q" 2>/dev/null || true
+            python3 -c "from PIL import Image; Image.open('shots/$name.ppm').save('shots/$name.png')" && rm -f "shots/$name.ppm"
+          }
+          cp /usr/share/OVMF/OVMF_VARS_4M.fd menu-vars.fd
+          menu 00m-usb-menu-uefi -drive if=pflash,format=raw,readonly=on,file=/usr/share/OVMF/OVMF_CODE_4M.fd -drive if=pflash,format=raw,file=menu-vars.fd
+          menu 00n-usb-menu-bios
+          ls -l shots
 
       - name: Boot the live USB (desktop with the graphical installer)
         continue-on-error: true
@@ -179,7 +207,7 @@ jobs:
             -drive file=disk.qcow2,if=virtio,format=qcow2 \
             -drive file="$iso",media=cdrom,readonly=on \
             -kernel arch/boot/x86_64/vmlinuz-linux -initrd arch/boot/x86_64/initramfs-linux.img \
-            -append "archisobasedir=arch archisolabel=$label console=tty0 console=ttyS0,115200 lumen.auto=1 lumen.disk=/dev/vda lumen.user=lumen lumen.pass=lumen lumen.autologin=1 lumen.poweroff=1 lumen.serial=1 $INSTALL_APPEND" \
+            -append "archisobasedir=arch archisolabel=$label console=tty0 console=ttyS0,115200 lumen.auto=1 lumen.disk=/dev/vda lumen.user=lumen lumen.pass=lumen lumen.autologin=$([ "$LOGIN" = true ] && echo 0 || echo 1) lumen.poweroff=1 lumen.serial=1 $INSTALL_APPEND" \
             -nic $INSTALL_NIC -display none -serial file:install-serial.log -no-reboot || true
           # The installer's own output, without systemd's boot/shutdown chatter.
           sed 's/\x1b\[[0-9;?]*[a-zA-Z]//g; s/\x1b\][^\x1b]*\x1b\\//g' install-serial.log |
@@ -260,6 +288,12 @@ jobs:
             done
           }
           mkdir -p shots
+          # The boot screen, as it plays: a quick picture every 1.5 s (just the
+          # raw dump now; converted afterwards so the timing stays even).
+          if [ "$WINDOWS" != true ]; then
+            for i in $(seq -w 1 14); do sleep 1.5; mon "screendump $PWD/shots/00e-boot-$i.ppm"; done
+            for f in shots/00e-boot-*.ppm; do python3 -c "from PIL import Image; Image.open('$f').save('${f%.ppm}.png')" && rm -f "$f"; done
+          fi
           if [ "$WINDOWS" = true ]; then sleep 4; shot shots/00c-boot-menu; fi
           # Encrypted disk: unlock it at the boot prompt.
           if [ -n "$BOOT_PASS" ]; then
@@ -268,6 +302,12 @@ jobs:
           fi
           # First login: desktop with the welcome tour, Start (Windows-key tap)
           # and the App Store (Windows + A).
+          if [ "$LOGIN" = true ]; then
+            # The login screen: the logo where the boot screen left it. Log in.
+            sleep 35; shot shots/01a-login
+            type_text lumen; sleep 1; shot shots/01b-login-typed
+            mon "sendkey ret"
+          fi
           sleep 45;  shot shots/01-boot
           sleep 95;  shot shots/02-desktop
           mon "sendkey meta_l"; sleep 6; shot shots/03-start-menu

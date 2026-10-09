@@ -6,7 +6,7 @@
 # the same as `anarch-snapshot restore` on a running system. /home is never
 # touched; the broken system is kept as @broken-<date>.
 set -euo pipefail
-ACCENT="#9d8cff"
+ACCENT="#e01b24"
 [[ $EUID -eq 0 ]] || { echo "Run as root."; exit 1; }
 
 gum style --foreground "$ACCENT" --bold --margin "1 2" "an4rch OS rescue" 

@@ -12,7 +12,8 @@ Bundled themes:
 
 | Theme | Mood |
 | --- | --- |
-| `an4rch` | The signature look: deep indigo night, violet and cyan light (called `lumen` before 1.1.0) |
+| `an4rch` | The signature look: black, with the red of the an4rch logo, and its own logo wallpapers (called `lumen` before 1.1.0) |
+| `an4rch-violet` | The original an4rch look: deep indigo night, violet and cyan light (the default before 1.1.0) |
 | `cachy` | CachyOS-inspired: deep navy with teal-green and cyan |
 | `tokyo-night` | Neon city blues |
 | `catppuccin-mocha` | Soft pastels on dark |
