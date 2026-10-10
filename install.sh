@@ -219,6 +219,7 @@ install_extra_apps() {
   while IFS=$'\t' read -r id srcs; do
     [[ -n "$id" ]] || continue
     info "App: $id"
+    [[ -n "$srcs" ]] || { warn "$id isn't in the App Store's list; skipped"; continue; }
     got=0
     for src in $srcs; do
       kind=${src%%:*} pkg=${src#*:}
@@ -235,21 +236,42 @@ install_extra_apps() {
       printf 'APP %s: %s %s did not install\n' "$id" "$kind" "$pkg" >>"$LOG"
     done
     ((got)) && done_ids+=("$id") || skipped+=("$id")
-  done < <(python3 - "$LUMEN_PATH/apps/lumen-store/catalog.json" "$EXTRA_APPS" <<'PY'
-import json, subprocess, sys
-apps = {a["id"]: a for a in json.load(open(sys.argv[1]))["apps"]}
-for want in filter(None, sys.argv[2].split(",")):
-    srcs = apps.get(want, {}).get("sources", [])
-    # Repositories first (when the package is there), then the AUR, then Flathub.
-    order = [s for s in srcs if s["type"] == "pacman" and
-             subprocess.run(["pacman", "-Si", s["id"]], capture_output=True).returncode == 0]
-    order += [s for s in srcs if s["type"] == "aur"] + [s for s in srcs if s["type"] == "flatpak"]
-    print(want + "\t" + " ".join(f"{s['type']}:{s['id']}" for s in order))
-PY
-)
+  done < <(python3 "$LUMEN_PATH/share/apps/app-sources" "$LUMEN_PATH/apps/lumen-store/catalog.json" "$EXTRA_APPS")
   ((${#done_ids[@]})) && ok "Extra apps: ${done_ids[*]}"
-  ((${#skipped[@]})) && warn "Not installed now (add them from the App Store later): ${skipped[*]}"
+  ((${#skipped[@]})) && defer_extra_apps "${skipped[@]}"
   return 0
+}
+
+# defer_extra_apps ID… — apps that couldn't be installed now (the ISO
+# installer's chroot can't build AUR packages or run Flathub's setup) are
+# installed at the next start, once there's internet.
+# shellcheck disable=SC2024 # the log is the user's own file, written without sudo
+defer_extra_apps() {
+  local id
+  if sudo install -Dm755 "$LUMEN_PATH/share/apps/pending-apps" /usr/local/lib/lumen/pending-apps &&
+    sudo install -d /var/lib/lumen &&
+    for id in "$@"; do printf '%s\t%s\n' "$USER" "$id"; done | sudo tee -a /var/lib/lumen/pending-apps >/dev/null &&
+    sudo tee /etc/systemd/system/lumen-pending-apps.service >/dev/null <<'UNIT' &&
+[Unit]
+Description=Install the apps chosen in the An4rch installer
+Wants=network-online.target
+After=network-online.target
+ConditionPathExists=/var/lib/lumen/pending-apps
+
+[Service]
+# simple, not oneshot: the start-up and the login screen don't wait for it.
+Type=simple
+ExecStart=/usr/local/lib/lumen/pending-apps
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+    sudo systemctl enable lumen-pending-apps.service >>"$LOG" 2>&1; then
+    info "These apps install by themselves after the first start (with internet): $*"
+  else
+    warn "Not installed now (add them from the App Store later): $*"
+  fi
 }
 
 install_packages() {

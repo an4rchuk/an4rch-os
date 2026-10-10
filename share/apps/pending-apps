@@ -1,0 +1,54 @@
+#!/bin/bash
+# pending-apps — runs as root at boot (lumen-pending-apps.service): installs
+# the apps ticked in the installer that couldn't be installed then. AUR builds
+# and Flathub apps need a running system, not the installer's chroot. Tries
+# again at the next boot if something fails, up to three boots.
+set -u
+list=/var/lib/lumen/pending-apps # lines: USER<TAB>APP-ID
+tries=/var/lib/lumen/pending-apps.tries
+sudoers=/etc/sudoers.d/98-lumen-pending-apps
+done_() { rm -f "$list" "$tries" "$sudoers"; systemctl disable lumen-pending-apps.service >/dev/null 2>&1; exit 0; }
+[[ -s "$list" ]] || done_
+n=$(($(cat "$tries" 2>/dev/null || echo 0) + 1))
+echo "$n" >"$tries"
+# Wait for the internet (up to 3 minutes).
+for _ in $(seq 90); do curl -fsI --max-time 5 https://archlinux.org >/dev/null 2>&1 && break; sleep 2; done
+
+left=$(mktemp)
+trap 'rm -f "$left" "$sudoers"' EXIT
+while IFS=$'\t' read -r user id; do
+  [[ -n "${id:-}" ]] || continue
+  home=$(getent passwd "$user" | cut -d: -f6)
+  [[ -d "$home" ]] || continue
+  got=0
+  read -r _ srcs < <(python3 "$home/.local/share/lumen/share/apps/app-sources" "$home/.local/share/lumen/apps/lumen-store/catalog.json" "$id")
+  for src in ${srcs:-}; do
+    kind=${src%%:*} pkg=${src#*:}
+    echo "$id: trying $kind $pkg"
+    case "$kind" in
+      pacman) pacman -S --needed --noconfirm "$pkg" ;;
+      aur)
+        command -v yay >/dev/null || continue
+        # yay builds as the user and installs with sudo: allowed for this run only.
+        printf '%s ALL=(ALL) NOPASSWD: ALL\n' "$user" >"$sudoers" && chmod 440 "$sudoers"
+        runuser -u "$user" -- env HOME="$home" USER="$user" \
+          yay -S --needed --noconfirm --answerdiff None --answerclean None --removemake "$pkg" </dev/null
+        ;;
+      flatpak)
+        command -v flatpak >/dev/null || continue
+        flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo &&
+          flatpak install -y --noninteractive flathub "$pkg"
+        ;;
+      *) false ;;
+    esac && { got=1; echo "$id: installed ($kind)"; break; }
+  done
+  ((got)) || printf '%s\t%s\n' "$user" "$id" >>"$left"
+done <"$list"
+
+if [[ -s "$left" ]] && ((n < 3)); then
+  cp "$left" "$list"
+  echo "Not installed yet (trying again next start): $(cut -f2 "$left" | tr '\n' ' ')"
+  exit 1
+fi
+[[ -s "$left" ]] && echo "Gave up on: $(cut -f2 "$left" | tr '\n' ' ') (install them from the App Store)"
+done_

@@ -114,6 +114,13 @@ elif [[ "${sh_want:-zsh}" == bash ]]; then
 fi
 apps=$(choice apps)
 if [[ -n "$apps" ]]; then
+  # Apps the installer's chroot couldn't install are put in after the first
+  # start (lumen-pending-apps): wait for that to finish (up to 10 minutes).
+  for _ in $(seq 120); do
+    state=$(systemctl show -p ActiveState --value lumen-pending-apps.service 2>/dev/null)
+    [[ "$state" == active || ( -s /var/lib/lumen/pending-apps && ! -e /var/lib/lumen/pending-apps.tries ) ]] || break
+    sleep 5
+  done
   missing=""
   for a in ${apps//,/ }; do
     src=$(python3 -c '
@@ -126,9 +133,11 @@ print(" ".join(s["id"] for s in app.get("sources", [])))' "$lumen/apps/lumen-sto
   done
   if [[ -z "$missing" ]]; then result "extra apps installed ($apps)" PASS; else
     result "extra apps installed ($apps)" FAIL "missing: $missing"
-    say "why (install log):"
-    grep -h -n -A25 '^TRY: \(yay\|sudo flatpak\|sudo pacman -S --needed --noconfirm\)' "$home/.local/state/lumen/install.log" 2>/dev/null | grep -v '^\s*$' | tail -n 80
+    say "in the installer:"
+    sed -n '/^TRY: yay/,/^\(TRY\|APP\)/p' "$home/.local/state/lumen/install.log" 2>/dev/null | grep -v '^\s*$' | grep -iv '% Total\|Dload' | tail -n 60
     grep -h '^APP ' "$home/.local/state/lumen/install.log" 2>/dev/null
+    say "after the first start (lumen-pending-apps):"
+    journalctl -b -u lumen-pending-apps --no-pager -o cat 2>/dev/null | grep -v '^\s*$' | grep -iv 'downloading\|% Total\|Dload' | tail -n 120
   fi
 fi
 if [[ "$(choice mode)" == manual ]]; then
