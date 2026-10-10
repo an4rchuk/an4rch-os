@@ -103,6 +103,16 @@ else
 fi
 for s in "${scripts[@]}"; do bash -n "$s" || bad "syntax: $s"; done
 ok "bash -n"
+# notify-send's -a takes the app name: "-an X" would read the name as "n"
+# and fail with too many arguments, so no notification shows.
+if grep -rnE -- 'notify-send( [^ ]+)* -a[a-zA-Z]+ ' "$root/bin" "$root/lib" "$root/tests/vm" "$root/iso/airootfs/usr/local/bin" "$root/install" 2>/dev/null; then
+  bad "notify-send with a joined -a option (use: -a NAME)"
+else
+  ok "notify-send options"
+fi
+# systemd only follows symlinks in .wants folders; a plain file there is ignored.
+notlinks=$(find "$root/iso/airootfs" "$root/config" -path '*.wants/*' ! -type l ! -type d 2>/dev/null)
+if [[ -n "$notlinks" ]]; then bad "not symlinks (systemd ignores them): $notlinks"; else ok "systemd .wants entries are symlinks"; fi
 
 step "An4rch apps (Start menu, App Store, Welcome)"
 if python3 -m py_compile "$root"/apps/*/*.py "$root/bin/anarch-wallgen" 2>&1; then ok "Python compiles"; else bad "Python syntax"; fi

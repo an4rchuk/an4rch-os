@@ -9,7 +9,7 @@ set -euo pipefail
 source "${LUMEN_PATH:-$HOME/.local/share/lumen}/lib/lumen.sh"
 
 show() { # show TITLE PERCENT ICON
-  notify-send -an An4rch -c osd -u low -t 1400 -i "$3" \
+  notify-send -a An4rch -c osd -u low -t 1400 -i "$3" \
     -h string:x-canonical-private-synchronous:anarch-osd -h "int:value:$2" "$1" "" 2>/dev/null || true
 }
 

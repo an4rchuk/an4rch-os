@@ -70,7 +70,7 @@ notify() {
   shift 2 2>/dev/null || shift $#
   has notify-send || { printf '%s %s\n' "$title" "$body"; return; }
   # No notification service (an install from a console): not an error.
-  notify-send -an An4rch "$@" "$title" "$body" 2>/dev/null || printf '%s %s\n' "$title" "$body"
+  notify-send -a An4rch "$@" "$title" "$body" 2>/dev/null || printf '%s %s\n' "$title" "$body"
 }
 
 # Run a program detached from the caller, as its own systemd scope when the

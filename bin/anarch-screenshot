@@ -44,7 +44,7 @@ fi
 # Notification with an "Annotate" action; runs in the background so the
 # hotkey returns immediately.
 (
-  action=$(notify-send -an An4rch -i "$file" -A "edit=Annotate" -A "open=Show in folder" \
+  action=$(notify-send -a An4rch -i "$file" -A "edit=Annotate" -A "open=Show in folder" \
     "Screenshot copied" "Saved to ${file/#$HOME/\~}" 2>/dev/null || true)
   case "$action" in
     edit) launch satty --filename "$file" ;;

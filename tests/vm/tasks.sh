@@ -124,7 +124,12 @@ print(" ".join(s["id"] for s in app.get("sources", [])))' "$lumen/apps/lumen-sto
     for id in $src; do pacman -Q "$id" >/dev/null 2>&1 && found=1; flatpak info "$id" >/dev/null 2>&1 && found=1; done
     ((found)) || missing+="$a "
   done
-  if [[ -z "$missing" ]]; then result "extra apps installed ($apps)" PASS; else result "extra apps installed ($apps)" FAIL "missing: $missing"; fi
+  if [[ -z "$missing" ]]; then result "extra apps installed ($apps)" PASS; else
+    result "extra apps installed ($apps)" FAIL "missing: $missing"
+    say "why (install log):"
+    grep -h -n -A25 '^TRY: \(yay\|sudo flatpak\|sudo pacman -S --needed --noconfirm\)' "$home/.local/state/lumen/install.log" 2>/dev/null | grep -v '^\s*$' | tail -n 80
+    grep -h '^APP ' "$home/.local/state/lumen/install.log" 2>/dev/null
+  fi
 fi
 if [[ "$(choice mode)" == manual ]]; then
   task "installed on the chosen partitions" bash -c 'findmnt -no SOURCE / | grep -q "^/dev/vda[0-9]" ; lsblk -no FSTYPE "$(findmnt -no SOURCE / | sed "s/\[.*//")" | grep -q btrfs'
@@ -229,7 +234,7 @@ shot 12-theme-ancom
 task "next wallpaper" as_user anarch-wallpaper next
 
 # --- Notifications, reminders, clipboard, screenshots --------------------------------
-task "notification" as_user notify-send -an An4rch "Hello from the test" "Notifications work"
+task "notification" as_user notify-send -a An4rch "Hello from the test" "Notifications work"
 sleep 1
 shot 13-notification
 task "reminder scheduled" as_user anarch-remind 30m "Test reminder"

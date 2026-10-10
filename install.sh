@@ -209,41 +209,42 @@ detect_gpu() {
 }
 
 # install_extra_apps — the apps ticked in the installer, by their App Store
-# ids: from the Arch repositories when possible, then the AUR, then Flathub
-# (the order the App Store prefers). Never fatal.
+# ids: each app tries its sources in the App Store's order (Arch
+# repositories, then the AUR, then Flathub) until one works, so an AUR
+# build that fails still gets the app from Flathub. Never fatal.
 install_extra_apps() {
-  local id kind pkg done_ids=() skipped=()
+  local id srcs src kind pkg got done_ids=() skipped=()
   # attempt CMD… — quietly, the output to the log; true when it worked.
   attempt() { printf 'TRY: %s\n' "$*" >>"$LOG"; "$@" >>"$LOG" 2>&1; }
-  while IFS=$'\t' read -r id kind pkg; do
+  while IFS=$'\t' read -r id srcs; do
     [[ -n "$id" ]] || continue
     info "App: $id"
-    case "$kind" in
-      pacman) attempt sudo pacman -S --needed --noconfirm "$pkg" ;;
-      aur) [[ "${LUMEN_OFFLINE:-0}" != 1 ]] && attempt yay -S --needed --noconfirm --answerdiff None --answerclean None --removemake "$pkg" ;;
-      flatpak)
-        [[ "${LUMEN_OFFLINE:-0}" != 1 ]] && command -v flatpak >/dev/null &&
-          attempt sudo flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo &&
-          attempt sudo flatpak install -y --noninteractive flathub "$pkg" ;;
-      *) false ;;
-    esac && done_ids+=("$id") || skipped+=("$id")
+    got=0
+    for src in $srcs; do
+      kind=${src%%:*} pkg=${src#*:}
+      case "$kind" in
+        pacman) attempt sudo pacman -S --needed --noconfirm "$pkg" ;;
+        aur) [[ "${LUMEN_OFFLINE:-0}" != 1 ]] && command -v yay >/dev/null &&
+          attempt yay -S --needed --noconfirm --answerdiff None --answerclean None --removemake "$pkg" ;;
+        flatpak)
+          [[ "${LUMEN_OFFLINE:-0}" != 1 ]] && command -v flatpak >/dev/null &&
+            attempt sudo flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo &&
+            attempt sudo flatpak install -y --noninteractive flathub "$pkg" ;;
+        *) false ;;
+      esac && { got=1; break; }
+      printf 'APP %s: %s %s did not install\n' "$id" "$kind" "$pkg" >>"$LOG"
+    done
+    ((got)) && done_ids+=("$id") || skipped+=("$id")
   done < <(python3 - "$LUMEN_PATH/apps/lumen-store/catalog.json" "$EXTRA_APPS" <<'PY'
 import json, subprocess, sys
 apps = {a["id"]: a for a in json.load(open(sys.argv[1]))["apps"]}
 for want in filter(None, sys.argv[2].split(",")):
-    app = apps.get(want)
-    if not app:
-        print(f"{want}\tunknown\t")
-        continue
-    chosen = None
-    for src in app.get("sources", []):  # repositories first, then the AUR, then Flathub
-        if src["type"] == "pacman" and subprocess.run(["pacman", "-Si", src["id"]], capture_output=True).returncode == 0:
-            chosen = src
-            break
-    if not chosen:
-        chosen = next((s for s in app.get("sources", []) if s["type"] == "aur"), None) or \
-                 next((s for s in app.get("sources", []) if s["type"] == "flatpak"), None)
-    print(f"{want}\t{chosen['type'] if chosen else 'none'}\t{chosen['id'] if chosen else ''}")
+    srcs = apps.get(want, {}).get("sources", [])
+    # Repositories first (when the package is there), then the AUR, then Flathub.
+    order = [s for s in srcs if s["type"] == "pacman" and
+             subprocess.run(["pacman", "-Si", s["id"]], capture_output=True).returncode == 0]
+    order += [s for s in srcs if s["type"] == "aur"] + [s for s in srcs if s["type"] == "flatpak"]
+    print(want + "\t" + " ".join(f"{s['type']}:{s['id']}" for s in order))
 PY
 )
   ((${#done_ids[@]})) && ok "Extra apps: ${done_ids[*]}"

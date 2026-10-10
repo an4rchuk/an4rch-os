@@ -19,7 +19,7 @@ stop() {
     bar_signal record
     if [[ -n "$file" && -f "$file" ]]; then
       (
-        action=$(notify-send -an An4rch -i video-x-generic -A "open=Play" -A "folder=Show in folder" \
+        action=$(notify-send -a An4rch -i video-x-generic -A "open=Play" -A "folder=Show in folder" \
           "Recording saved" "${file/#$HOME/\~}" 2>/dev/null || true)
         case "$action" in
           open) launch xdg-open "$file" ;;
