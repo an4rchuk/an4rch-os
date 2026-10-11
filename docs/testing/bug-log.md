@@ -15,6 +15,7 @@ Machines: brutal (20), scenarios (14), features (8), standard (5).
 
 | Time (UK) | Machine | What failed | Urgent? | Status |
 |---|---|---|---|---|
+| 15:35 | (code review) | Login-screen upgrade for older installs looked for "Welcome to An4rch" (capital A after the rename), so installs still showing the old lowercase text would never get the new login screen | Yes (upgrade silently skipped) | Fixed: matches any case, and the old Lumen wording |
 
 ## Future fixes (not urgent)
 
