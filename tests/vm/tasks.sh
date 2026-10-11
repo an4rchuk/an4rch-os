@@ -646,9 +646,16 @@ pkill -f gnome-calculator
 sleep 2
 # The panic key: locks, closes vaults, wipes the clipboard and mutes.
 as_user wl-copy "panic-clipboard-test"
+rm -f "$home/.local/state/lumen/last-panic"
 keys meta_l-shift-esc
-sleep 6
-if pgrep -x hyprlock >/dev/null; then result "panic key locks the screen" PASS; else result "panic key locks the screen" FAIL; fi
+# Slow machines: give the key and the lock screen up to 20 s.
+for _ in $(seq 20); do pgrep -x hyprlock >/dev/null && break; sleep 1; done
+sleep 2
+if pgrep -x hyprlock >/dev/null; then result "panic key locks the screen" PASS; else
+  # Tell a key that never arrived from a panic that ran but didn't lock.
+  if [[ -e "$home/.local/state/lumen/last-panic" ]]; then why="anarch-panic ran, no lock screen"; else why="the key didn't start anarch-panic"; fi
+  result "panic key locks the screen" FAIL "$why"
+fi
 if ! mountpoint -q "$home/Vaults/vmtest"; then result "panic key closes vaults" PASS; else result "panic key closes vaults" FAIL; fi
 if [[ "$(as_user wl-paste -n 2>/dev/null)" != panic-clipboard-test ]]; then result "panic key wipes the clipboard" PASS; else result "panic key wipes the clipboard" FAIL; fi
 mic=$(as_user wpctl get-volume @DEFAULT_AUDIO_SOURCE@ 2>&1)
