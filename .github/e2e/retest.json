@@ -3,8 +3,8 @@
     {
       "vm": "b-offline-encrypted",
       "nonet": true,
-      "install": "lumen.encrypt=lumenpass1 lumen.keymap=fr lumen.timezone=Europe/Paris",
-      "bootpass": "lumenpass1"
+      "install": "lumen.encrypt=lupinsteel lumen.keymap=fr lumen.timezone=Europe/Paris",
+      "bootpass": "lupinsteel"
     },
     {
       "vm": "b-offline-dualboot",
