@@ -155,13 +155,26 @@ setup_pacman() {
   fi
   if ! command -v yay >/dev/null; then
     pkg_install REQUIRED git base-devel
-    local tmp
+    local tmp try
     tmp=$(mktemp -d)
-    run "Fetching the yay AUR helper" git clone --depth 1 https://aur.archlinux.org/yay-bin.git "$tmp/yay-bin"
-    run "Building yay" bash -c "cd '$tmp/yay-bin' && makepkg -si --noconfirm"
+    # The AUR is down now and then. Everything An4rch needs comes from the
+    # Arch repositories, so carry on without yay rather than stop the install.
+    for try in 1 2 3; do
+      rm -rf "$tmp/yay-bin"
+      printf 'RUN: git clone yay-bin (try %s)\n' "$try" >>"$LOG"
+      git clone --depth 1 https://aur.archlinux.org/yay-bin.git "$tmp/yay-bin" >>"$LOG" 2>&1 && break
+      ((try < 3)) && sleep $((try * 10))
+    done
+    if [[ -f "$tmp/yay-bin/PKGBUILD" ]]; then
+      run "Building yay" bash -c "cd '$tmp/yay-bin' && makepkg -si --noconfirm"
+    else
+      warn "The AUR (aur.archlinux.org) didn't answer, so yay isn't installed. Apps from the AUR are skipped. To add yay later: git clone https://aur.archlinux.org/yay-bin.git && cd yay-bin && makepkg -si"
+    fi
     rm -rf "$tmp"
   fi
-  ok "yay $(yay --version | awk '{print $2}')"
+  if command -v yay >/dev/null; then
+    ok "yay $(yay --version | awk '{print $2}')"
+  fi
 }
 
 # --- 4. Packages ------------------------------------------------------------------
