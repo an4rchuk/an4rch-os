@@ -45,6 +45,12 @@ need() {
   for p in "$@"; do pacman -Q "$p" >/dev/null 2>&1 || missing+=("$p"); done
   [[ ${#missing[@]} -eq 0 ]] && return 0
   printf '\e[2mThis needs: %s\e[0m\n' "${missing[*]}"
+  # Without internet pacman tries every mirror in turn, which takes minutes.
+  if ! curl -fsI --max-time 6 -o /dev/null https://archlinux.org 2>/dev/null &&
+    ! curl -fsI --max-time 6 -o /dev/null https://github.com 2>/dev/null; then
+    printf 'Installing %s needs the internet. Connect, then try again.\n' "${missing[*]}" >&2
+    return 1
+  fi
   "$LUMEN_PATH/bin/anarch-pkg" add "${missing[@]}"
 }
 

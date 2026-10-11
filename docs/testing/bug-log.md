@@ -15,6 +15,10 @@ Machines: brutal (20), scenarios (14), features (8), standard (5).
 
 | Time (UK) | Machine | What failed | Urgent? | Status |
 |---|---|---|---|---|
+| 16:05 | f-manual-encrypted | Panic key didn't lock the screen or wipe the clipboard (passed on every other machine) | Possibly timing; retesting to see if it repeats |
+| 16:05 | chromium | With Chromium as the browser, no browser window opened within 90 s | Already marked as a known issue in the test set; Firefox, Brave and Zen pass |
+| 16:05 | b-offline-bios, b-offline-gamer, b-offline-dualboot, b-offline-encrypted, offline | Backups don't work on installs made without internet: restic (the backup tool) wasn't installed or on the USB, so `anarch backup setup` tried to download it and hung until killed | Yes (feature broken, command freezes) | Fixed: restic + fuse3 installed by default and carried on the USB; installing a missing tool without internet now says so at once instead of hanging. Retest queued |
+| 16:05 | uk-laptop | Test machine died after 4 minutes, before building anything | No (test infrastructure) | Rerun in the retest set |
 | 15:35 | (code review) | Login-screen upgrade for older installs looked for "Welcome to An4rch" (capital A after the rename), so installs still showing the old lowercase text would never get the new login screen | Yes (upgrade silently skipped) | Fixed: matches any case, and the old Lumen wording |
 
 ## Future fixes (not urgent)

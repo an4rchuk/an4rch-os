@@ -42,7 +42,7 @@ cat "$root/iso/packages.x86_64" >>"$profile/packages.x86_64"
     bluez bluez-utils bluetui power-profiles-daemon upower playerctl libnotify \
     wiremix pavucontrol network-manager-applet pacman-contrib \
     nautilus gvfs loupe evince gnome-calculator "${PKG_FOR[firefox]}" \
-    testdisk ntfs-3g parted \
+    testdisk ntfs-3g parted restic fuse3 gocryptfs \
     nvidia-open nvidia-utils egl-wayland
 ) >>"$profile/packages.x86_64"
 sort -u -o "$profile/packages.x86_64" "$profile/packages.x86_64"

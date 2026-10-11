@@ -85,6 +85,7 @@ PKGS_OPTIONAL=(
   flatpak fwupd pacman-contrib pciutils
   gtk4-layer-shell
   gocryptfs mat2 smartmontools lm_sensors qrencode espeak-ng
+  restic fuse3
   bibata-cursor-theme-bin
 )
 
