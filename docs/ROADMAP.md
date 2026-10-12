@@ -6,9 +6,13 @@ Where An4rch OS is heading. Each release has one theme, so it ships something wh
 
 Privacy and safety tools, features borrowed from other systems, and more choices when installing (server edition, kernel, shell, extra apps, your own partitions). See the [release notes](releases/v1.1.0.md).
 
-## 1.1.1 — Looks like itself (now)
+## 1.1.1 — Looks like itself
 
 The red and black An4rch look, a boot screen that flows into a one-step login, the An4rch Hub, display scaling, backups, phone link, the driver manager, Secure Boot, `anarch report`, automatic recovery and the Game edition. See the [release notes](releases/v1.1.1.md).
+
+## 1.1.2 — Tested hard (now)
+
+Fixes from a day of testing on 144 virtual machines: notifications, apps chosen in the installer, offline backups, installs when the AUR is down, and more. See the [release notes](releases/v1.1.2.md).
 
 ## 1.2 — Safe to forget about
 
