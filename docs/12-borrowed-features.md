@@ -1,6 +1,6 @@
 # Borrowed from other systems
 
-The best ideas from macOS, Windows, ChromeOS and Android, rebuilt for an4rch OS. Find them in the an4rch menu under **Tools** (<kbd>SUPER</kbd> + <kbd>ALT</kbd> + <kbd>SPACE</kbd>) or as `anarch <name>` in a terminal.
+The best ideas from macOS, Windows, ChromeOS and Android, rebuilt for An4rch OS. Find them in the An4rch menu under **Tools** (<kbd>SUPER</kbd> + <kbd>ALT</kbd> + <kbd>SPACE</kbd>) or as `anarch <name>` in a terminal.
 
 | an4rch | Borrowed from | What it does |
 | --- | --- | --- |

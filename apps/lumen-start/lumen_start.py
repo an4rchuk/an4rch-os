@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""an4rch Start — the app menu that opens when you tap the Windows (Super) key.
+"""An4rch Start — the app menu that opens when you tap the Windows (Super) key.
 
 Runs as a small background service so it appears instantly: `anarch-start`
 toggles it over D-Bus. Pinned apps, recently used apps, all apps A–Z, and a
@@ -82,7 +82,7 @@ ACTIONS = [
     ("Performance tuning", "performance tune cpu scheduler sched-ext kernel zen mirrors speed", "power-profile-performance-symbolic", ["anarch-tune"]),
     ("Development environment", "development dev programming node python go rust ruby java docker postgres mysql redis database mise", "applications-engineering-symbolic", ["anarch-dev"]),
     ("Key bindings", "keys shortcuts keyboard help", "preferences-desktop-keyboard-shortcuts-symbolic", ["anarch-keys"]),
-    ("an4rch manual", "help manual docs guide", "help-browser-symbolic", ["anarch-manual"]),
+    ("An4rch manual", "help manual docs guide", "help-browser-symbolic", ["anarch-manual"]),
     ("Taskbar", "taskbar bottom bar dock windows panel", "view-app-grid-symbolic", ["anarch-taskbar", "toggle"]),
     ("Window title bars", "title bars window buttons close minimise minimize maximise maximize decorations", "window-new-symbolic", ["anarch-titlebars", "toggle"]),
     ("Night light", "night light warm blue", "weather-clear-night-symbolic", ["anarch-toggle", "nightlight"]),

@@ -94,7 +94,11 @@ built_aur=()
 for p in "${aur_pkgs[@]}"; do
   echo "  building $p (AUR)"
   if arch-chroot "$builder" runuser -u lumenbuild -- bash -c "
-      set -e; cd ~ && rm -rf '$p' && git clone -q --depth 1 'https://aur.archlinux.org/$p.git' && cd '$p' &&
+      set -e; cd ~
+      for try in 1 2 3; do
+        rm -rf '$p'; git clone -q --depth 1 'https://aur.archlinux.org/$p.git' && break; sleep \$((try * 10))
+      done
+      cd '$p' &&
       [[ -f PKGBUILD ]] && makepkg --nodeps --noconfirm >/dev/null 2>&1"; then
     for f in "$builder/home/lumenbuild/$p"/*.pkg.tar.zst; do
       [[ -f "$f" ]] && cp "$f" "$repo/" && built_aur+=("$repo/${f##*/}")

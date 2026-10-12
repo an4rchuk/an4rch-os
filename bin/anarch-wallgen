@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # anarch-wallgen — paint original wallpapers from a theme's palette.
-"""Generate an4rch wallpapers from theme palettes.
+"""Generate An4rch wallpapers from theme palettes.
 
 Every theme gets a small set of abstract, softly lit wallpapers drawn from its
 own colours, so switching themes always lands on a background that matches.

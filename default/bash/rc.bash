@@ -1,5 +1,5 @@
 # shellcheck shell=bash
-# an4rch shell defaults (bash). Managed by an4rch — put your own settings in
+# An4rch shell defaults (bash). Managed by An4rch — put your own settings in
 # ~/.bashrc after the line that sources this file.
 
 export LUMEN_PATH="${LUMEN_PATH:-$HOME/.local/share/lumen}"

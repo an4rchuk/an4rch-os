@@ -8,7 +8,7 @@
 #   anarch-tune kernel remove-NAME    take it away again
 #   anarch-tune mirrors               rank Arch mirrors by speed now (and weekly from now on)
 #
-# an4rch OS already ships the low-risk tweaks (see install/distro.sh): tuned
+# An4rch OS already ships the low-risk tweaks (see install/distro.sh): tuned
 # sysctls for zram and desktops, per-device I/O schedulers, NTSYNC for Wine
 # and Proton, faster shutdowns. These are the opt-in ones.
 set -euo pipefail
@@ -149,11 +149,11 @@ kernel() {
   # NVIDIA's driver is built for each kernel: it needs the kernel's headers.
   pacman -Qq nvidia-open-dkms >/dev/null 2>&1 && add "$pkg-headers"
   if [[ -f $mainentry && -n "$main" ]]; then
-    sudo sed -e "s/^title .*/title   an4rch OS ($label)/" \
+    sudo sed -e "s/^title .*/title   An4rch OS ($label)/" \
       -e "s#/vmlinuz-$main\$#/vmlinuz-$pkg#" \
       -e "s#/initramfs-$main\\.img\$#/initramfs-$pkg.img#" \
       "$mainentry" | sudo tee "$entries/lumen-$name.conf" >/dev/null
-    say "Added \"an4rch OS ($label)\" to the boot menu"
+    say "Added \"An4rch OS ($label)\" to the boot menu"
     printf '  Make it the default? [y/N] '
     read -r yn
     if [[ "$yn" == [yY]* ]]; then

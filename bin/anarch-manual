@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# anarch-manual — read the an4rch manual (SUPER + F1).
+# anarch-manual — read the An4rch manual (SUPER + F1).
 #
 #   anarch-manual            open the manual
 #   anarch-manual TOPIC      jump to a chapter, e.g. `anarch-manual themes`
@@ -29,5 +29,5 @@ fi
 if [[ -t 1 ]]; then
   exec "${reader[@]}" "$file"
 else
-  term --float --title "an4rch manual" -- "${reader[@]}" "$file"
+  term --float --title "An4rch manual" -- "${reader[@]}" "$file"
 fi

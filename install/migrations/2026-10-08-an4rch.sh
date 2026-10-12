@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# an4rch OS 1.1.0: the rename from Lumen OS. The system name, the signature
+# An4rch OS 1.1.0: the rename from Lumen OS. The system name, the signature
 # theme (lumen → an4rch) and the new wallpapers (gradients as well as the
 # abstract ones). Commands, folders and settings stay where they are.
 set -euo pipefail
 LUMEN_PATH="${LUMEN_PATH:-$HOME/.local/share/lumen}"
 source "$LUMEN_PATH/lib/lumen.sh"
 
-echo "  Lumen OS is now an4rch OS (the 'anarch' command; 'lumen' still works)"
+echo "  Lumen OS is now An4rch OS (the 'anarch' command; 'lumen' still works)"
 
 # The signature theme's new name.
 if [[ "$(cat "$LUMEN_CURRENT/theme.name" 2>/dev/null)" == lumen && ! -f "$LUMEN_CONFIG/themes/lumen/theme.conf" ]]; then
@@ -17,7 +17,7 @@ if [[ -f "$LUMEN_STATE/wallpaper-lumen" && ! -e "$LUMEN_STATE/wallpaper-an4rch" 
 fi
 
 # Painted wallpapers: the current theme's are repainted now (new styles,
-# new numbering); every other theme's on first use. Only an4rch's own
+# new numbering); every other theme's on first use. Only An4rch's own
 # painted files (NN-style.jpg) are removed.
 for d in "$LUMEN_WALLPAPERS"/*/; do
   [[ -d "$d" ]] || continue

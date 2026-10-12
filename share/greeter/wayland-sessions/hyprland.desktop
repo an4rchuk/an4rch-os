@@ -1,6 +1,6 @@
 [Desktop Entry]
 Name=an4rch
-Comment=The an4rch desktop
+Comment=The An4rch desktop
 Exec=uwsm start -- hyprland.desktop
 Type=Application
 DesktopNames=Hyprland

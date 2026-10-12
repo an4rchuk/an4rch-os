@@ -1,6 +1,6 @@
 # Privacy, safety and accessibility
 
-Tools most desktops leave to add-ons, built into an4rch OS. They're all in the an4rch menu under **Privacy and safety** (<kbd>SUPER</kbd> + <kbd>ALT</kbd> + <kbd>SPACE</kbd>), in Start's search, and on the command line as `anarch <name>`.
+Tools most desktops leave to add-ons, built into An4rch OS. They're all in the An4rch menu under **Privacy and safety** (<kbd>SUPER</kbd> + <kbd>ALT</kbd> + <kbd>SPACE</kbd>), in Start's search, and on the command line as `anarch <name>`.
 
 ## The panic key: <kbd>SUPER</kbd> + <kbd>SHIFT</kbd> + <kbd>Esc</kbd>
 
@@ -72,7 +72,7 @@ One file with your settings, themes, key bindings, look and feel, top bar, web a
 
 A report with a verdict for each part: every drive's health and wear (SMART), filesystem errors and the last btrfs scrub, free space, battery wear, failed services and temperatures.
 
-an4rch OS watches the drives (smartd) and scrubs btrfs once a month, finding silently damaged data (and repairing it wherever btrfs keeps a second copy). A daily check notifies you if anything needs attention. `anarch health setup` turns all of that on for an install made before 1.1.0 (updating does it too).
+An4rch OS watches the drives (smartd) and scrubs btrfs once a month, finding silently damaged data (and repairing it wherever btrfs keeps a second copy). A daily check notifies you if anything needs attention. `anarch health setup` turns all of that on for an install made before 1.1.0 (updating does it too).
 
 ## Focus sessions: `anarch focus`
 

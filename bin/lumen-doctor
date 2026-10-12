@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
-# lumen-doctor — obsolete name (before an4rch OS 1.1.0) of anarch-doctor; kept so old configs still work.
+# lumen-doctor — obsolete name (before An4rch OS 1.1.0) of anarch-doctor; kept so old configs still work.
 [[ -t 2 ]] && printf '\e[33m!\e[0m lumen-doctor is obsolete: use anarch-doctor (or: anarch doctor)\n' >&2
 exec "${LUMEN_PATH:-$HOME/.local/share/lumen}/bin/anarch-doctor" "$@"

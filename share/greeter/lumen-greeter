@@ -1,8 +1,8 @@
 #!/bin/bash
-# lumen-greeter — an4rch's login screen, started by greetd as the "greeter"
+# lumen-greeter — An4rch's login screen, started by greetd as the "greeter"
 # user (installed to /usr/local/bin by `anarch-login setup`).
 #
-# an4rch's own login screen (user name and password together, the logo where
+# An4rch's own login screen (user name and password together, the logo where
 # the boot screen leaves it) runs in the cage kiosk compositor, in your
 # theme's colours (copied to /var/lib/lumen/login by `anarch-login sync`).
 # If it can't start, ReGreet takes over, and failing that the text login
@@ -13,7 +13,7 @@ log="${XDG_RUNTIME_DIR:-/tmp}/lumen-greeter.log"
 
 if [[ ! -e "$dir/text-only" ]] && command -v cage >/dev/null &&
   compgen -G '/dev/dri/card*' >/dev/null; then
-  # an4rch's session files come first: ReGreet takes the first file of each
+  # An4rch's session files come first: ReGreet takes the first file of each
   # name, so the list shows one "an4rch" session (Hyprland through uwsm).
   export XDG_DATA_DIRS="/usr/local/share/lumen:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
   # The system keyboard layout (set by the installer or anarch setup keyboard),
@@ -32,7 +32,7 @@ if [[ ! -e "$dir/text-only" ]] && command -v cage >/dev/null &&
     start=$SECONDS
     cage -s -m last -- python3 "$app" >"$log" 2>&1 && exit 0
     ((SECONDS - start > 20)) && exit 0
-    echo "lumen-greeter: an4rch's login screen failed; trying ReGreet" >>"$log"
+    echo "lumen-greeter: An4rch's login screen failed; trying ReGreet" >>"$log"
   fi
   start=$SECONDS
   cage -s -m last -- regreet "${args[@]}" >>"$log" 2>&1 && exit 0
@@ -42,4 +42,4 @@ if [[ ! -e "$dir/text-only" ]] && command -v cage >/dev/null &&
 fi
 
 exec tuigreet --time --time-format '%A %d %B  ·  %H:%M' --remember --asterisks \
-  --greeting 'Welcome to an4rch' --cmd "$session"
+  --greeting 'Welcome to An4rch' --cmd "$session"

@@ -111,7 +111,7 @@ check_temps() {
 }
 
 report() {
-  printf '\e[1man4rch health\e[0m  %s\n\n' "$(date '+%F %H:%M')"
+  printf '\e[1mAn4rch health\e[0m  %s\n\n' "$(date '+%F %H:%M')"
   check_drives
   check_filesystem
   check_space
@@ -167,7 +167,7 @@ setup() {
 
 case "${1:-}" in
   "" | report)
-    [[ -t 1 ]] || { term --float --hold --title "an4rch health" -- "$0"; exit 0; }
+    [[ -t 1 ]] || { term --float --hold --title "An4rch health" -- "$0"; exit 0; }
     report
     ;;
   check)

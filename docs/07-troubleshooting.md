@@ -6,7 +6,7 @@
 anarch doctor
 ```
 
-It checks every component an4rch relies on, the session services, system services, fonts and the Hyprland config, and prints the exact command to fix each problem. You can also run it from **an4rch menu → Setup → Health check**.
+It checks every component An4rch relies on, the session services, system services, fonts and the Hyprland config, and prints the exact command to fix each problem. You can also run it from **An4rch menu → Setup → Health check**.
 
 ## Hardware report
 
@@ -14,7 +14,7 @@ It checks every component an4rch relies on, the session services, system service
 anarch doctor hardware
 ```
 
-Shows the computer's model, graphics, Wi-Fi and Bluetooth chips with the driver each one uses, whether Wi-Fi or Bluetooth is switched off, the boot mode (UEFI or legacy BIOS, Secure Boot on or off) and any firmware or driver errors since startup. It's saved to `~/lumen-hardware-report.txt`; when reporting a problem with Wi-Fi, Bluetooth, sound or graphics, include it (or a photo of the screen). Also in **an4rch menu → Setup → Hardware report**.
+Shows the computer's model, graphics, Wi-Fi and Bluetooth chips with the driver each one uses, whether Wi-Fi or Bluetooth is switched off, the boot mode (UEFI or legacy BIOS, Secure Boot on or off) and any firmware or driver errors since startup. It's saved to `~/lumen-hardware-report.txt`; when reporting a problem with Wi-Fi, Bluetooth, sound or graphics, include it (or a photo of the screen). Also in **An4rch menu → Setup → Hardware report**.
 
 ## Logs
 
@@ -56,7 +56,7 @@ Check Do Not Disturb (a bell in the bar, <kbd>SUPER</kbd> + <kbd>CTRL</kbd> + <k
 Check *keep awake* (a coffee cup in the bar). A browser tab playing video also keeps the screen on; that's intentional. `anarch-session restart idle` restarts the idle daemon.
 
 **No sound.**
-`systemctl --user status pipewire wireplumber`. Pick the right output in **an4rch menu → Setup → Audio output**. Some laptops need `sof-firmware` (`anarch pkg add sof-firmware`, then reboot).
+`systemctl --user status pipewire wireplumber`. Pick the right output in **An4rch menu → Setup → Audio output**. Some laptops need `sof-firmware` (`anarch pkg add sof-firmware`, then reboot).
 
 **Wi-Fi is missing after install.**
 The installer switches networking to NetworkManager on the next boot. If the Wi-Fi menu says NetworkManager isn't running: `sudo systemctl enable --now NetworkManager`. If you used `iwd` before, make sure it's disabled: `sudo systemctl disable --now iwd`.
@@ -75,7 +75,7 @@ Add a window rule in `~/.config/hypr/rules.lua`. `anarch doctor windows` prints 
 
 ## Starting over
 
-Your old configs from before an4rch are in `~/.config/lumen-backup-<date>/`. To uninstall an4rch's session while keeping the packages:
+Your old configs from before An4rch are in `~/.config/lumen-backup-<date>/`. To uninstall An4rch's session while keeping the packages:
 
 ```sh
 sudo systemctl disable greetd           # and re-enable your previous login manager

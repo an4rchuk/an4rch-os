@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
-# lumen-hyprbars-build — obsolete name (before an4rch OS 1.1.0) of anarch-hyprbars-build; kept so old configs still work.
+# lumen-hyprbars-build — obsolete name (before An4rch OS 1.1.0) of anarch-hyprbars-build; kept so old configs still work.
 [[ -t 2 ]] && printf '\e[33m!\e[0m lumen-hyprbars-build is obsolete: use anarch-hyprbars-build (or: anarch hyprbars-build)\n' >&2
 exec "${LUMEN_PATH:-$HOME/.local/share/lumen}/bin/anarch-hyprbars-build" "$@"

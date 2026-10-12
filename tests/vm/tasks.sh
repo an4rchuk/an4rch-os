@@ -99,7 +99,7 @@ esac
 # Offline installs fall back to the standard kernel when the chosen one isn't on the stick.
 if uname -r | grep -qE -- "$want"; then
   result "kernel ($k) is running" PASS "$(uname -r)"
-elif grep -q "needs the internet; installing the standard one" /var/log/lumen-os-install.log 2>/dev/null; then
+elif grep -q "needs the internet; installing the standard one" /var/log/an4rch-install.log 2>/dev/null; then
   result "kernel ($k) is running" PASS "offline: standard kernel instead ($(uname -r))"
 else
   result "kernel ($k) is running" FAIL "$(uname -r)"
@@ -108,12 +108,19 @@ sh_want=$(choice shell)
 sh_now=$(getent passwd "$u" | cut -d: -f7)
 if [[ "${sh_now##*/}" == "${sh_want:-zsh}" ]]; then result "login shell is ${sh_want:-zsh}" PASS; else result "login shell is ${sh_want:-zsh}" FAIL "$sh_now"; fi
 if [[ "${sh_want:-zsh}" == fish ]]; then
-  task "fish starts with an4rch's settings" runuser -u "$u" -- env HOME="$home" fish -l -c 'type -q anarch; and set -q LUMEN_PATH'
+  task "fish starts with An4rch's settings" runuser -u "$u" -- env HOME="$home" fish -l -c 'type -q anarch; and set -q LUMEN_PATH'
 elif [[ "${sh_want:-zsh}" == bash ]]; then
-  task "bash starts with an4rch's settings" runuser -u "$u" -- env HOME="$home" bash -ic 'type anarch >/dev/null && alias ll >/dev/null'
+  task "bash starts with An4rch's settings" runuser -u "$u" -- env HOME="$home" bash -ic 'type anarch >/dev/null && alias ll >/dev/null'
 fi
 apps=$(choice apps)
 if [[ -n "$apps" ]]; then
+  # Apps the installer's chroot couldn't install are put in after the first
+  # start (lumen-pending-apps): wait for that to finish (up to 10 minutes).
+  for _ in $(seq 120); do
+    state=$(systemctl show -p ActiveState --value lumen-pending-apps.service 2>/dev/null)
+    [[ "$state" == active || ( -s /var/lib/lumen/pending-apps && ! -e /var/lib/lumen/pending-apps.tries ) ]] || break
+    sleep 5
+  done
   missing=""
   for a in ${apps//,/ }; do
     src=$(python3 -c '
@@ -124,14 +131,21 @@ print(" ".join(s["id"] for s in app.get("sources", [])))' "$lumen/apps/lumen-sto
     for id in $src; do pacman -Q "$id" >/dev/null 2>&1 && found=1; flatpak info "$id" >/dev/null 2>&1 && found=1; done
     ((found)) || missing+="$a "
   done
-  if [[ -z "$missing" ]]; then result "extra apps installed ($apps)" PASS; else result "extra apps installed ($apps)" FAIL "missing: $missing"; fi
+  if [[ -z "$missing" ]]; then result "extra apps installed ($apps)" PASS; else
+    result "extra apps installed ($apps)" FAIL "missing: $missing"
+    say "in the installer:"
+    sed -n '/^TRY: yay/,/^\(TRY\|APP\)/p' "$home/.local/state/lumen/install.log" 2>/dev/null | grep -v '^\s*$' | grep -iv '% Total\|Dload' | tail -n 60
+    grep -h '^APP ' "$home/.local/state/lumen/install.log" 2>/dev/null
+    say "after the first start (lumen-pending-apps):"
+    journalctl -b -u lumen-pending-apps --no-pager -o cat 2>/dev/null | grep -v '^\s*$' | grep -iv 'downloading\|% Total\|Dload' | tail -n 120
+  fi
 fi
 if [[ "$(choice mode)" == manual ]]; then
   task "installed on the chosen partitions" bash -c 'findmnt -no SOURCE / | grep -q "^/dev/vda[0-9]" ; lsblk -no FSTYPE "$(findmnt -no SOURCE / | sed "s/\[.*//")" | grep -q btrfs'
 fi
 
-# The an4rch boot screen: set as the theme, and inside every initramfs.
-task "boot screen is an4rch's" bash -c 'grep -qx "Theme=an4rch" /etc/plymouth/plymouthd.conf &&
+# The An4rch boot screen: set as the theme, and inside every initramfs.
+task "boot screen is An4rch's" bash -c 'grep -qx "Theme=an4rch" /etc/plymouth/plymouthd.conf &&
   for i in /boot/initramfs-*.img; do [[ $i == *fallback* ]] && continue; lsinitcpio "$i" | grep -q "usr/share/plymouth/themes/an4rch/an4rch.script" || { echo "missing from $i"; exit 1; }; done'
 
 # How the boot screen met the graphics (for diagnosing handovers): which
@@ -157,7 +171,7 @@ else
   result "boot animation plays before the login" FAIL "shown=$shown quit=$quit"
 fi
 
-# --- an4rch Game edition: starts in Steam's Game Mode instead of the desktop --------------
+# --- An4rch Game edition: starts in Steam's Game Mode instead of the desktop --------------
 if [[ "$(choice edition)" == game ]]; then
   say "Game edition: Steam's Game Mode at start-up"
   if pacman -Q steam >/dev/null 2>&1; then result "Steam installed" PASS; else result "Steam installed" FAIL; fi
@@ -183,7 +197,7 @@ if [[ "$(choice edition)" == game ]]; then
   exit 0
 fi
 
-# --- an4rch Server: no desktop; check the system, remote access and the tools -----------
+# --- An4rch Server: no desktop; check the system, remote access and the tools -----------
 if [[ "$(choice edition)" == server ]]; then
   say "Server install: no desktop to test"
   if systemctl is-active -q sshd; then result "SSH server running" PASS; else result "SSH server running" FAIL; fi
@@ -208,7 +222,7 @@ shot 10-clean-desktop
 # --- Health check ---------------------------------------------------------------------
 cli "anarch doctor" anarch-doctor
 
-# --- Apps from an4rch's launcher ------------------------------------------------------
+# --- Apps from An4rch's launcher ------------------------------------------------------
 as_user anarch-launch terminal
 if wait_window "terminal opens (anarch-launch)" 'ghostty|alacritty|kitty' 30; then
   type_text "fastfetch"
@@ -229,7 +243,7 @@ shot 12-theme-ancom
 task "next wallpaper" as_user anarch-wallpaper next
 
 # --- Notifications, reminders, clipboard, screenshots --------------------------------
-task "notification" as_user notify-send -a an4rch "Hello from the test" "Notifications work"
+task "notification" as_user notify-send -a An4rch "Hello from the test" "Notifications work"
 sleep 1
 shot 13-notification
 task "reminder scheduled" as_user anarch-remind 30m "Test reminder"
@@ -294,7 +308,7 @@ else
   ls -la /usr/lib/lumen 2>&1
   say "login load log:"; cat "$home/.local/state/lumen/titlebars.log" 2>&1 | tail -n 20
   say "load now:"; as_user hyprctl plugin load /usr/lib/lumen/hyprbars.so 2>&1 | tail -n 20
-  say "install log:"; grep -n -i -A12 'title bars\|hyprbars' /var/log/lumen-os-install.log 2>/dev/null | tail -n 60
+  say "install log:"; grep -n -i -A12 'title bars\|hyprbars' /var/log/an4rch-install.log 2>/dev/null | tail -n 60
 fi
 shot 17b-titlebars
 task "minimise the calculator" as_user anarch-window minimize
@@ -375,7 +389,7 @@ if nmcli -t -f STATE general 2>/dev/null | grep -q '^connected'; then
 fi
 task "text editor and camera installed" bash -c 'command -v gnome-text-editor && command -v snapshot'
 
-# --- Privacy, safety and the other an4rch tools ------------------------------------------
+# --- Privacy, safety and the other An4rch tools ------------------------------------------
 # root_cli NAME CMD... — like cli, as root (the commands use sudo).
 root_cli() {
   local name="$1"
@@ -471,7 +485,7 @@ as_user anarch-toggle nightlight off >/dev/null 2>&1
 cli "anarch reset --dry-run" anarch reset --dry-run
 
 # --- 1.1.1: scaling, backups, drivers, problem reports, phone, Secure Boot ------------------
-# Screens get the size an4rch picks for them (150% on 4K, 100% on 1080p),
+# Screens get the size An4rch picks for them (150% on 4K, 100% on 1080p),
 # unless a display rule of your own says otherwise.
 mons=$(as_user hyprctl monitors -j 2>/dev/null)
 read -r mname pick _ < <(as_user python3 "$lumen/lib/autoscale.py" <<<"$mons" 2>/dev/null | head -n1)
@@ -487,17 +501,17 @@ fi
 cli "anarch display autoscale" anarch display autoscale
 # Backups: back up, lose a file, get it back.
 pacman -S --needed --noconfirm restic fuse3 >/dev/null 2>&1 || true
-as_user bash -c 'mkdir -p ~/Documents && echo "an4rch backup check" > ~/Documents/backup-check.txt'
+as_user bash -c 'mkdir -p ~/Documents && echo "An4rch backup check" > ~/Documents/backup-check.txt'
 cli "anarch backup setup (to a folder)" anarch backup setup /var/tmp/an4rch-bk
 as_user rm -f "$home/Documents/backup-check.txt"
 cli "anarch backup restore" anarch backup restore "$home/Documents/backup-check.txt"
-if as_user bash -c 'grep -rqs "an4rch backup check" ~/Restored'; then result "backup brings a deleted file back" PASS; else result "backup brings a deleted file back" FAIL "$(as_user find "$home/Restored" -type f | head -n 5 | tr '\n' ' ')"; fi
+if as_user bash -c 'grep -rqs "An4rch backup check" ~/Restored'; then result "backup brings a deleted file back" PASS; else result "backup brings a deleted file back" FAIL "$(as_user find "$home/Restored" -type f | head -n 5 | tr '\n' ' ')"; fi
 task "hourly backup timer" as_user systemctl --user is-enabled lumen-backup.timer
 cli "anarch backup off" anarch backup off
 cli "anarch drivers" anarch drivers
 task "anarch drivers check (nothing better to install)" as_user anarch drivers check
 rep=$(as_user anarch report --print 2>/dev/null)
-# (The VM's computer name is an4rch, the OS's own name, which the report keeps;
+# (The VM's computer name is An4rch, the OS's own name, which the report keeps;
 # the user name and home folder must be gone.)
 if [[ "$rep" == *"===== System"* && "$rep" != *"/home/$u"* ]] && ! grep -qw -- "$u" <<<"$rep"; then
   result "problem report (private details removed)" PASS "$(wc -l <<<"$rep") lines"
@@ -558,11 +572,11 @@ if wait_window "Settings opens" 'lumen.Settings' 40; then
   sleep 3
   shot 21a-settings
 fi
-# The an4rch Hub's 1.1.1 pages: every page built (a broken one fails here), then Backups shown.
+# The An4rch Hub's 1.1.1 pages: every page built (a broken one fails here), then Backups shown.
 pkill -f lumen_settings.py
 sleep 2
 as_user env LUMEN_SETTINGS_ALL_PAGES=1 anarch-hub backups >/dev/null 2>&1 &
-if wait_window "an4rch Hub opens (all pages built)" 'lumen.Settings' 40; then
+if wait_window "An4rch Hub opens (all pages built)" 'lumen.Settings' 40; then
   sleep 3
   shot 21b-hub-backups
   pkill -f lumen_settings.py
@@ -632,9 +646,16 @@ pkill -f gnome-calculator
 sleep 2
 # The panic key: locks, closes vaults, wipes the clipboard and mutes.
 as_user wl-copy "panic-clipboard-test"
+rm -f "$home/.local/state/lumen/last-panic"
 keys meta_l-shift-esc
-sleep 6
-if pgrep -x hyprlock >/dev/null; then result "panic key locks the screen" PASS; else result "panic key locks the screen" FAIL; fi
+# Slow machines: give the key and the lock screen up to 20 s.
+for _ in $(seq 20); do pgrep -x hyprlock >/dev/null && break; sleep 1; done
+sleep 2
+if pgrep -x hyprlock >/dev/null; then result "panic key locks the screen" PASS; else
+  # Tell a key that never arrived from a panic that ran but didn't lock.
+  if [[ -e "$home/.local/state/lumen/last-panic" ]]; then why="anarch-panic ran, no lock screen"; else why="the key didn't start anarch-panic"; fi
+  result "panic key locks the screen" FAIL "$why"
+fi
 if ! mountpoint -q "$home/Vaults/vmtest"; then result "panic key closes vaults" PASS; else result "panic key closes vaults" FAIL; fi
 if [[ "$(as_user wl-paste -n 2>/dev/null)" != panic-clipboard-test ]]; then result "panic key wipes the clipboard" PASS; else result "panic key wipes the clipboard" FAIL; fi
 mic=$(as_user wpctl get-volume @DEFAULT_AUDIO_SOURCE@ 2>&1)

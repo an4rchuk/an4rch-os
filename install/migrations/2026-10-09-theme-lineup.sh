@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# an4rch OS 1.1.1: the anarchism themes come with an4rch, with an4rch Light;
+# An4rch OS 1.1.1: the anarchism themes come with An4rch, with An4rch Light;
 # the old palettes (Cachy, Tokyo Night, Catppuccin, Gruvbox, Nord, Rosé Pine,
 # Everforest, Kanagawa, the violet an4rch) are retired.
 set -euo pipefail
 LUMEN_PATH="${LUMEN_PATH:-$HOME/.local/share/lumen}"
 source "$LUMEN_PATH/lib/lumen.sh"
 
-echo "  New: the anarchism themes and an4rch Light come with an4rch (SUPER + CTRL + T)."
+echo "  New: the anarchism themes and An4rch Light come with An4rch (SUPER + CTRL + T)."
 
 # Copies of the anarchism pack's themes: the bundled ones replace them.
 for f in "$LUMEN_CONFIG"/themes/*/.pack; do

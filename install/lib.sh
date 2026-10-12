@@ -76,7 +76,7 @@ run() {
 }
 
 # booted — true on a running system; false in a chroot or container (the
-# an4rch OS installer runs install.sh inside a chroot), where services can be
+# An4rch OS installer runs install.sh inside a chroot), where services can be
 # enabled but not started, and the kernel's firewall can't be touched.
 booted() {
   [[ "$(ps -p 1 -o comm= 2>/dev/null)" == systemd ]] && ! systemd-detect-virt -q --chroot 2>/dev/null

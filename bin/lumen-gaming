@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
-# lumen-gaming — obsolete name (before an4rch OS 1.1.0) of anarch-gaming; kept so old configs still work.
+# lumen-gaming — obsolete name (before An4rch OS 1.1.0) of anarch-gaming; kept so old configs still work.
 [[ -t 2 ]] && printf '\e[33m!\e[0m lumen-gaming is obsolete: use anarch-gaming (or: anarch gaming)\n' >&2
 exec "${LUMEN_PATH:-$HOME/.local/share/lumen}/bin/anarch-gaming" "$@"

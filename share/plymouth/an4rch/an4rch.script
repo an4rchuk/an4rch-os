@@ -1,4 +1,4 @@
-# an4rch OS boot screen: the an4rch logo fills the screen, then shrinks and
+# An4rch OS boot screen: the An4rch logo fills the screen, then shrinks and
 # rises to where the login screen shows it (anarch-login draws the same
 # layout), and glows. The disk password is asked for below it.
 # (Plymouth script; see https://www.freedesktop.org/wiki/Software/Plymouth/Scripts/)

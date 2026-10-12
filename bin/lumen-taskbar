@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
-# lumen-taskbar — obsolete name (before an4rch OS 1.1.0) of anarch-taskbar; kept so old configs still work.
+# lumen-taskbar — obsolete name (before An4rch OS 1.1.0) of anarch-taskbar; kept so old configs still work.
 [[ -t 2 ]] && printf '\e[33m!\e[0m lumen-taskbar is obsolete: use anarch-taskbar (or: anarch taskbar)\n' >&2
 exec "${LUMEN_PATH:-$HOME/.local/share/lumen}/bin/anarch-taskbar" "$@"

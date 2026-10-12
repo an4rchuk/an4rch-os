@@ -30,7 +30,7 @@ echo "==> Chromebook detected: setting up the keyboard and touchpad"
 
 # --- Touchpad (and touchscreen) drivers -------------------------------------------------
 cat >/etc/modules-load.d/lumen-chromebook.conf <<'EOF'
-# Chromebook touchpads and touchscreens sit on I2C (an4rch OS).
+# Chromebook touchpads and touchscreens sit on I2C (An4rch OS).
 i2c_hid_acpi
 elan_i2c
 cyapa
@@ -73,7 +73,7 @@ fi
 
 install -d /etc/keyd
 {
-  echo "# Chromebook keyboard (an4rch OS, install/chromebook.sh). Search + top row = F1-F12."
+  echo "# Chromebook keyboard (An4rch OS, install/chromebook.sh). Search + top row = F1-F12."
   echo "[ids]"
   echo "*"
   echo

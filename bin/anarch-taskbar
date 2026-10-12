@@ -3,7 +3,7 @@
 #
 #   anarch-taskbar on       show it now and at every login
 #   anarch-taskbar off      hide it
-#   anarch-taskbar toggle   switch (an4rch menu → Toggle → Taskbar)
+#   anarch-taskbar toggle   switch (An4rch menu → Toggle → Taskbar)
 #   anarch-taskbar start    start it if the setting is on (used at login)
 #
 # It shows Start, your open windows (click to switch, click the active one

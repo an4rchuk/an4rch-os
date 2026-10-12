@@ -22,7 +22,7 @@ READER=off TEXT=1.0 CURSOR=24 MOTION=normal CONTRAST=off PREV_THEME=""
 save() {
   mkdir -p "$LUMEN_CONFIG"
   cat >"$conf" <<EOF
-# an4rch accessibility (anarch a11y). Applied at every login.
+# An4rch accessibility (anarch a11y). Applied at every login.
 READER=$READER
 TEXT=$TEXT
 CURSOR=$CURSOR

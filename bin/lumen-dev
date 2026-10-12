@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
-# lumen-dev — obsolete name (before an4rch OS 1.1.0) of anarch-dev; kept so old configs still work.
+# lumen-dev — obsolete name (before An4rch OS 1.1.0) of anarch-dev; kept so old configs still work.
 [[ -t 2 ]] && printf '\e[33m!\e[0m lumen-dev is obsolete: use anarch-dev (or: anarch dev)\n' >&2
 exec "${LUMEN_PATH:-$HOME/.local/share/lumen}/bin/anarch-dev" "$@"

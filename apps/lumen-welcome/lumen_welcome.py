@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""an4rch Welcome — the first-boot tour: pick a look, set up the essentials,
+"""An4rch Welcome — the first-boot tour: pick a look, set up the essentials,
 learn the keys. Opens on first login; reopen it from the Start menu."""
 
 from __future__ import annotations
@@ -20,7 +20,7 @@ LUMEN_PATH = Path(os.environ.get("LUMEN_PATH", HOME / ".local/share/lumen"))
 CONFIG = Path(os.environ.get("XDG_CONFIG_HOME", HOME / ".config")) / "lumen"
 STATE = Path(os.environ.get("XDG_STATE_HOME", HOME / ".local/state")) / "lumen"
 HERE = Path(__file__).resolve().parent
-# Running from the an4rch OS USB stick (archiso), not an installed system.
+# Running from the An4rch OS USB stick (archiso), not an installed system.
 LIVE = Path("/run/archiso").exists()
 
 
@@ -55,7 +55,7 @@ def themes() -> list[tuple[str, dict]]:
 
 class Welcome(Adw.ApplicationWindow):
     def __init__(self, app: Adw.Application):
-        super().__init__(application=app, title="Welcome to an4rch", default_width=820, default_height=640)
+        super().__init__(application=app, title="Welcome to An4rch", default_width=820, default_height=640)
         self.load_style()
         view = Adw.ToolbarView()
         header = Adw.HeaderBar(show_title=False)
@@ -144,7 +144,7 @@ class Welcome(Adw.ApplicationWindow):
 
     def page_hello(self) -> Gtk.Widget:
         return self.page(
-            "Welcome to an4rch",
+            "Welcome to An4rch",
             "A calm, fast desktop that's ready for work and play. Let's make it yours — it only takes a minute.",
             None, self.nav(back=False, next_label="Get started"), icon="lumen-logo")
 
@@ -194,7 +194,7 @@ class Welcome(Adw.ApplicationWindow):
         row("Fingerprint login", "Unlock with your finger, if your laptop has a reader", "fingerprint-symbolic", ["anarch-term", "--float", "--hold", "--", "anarch-setup", "fingerprint"])
         row("Printers", "Find printers on your network", "printer-symbolic", ["anarch-setup", "printing"])
         row("Snapshots", "Every update can be undone — see how", "document-revert-symbolic", ["anarch-snapshot", "menu"])
-        return self.page("Set up the essentials", "Everything here is also in the Start menu and the an4rch menu.",
+        return self.page("Set up the essentials", "Everything here is also in the Start menu and the An4rch menu.",
                          group, self.nav())
 
     def page_tips(self) -> Gtk.Widget:
@@ -204,7 +204,7 @@ class Welcome(Adw.ApplicationWindow):
              "Press ⊞ + I (or Start → Settings): themes, wallpaper, the taskbar, window gaps and corners, "
              "effects, mouse and touchpad, sound, power and default apps."),
             ("software-update-available-symbolic", "Keep it up to date",
-             "Click the update icon in the top bar, or press ⊞ + Alt + U. an4rch takes a snapshot first."),
+             "Click the update icon in the top bar, or press ⊞ + Alt + U. An4rch takes a snapshot first."),
             ("document-revert-symbolic", "Every update can be undone",
              "If something breaks after an update, pick an older snapshot in the boot menu, "
              "or run anarch-rescue from the USB stick."),
@@ -217,7 +217,7 @@ class Welcome(Adw.ApplicationWindow):
             ("view-grid-symbolic", "Windows tile by themselves",
              "Drag with ⊞ held to move one; ⊞ + T lets a window float, ⊞ + W closes it."),
             ("computer-symbolic", "Also have Windows?",
-             "The menu at start-up picks an4rch or Windows. If a Windows update makes Windows start straight away, "
+             "The menu at start-up picks An4rch or Windows. If a Windows update makes Windows start straight away, "
              "press Esc (ASUS), F9 (HP) or F12 (Dell, Lenovo) at power-on and pick Linux Boot Manager, or move it "
              "to the top of the boot order in the BIOS."),
             ("system-search-symbolic", "Something not working?",
@@ -225,20 +225,20 @@ class Welcome(Adw.ApplicationWindow):
         ]
         if LIVE:
             tips.insert(0, ("drive-removable-media-symbolic", "You're running from the USB stick",
-                            "Apps open more slowly than they will once an4rch is installed, and nothing you "
+                            "Apps open more slowly than they will once An4rch is installed, and nothing you "
                             "change here is kept. Use the installer when you're ready."))
         for icon, title, sub in tips:
             r = Adw.ActionRow(title=title, subtitle=sub, use_markup=False)
             r.add_prefix(Gtk.Image.new_from_icon_name(icon))
             group.add(r)
-        return self.page("Good to know", "A few tips that make an4rch easier to live with.", group, self.nav())
+        return self.page("Good to know", "A few tips that make An4rch easier to live with.", group, self.nav())
 
     def page_learn(self) -> Gtk.Widget:
         grid = Gtk.Grid(column_spacing=18, row_spacing=10, halign=Gtk.Align.CENTER)
         tips = [
             ("⊞", "Tap the Windows key", "Start menu: apps, search, power"),
             ("⊞ + Space", "Quick launcher", "Type a few letters, press Enter"),
-            ("⊞ + Alt + Space", "an4rch menu", "Every setting and tool"),
+            ("⊞ + Alt + Space", "An4rch menu", "Every setting and tool"),
             ("⊞ + /", "All shortcuts", "Searchable list"),
             ("⊞ + A", "App Store", "Install apps and games"),
             ("Print", "Screenshot", "Drag to select, then annotate"),
@@ -261,7 +261,7 @@ class Welcome(Adw.ApplicationWindow):
         manual.connect("clicked", lambda *_: tool("anarch-manual"))
         box.append(manual)
         return self.page("You're all set", "The Windows key is your home base. A few more to remember:",
-                         box, self.nav(next_label="Start using an4rch", on_next=self.finish))
+                         box, self.nav(next_label="Start using An4rch", on_next=self.finish))
 
     def on_startup_toggle(self, check: Gtk.CheckButton) -> None:
         STATE.mkdir(parents=True, exist_ok=True)

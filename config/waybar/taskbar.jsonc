@@ -1,5 +1,5 @@
-// an4rch taskbar (bottom of the screen). Turn it on or off with:
-//   an4rch menu → Toggle → Taskbar, or `anarch taskbar on|off`.
+// An4rch taskbar (bottom of the screen). Turn it on or off with:
+//   An4rch menu → Toggle → Taskbar, or `anarch taskbar on|off`.
 // Click an app to switch to it, click the active app to minimise it,
 // middle-click to close. Minimised windows come back with a click.
 {

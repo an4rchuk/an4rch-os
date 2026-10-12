@@ -1,9 +1,9 @@
 -- ~/.config/hypr/hyprland.lua
 --
--- an4rch's defaults are loaded first; every file below is yours to edit and is
+-- An4rch's defaults are loaded first; every file below is yours to edit and is
 -- loaded afterwards, so anything set there wins. Hyprland reloads on save.
 --
--- Docs: SUPER + F1 (an4rch manual) and https://wiki.hypr.land/
+-- Docs: SUPER + F1 (An4rch manual) and https://wiki.hypr.land/
 
 local lumen_root = os.getenv("LUMEN_PATH") or (os.getenv("HOME") .. "/.local/share/lumen")
 require(lumen_root .. "/default/hypr/init")

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# anarch-settings — the an4rch Hub: every setting in one window (also `anarch hub`).
+# anarch-settings — the An4rch Hub: every setting in one window (also `anarch hub`).
 #
 #   anarch-settings [PAGE]    open, optionally at a page: look, desktop, windows,
 #                            sound, network, displays, input, power, apps, privacy,

@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
-# lumen — obsolete name (before an4rch OS 1.1.0) of the `anarch` command.
+# lumen — obsolete name (before An4rch OS 1.1.0) of the `anarch` command.
 [[ -t 2 ]] && printf '\e[33m!\e[0m "lumen" is obsolete: use "anarch" (e.g. anarch %s)\n' "${1:-help}" >&2
 exec "${LUMEN_PATH:-$HOME/.local/share/lumen}/bin/anarch" "$@"

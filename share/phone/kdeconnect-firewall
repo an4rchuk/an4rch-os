@@ -1,0 +1,9 @@
+#!/bin/sh
+# An4rch: let KDE Connect through the firewall (pacman hook, as root), so a
+# phone finds this computer however KDE Connect was installed. Ports 1714-1764
+# for KDE Connect itself, 5353/udp for discovery (mDNS, used by the iPhone app).
+command -v ufw >/dev/null 2>&1 || exit 0
+ufw allow 1714:1764/udp comment 'KDE Connect' >/dev/null 2>&1
+ufw allow 1714:1764/tcp comment 'KDE Connect' >/dev/null 2>&1
+ufw allow 5353/udp comment 'KDE Connect discovery (mDNS)' >/dev/null 2>&1
+exit 0

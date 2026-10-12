@@ -42,7 +42,7 @@ targets() {
   done < <(find "$LUMEN_PATH/config" -type f -print0 | sort -z)
   return 0
 }
-# an4rch's own settings files, removed so the defaults apply. (settings.conf,
+# An4rch's own settings files, removed so the defaults apply. (settings.conf,
 # with your default apps, stays.)
 settings=("$LUMEN_CONFIG/a11y.conf" "$LUMEN_CONFIG/auto.conf")
 

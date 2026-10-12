@@ -38,7 +38,7 @@ start() {
   flock -n 9 || exit 0
   # Keep a log of this session's startup, for troubleshooting.
   exec >"$LUMEN_STATE/session.log" 2>&1
-  echo "an4rch session starting: $(date)"
+  echo "An4rch session starting: $(date)"
   set -x
 
   # The touchpad is always on at login (the toggle only lasts a session).
@@ -80,7 +80,7 @@ start() {
   # And the Wi-Fi, Bluetooth and power panels.
   (sleep 8 && { pgrep -f 'lumen-panels/lumen_panels.py' >/dev/null || launch "$LUMEN_PATH/bin/anarch-panel" --daemon; }) &
 
-  # Desktop icons (the live USB's "Install an4rch OS"), when there are any.
+  # Desktop icons (the live USB's "Install An4rch OS"), when there are any.
   if [[ -s "${XDG_CONFIG_HOME:-$HOME/.config}/lumen/desktop-icons.json" ]]; then
     pgrep -f 'lumen-desktop/lumen_desktop.py' >/dev/null || launch "$LUMEN_PATH/bin/anarch-desktop"
   fi
@@ -126,7 +126,7 @@ start() {
       touch "$LUMEN_STATE/welcomed"
       (
         sleep 3
-        notify "Welcome to an4rch" "Tap the Windows key for Start\nSUPER + ALT + SPACE  an4rch menu\nSUPER + /  all key bindings\nSUPER + F1  the manual" -i user-home -t 15000
+        notify "Welcome to An4rch" "Tap the Windows key for Start\nSUPER + ALT + SPACE  An4rch menu\nSUPER + /  all key bindings\nSUPER + F1  the manual" -i user-home -t 15000
       ) &
     fi
   fi
@@ -170,7 +170,7 @@ watch_bars() {
 }
 
 # autostart — the XDG autostart entry uwsm runs once the session is up. A
-# second route besides Hyprland's start hook, with an4rch's absolute path.
+# second route besides Hyprland's start hook, with An4rch's absolute path.
 autostart() {
   local dir="${XDG_CONFIG_HOME:-$HOME/.config}/autostart"
   mkdir -p "$dir"

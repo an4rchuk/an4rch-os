@@ -1,4 +1,4 @@
-/* an4rch login screen. Colours: colors.css, then greeter.css from your theme. */
+/* An4rch login screen. Colours: colors.css, then greeter.css from your theme. */
 window { background-color: @g_bg; color: @g_fg; font-family: "Inter", sans-serif; }
 .clock { background: alpha(@g_card, 0.8); color: @g_fg; }
 .card {

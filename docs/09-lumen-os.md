@@ -1,6 +1,6 @@
-# an4rch OS
+# An4rch OS
 
-an4rch OS is the an4rch desktop as its own Arch-based distribution. You boot it from a USB stick, answer a few questions, and get a finished system: encrypted disk, snapshots that undo updates, the Start menu on the Windows key, an App Store, and a gaming setup in one click.
+An4rch OS is the An4rch desktop as its own Arch-based distribution. You boot it from a USB stick, answer a few questions, and get a finished system: encrypted disk, snapshots that undo updates, the Start menu on the Windows key, an App Store, and a gaming setup in one click.
 
 It borrows from two projects:
 
@@ -24,24 +24,24 @@ sudo dd if=lumen-*.iso of=/dev/sdX bs=4M status=progress oflag=sync
 ## Installing
 
 1. Turn off Secure Boot in your firmware settings (Arch kernels aren't signed by Microsoft), and make sure the computer boots in **UEFI** mode.
-2. Boot the USB stick and pick **an4rch OS installer**.
-3. You land on a live an4rch desktop, Bazzite-style, with the **Install an4rch OS** app open. Look around first if you like: the Start menu, terminal and App Store work. The installer asks:
+2. Boot the USB stick and pick **An4rch OS installer**.
+3. You land on a live An4rch desktop, Bazzite-style, with the **Install An4rch OS** app open. Look around first if you like: the Start menu, terminal and App Store work. The installer asks:
 
 | Page | Notes |
 | --- | --- |
 | Welcome | Keyboard layout |
 | Internet | Pick a Wi-Fi network, or plug in a cable. The Wi-Fi network is remembered in the installed system |
-| Disk | **Advanced: use partitions I've made myself** — choose the partition for an4rch (20 GB or more; erased), the EFI system partition (kept as it is, other systems' boot files included, unless you ask to format it), and, when the EFI partition is smaller than 900 MB (Windows' usually is), a boot partition of about 1 GB for the kernels (erased). A button opens the partition editor. Otherwise: on a disk with Windows, choose **Alongside Windows**: an4rch shrinks Windows' drive to make room (you pick the size, at least 30 GB), keeps Windows and its files, and a boot menu lets you choose Windows or an4rch at every start. Or **erase the whole disk**: everything on it is deleted, Windows included; disks that aren't empty are marked, and you type ERASE to confirm. At least 20 GB. Optional encryption (recommended for laptops; you type the password at every start) |
+| Disk | **Advanced: use partitions I've made myself** — choose the partition for An4rch (20 GB or more; erased), the EFI system partition (kept as it is, other systems' boot files included, unless you ask to format it), and, when the EFI partition is smaller than 900 MB (Windows' usually is), a boot partition of about 1 GB for the kernels (erased). A button opens the partition editor. Otherwise: on a disk with Windows, choose **Alongside Windows**: An4rch shrinks Windows' drive to make room (you pick the size, at least 30 GB), keeps Windows and its files, and a boot menu lets you choose Windows or An4rch at every start. Or **erase the whole disk**: everything on it is deleted, Windows included; disks that aren't empty are marked, and you type ERASE to confirm. At least 20 GB. Optional encryption (recommended for laptops; you type the password at every start) |
 | Account | Your name, username, password and computer name. The root account is locked; you use `sudo` |
 | Region | Time zone and language, guessed from your internet connection |
-| System | **Desktop** or **Server** (no desktop: the system, SSH with the firewall allowing it, and an4rch's command-line tools, for old computers and home servers). The **kernel**: latest (default), long-term support, zen (tuned for desktops and gaming) or hardened (extra security; some apps, like Steam, may not run). A second kernel is always in the boot menu as a fallback, and `anarch tune kernel NAME` adds more later. The **shell**: zsh (default), bash or fish, each set up with an4rch's prompt, aliases and tools |
-| Look | Pick a theme from a gallery (an4rch, an4rch Light, or one per school of anarchism) and a layout: an4rch (top bar + taskbar, the default), Top bar only or Minimal. The live desktop restyles as you click, so you see it before installing |
+| System | **Desktop** or **Server** (no desktop: the system, SSH with the firewall allowing it, and An4rch's command-line tools, for old computers and home servers). The **kernel**: latest (default), long-term support, zen (tuned for desktops and gaming) or hardened (extra security; some apps, like Steam, may not run). A second kernel is always in the boot menu as a fallback, and `anarch tune kernel NAME` adds more later. The **shell**: zsh (default), bash or fish, each set up with An4rch's prompt, aliases and tools |
+| Look | Pick a theme from a gallery (An4rch, An4rch Light, or one per school of anarchism) and a layout: An4rch (top bar + taskbar, the default), Top bar only or Minimal. The live desktop restyles as you click, so you see it before installing |
 | Apps | Browser, terminal and code editor, gaming yes/no, and **extra apps**: tick any from the App Store's list (by category) to have them installed too (from the Arch repositories when possible, then the AUR, then Flathub) |
 | Review | A summary, then **Erase and install**, with a progress bar and the live log |
 
-Prefer text? Pick **an4rch OS installer (text mode)** in the boot menu for the original step-by-step console installer.
+Prefer text? Pick **An4rch OS installer (text mode)** in the boot menu for the original step-by-step console installer.
 
-The stick carries every package a default install needs, and the window title bar plugin ready-built, so installing mostly copies from the stick rather than downloading: expect a few minutes plus the disk's write speed. Choices it doesn't carry (another browser or editor, gaming) are downloaded. An internet connection is still needed for the latest package lists and mirrors. Progress is logged to `/var/log/lumen-os-install.log`, and the log is copied into the installed system.
+The stick carries every package a default install needs, and the window title bar plugin ready-built, so installing mostly copies from the stick rather than downloading: expect a few minutes plus the disk's write speed. Choices it doesn't carry (another browser or editor, gaming) are downloaded. An internet connection is still needed for the latest package lists and mirrors. Progress is logged to `/var/log/an4rch-install.log`, and the log is copied into the installed system.
 
 ### What the installer sets up
 
@@ -49,7 +49,7 @@ The stick carries every package a default install needs, and the window title ba
 | --- | --- |
 | Disk | GPT: a 1 GB EFI partition, and the rest as btrfs (inside LUKS2 when encrypted) with zstd compression |
 | Subvolumes | `@` (system), `@home`, `@log`, `@pkg` (package cache) and `@snapshots`, so snapshots and rollbacks never touch your files |
-| Boot | systemd-boot with two entries: **an4rch OS** and **an4rch OS (LTS kernel)** as a fallback. Plymouth splash and the disk password prompt |
+| Boot | systemd-boot with two entries: **An4rch OS** and **An4rch OS (LTS kernel)** as a fallback. Plymouth splash and the disk password prompt |
 | Memory | zram (compressed RAM swap); no swap partition needed |
 | Snapshots | snapper with snap-pac: a snapshot before and after every package change, plus a "Fresh install" snapshot |
 | Desktop | Everything in this manual, installed as your user |
@@ -116,12 +116,12 @@ A rollback swaps the whole system subvolume and keeps the old one as `@broken-<d
 
 ### If the system doesn't start
 
-1. In the boot menu, try **an4rch OS (LTS kernel)**. A broken kernel update is the most common cause, and the LTS kernel usually boots fine.
-2. If that fails too, boot the an4rch OS USB stick, press <kbd>Ctrl</kbd> + <kbd>C</kbd> to leave the installer, and run `anarch-rescue`. It unlocks the disk, lists your snapshots, and restores the one you pick.
+1. In the boot menu, try **An4rch OS (LTS kernel)**. A broken kernel update is the most common cause, and the LTS kernel usually boots fine.
+2. If that fails too, boot the An4rch OS USB stick, press <kbd>Ctrl</kbd> + <kbd>C</kbd> to leave the installer, and run `anarch-rescue`. It unlocks the disk, lists your snapshots, and restores the one you pick.
 
 ## Updating
 
-an4rch OS is a rolling release, like Arch: there are no version upgrades, only updates. <kbd>SUPER</kbd> + <kbd>ALT</kbd> + <kbd>U</kbd>, the update counter in the bar, or the store's Updates tab all run the same thing: an4rch itself, then packages, Flatpaks and firmware. A snapshot is taken first.
+An4rch OS is a rolling release, like Arch: there are no version upgrades, only updates. <kbd>SUPER</kbd> + <kbd>ALT</kbd> + <kbd>U</kbd>, the update counter in the bar, or the store's Updates tab all run the same thing: An4rch itself, then packages, Flatpaks and firmware. A snapshot is taken first.
 
 ## Already running Arch?
 
@@ -143,13 +143,13 @@ Before installing alongside Windows:
 - **BitLocker** (device encryption) must be off, or make free space yourself with Windows' Disk Management first; the installer uses free space when there is enough.
 - The USB must be started in **UEFI** mode, like Windows.
 
-an4rch uses Windows' EFI partition only for its boot menu, and keeps its kernels on its own 1 GB boot partition. The boot menu (5 seconds) lists an4rch and Windows. Both systems keep the hardware clock in local time, so the clock is right in each.
+An4rch uses Windows' EFI partition only for its boot menu, and keeps its kernels on its own 1 GB boot partition. The boot menu (5 seconds) lists An4rch and Windows. Both systems keep the hardware clock in local time, so the clock is right in each.
 
-**Windows starts straight away, without the menu?** A big Windows update can put Windows first in the computer's boot order again. an4rch is still there:
+**Windows starts straight away, without the menu?** A big Windows update can put Windows first in the computer's boot order again. An4rch is still there:
 
 - Once: press the boot-menu key while the computer starts (**Esc** on ASUS, **F9** on HP, **F12** on Dell and Lenovo, **F8** on some) and pick **Linux Boot Manager**.
-- For good: in the BIOS/UEFI settings (F2 or Del at start-up) move **Linux Boot Manager** to the top of the boot order. Or from an4rch, run `sudo efibootmgr` to see the entries and `sudo efibootmgr -o XXXX,YYYY` with Linux Boot Manager's number first.
+- For good: in the BIOS/UEFI settings (F2 or Del at start-up) move **Linux Boot Manager** to the top of the boot order. Or from An4rch, run `sudo efibootmgr` to see the entries and `sudo efibootmgr -o XXXX,YYYY` with Linux Boot Manager's number first.
 
 ## NVIDIA graphics
 
-The default boot entry uses the open-source nouveau driver. For GTX 16xx, RTX 20xx and newer cards, pick **an4rch OS installer (NVIDIA)** in the boot menu to use NVIDIA's own driver. Installing sets up NVIDIA's driver automatically. On laptops with both Intel/AMD and NVIDIA graphics, the Intel/AMD GPU runs the screen and NVIDIA is available for games and apps that ask for it.
+The default boot entry uses the open-source nouveau driver. For GTX 16xx, RTX 20xx and newer cards, pick **An4rch OS installer (NVIDIA)** in the boot menu to use NVIDIA's own driver. Installing sets up NVIDIA's driver automatically. On laptops with both Intel/AMD and NVIDIA graphics, the Intel/AMD GPU runs the screen and NVIDIA is available for games and apps that ask for it.

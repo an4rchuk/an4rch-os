@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# an4rch OS 1.1.1: widgets on the top bar (anarch widget). Add the widget slot
+# An4rch OS 1.1.1: widgets on the top bar (anarch widget). Add the widget slot
 # to your top bar config, unless you've changed that part of it.
 set -euo pipefail
 LUMEN_PATH="${LUMEN_PATH:-$HOME/.local/share/lumen}"

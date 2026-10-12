@@ -1,7 +1,7 @@
 #!/bin/bash
-# anarch-live-setup — prepare the live desktop on the an4rch OS USB (runs at boot).
+# anarch-live-setup — prepare the live desktop on the An4rch OS USB (runs at boot).
 #
-# Creates the "live" user with an4rch's desktop, starts NetworkManager for the
+# Creates the "live" user with An4rch's desktop, starts NetworkManager for the
 # installer's Wi-Fi picker, and logs that user in on the first console, where
 # Hyprland starts with the graphical installer open, Bazzite-style.
 #
@@ -22,7 +22,7 @@ user=live
 home=/home/$user
 lumen=/opt/lumen
 
-id "$user" >/dev/null 2>&1 || useradd -m -G wheel,video,input,audio -s /usr/bin/zsh -c "an4rch live" "$user"
+id "$user" >/dev/null 2>&1 || useradd -m -G wheel,video,input,audio -s /usr/bin/zsh -c "An4rch live" "$user"
 passwd -d "$user" >/dev/null
 printf '%s ALL=(ALL) NOPASSWD: ALL\n' "$user" >/etc/sudoers.d/90-lumen-live
 chmod 440 /etc/sudoers.d/90-lumen-live
@@ -51,7 +51,7 @@ if [[ -f /usr/lib/lumen/hyprbars.so &&
   titlebars=yes
 fi
 
-# The user's desktop: the same files the an4rch installer writes.
+# The user's desktop: the same files the An4rch installer writes.
 # setpriv, not runuser: runuser opens a PAM login session, which waits for
 # logins to be allowed, which waits for this boot step: a deadlock.
 timeout 90 setpriv --reuid="$user" --regid="$user" --init-groups -- \
@@ -92,7 +92,7 @@ touch ~/.local/state/lumen/welcome-done
 printf '["lumen-installer.desktop", "lumen-welcome.desktop", "lumen-settings.desktop", "com.mitchellh.ghostty.desktop", "lumen-store.desktop"]\n' >~/.config/lumen/start-pins.json
 cp /usr/share/applications/lumen-installer.desktop ~/.config/autostart/
 # Desktop icons, like other live USBs: install, and the getting-started guide.
-printf '[{"id": "lumen-installer.desktop", "label": "Install an4rch OS"}, {"id": "lumen-welcome.desktop", "label": "Welcome"}]\n' \
+printf '[{"id": "lumen-installer.desktop", "label": "Install An4rch OS"}, {"id": "lumen-welcome.desktop", "label": "Welcome"}]\n' \
   >~/.config/lumen/desktop-icons.json
 # Start the desktop on the first console. Unlike an installed system's
 # ~/.zprofile this doesn't depend on uwsm's may-start check, and if the
@@ -113,7 +113,7 @@ if [[ "$(tty)" == /dev/tty1 && -z "${WAYLAND_DISPLAY:-}" && -z "${LUMEN_LIVE_TRI
   printf '\e[?25l' # no blinking cursor while the desktop starts
   # Something on screen while it loads: from a USB stick the first start can
   # take a minute or more, and a black screen looks like a hang.
-  printf '\n\n\n   \e[1;35man4rch OS\e[0m\n\n   Starting the desktop…\n   From a USB stick this can take a minute or two.\n'
+  printf '\n\n\n   \e[1;35mAn4rch OS\e[0m\n\n   Starting the desktop…\n   From a USB stick this can take a minute or two.\n'
   # The desktop needs a working graphics driver (a render node); without
   # one it hangs instead of failing. On real hardware autologin can beat
   # the GPU driver (e.g. amdgpu on an HP with Ryzen graphics), so wait for it.
@@ -157,14 +157,14 @@ if [[ "$(tty)" == /dev/tty1 && -z "${WAYLAND_DISPLAY:-}" && -z "${LUMEN_LIVE_TRI
     clear
     printf '\e[?25h'
     echo
-    echo "  The an4rch live desktop closed or couldn't start on this computer."
+    echo "  The An4rch live desktop closed or couldn't start on this computer."
     echo "  A photo of this screen helps fix it:"
     echo
     lspci -nn 2>/dev/null | grep -iE 'vga|3d|display' | sed 's/^/    /' | cut -c1-110
     echo "    boot mode: $([[ -d /sys/firmware/efi ]] && echo UEFI || echo legacy BIOS) · driver: $(lspci -k 2>/dev/null | grep -A3 -iE 'vga|3d' | sed -n 's/.*Kernel driver in use: //p' | tr '\n' ' ')"
     if lspci -nn 2>/dev/null | grep -iE 'vga|3d' | grep -q '\[10de:' && ! grep -q 'lumen.nvidia=1' /proc/cmdline; then
       echo
-      echo "  This computer has NVIDIA graphics: restart and choose \"an4rch OS installer (NVIDIA)\""
+      echo "  This computer has NVIDIA graphics: restart and choose \"An4rch OS installer (NVIDIA)\""
       echo "  in the boot menu (GTX 16xx / RTX 20xx and newer)."
     fi
     hlog=$(ls -t "$run"/hypr/*/hyprland.log 2>/dev/null | head -n1)

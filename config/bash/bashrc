@@ -1,4 +1,4 @@
-# ~/.bashrc — an4rch loads its defaults first; your settings go below.
+# ~/.bashrc — An4rch loads its defaults first; your settings go below.
 # shellcheck source=/dev/null
 source "${LUMEN_PATH:-$HOME/.local/share/lumen}/default/bash/rc.bash"
 

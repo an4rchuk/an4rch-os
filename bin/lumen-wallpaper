@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
-# lumen-wallpaper — obsolete name (before an4rch OS 1.1.0) of anarch-wallpaper; kept so old configs still work.
+# lumen-wallpaper — obsolete name (before An4rch OS 1.1.0) of anarch-wallpaper; kept so old configs still work.
 [[ -t 2 ]] && printf '\e[33m!\e[0m lumen-wallpaper is obsolete: use anarch-wallpaper (or: anarch wallpaper)\n' >&2
 exec "${LUMEN_PATH:-$HOME/.local/share/lumen}/bin/anarch-wallpaper" "$@"

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""an4rch OS installer — the graphical installer on the live USB.
+"""An4rch OS installer — the graphical installer on the live USB.
 
-Runs on the live an4rch desktop, Bazzite-style: you try the system while you
+Runs on the live An4rch desktop, Bazzite-style: you try the system while you
 answer a few questions (network, disk, account, region, look, apps), then
 it installs. The work itself is done by anarch-os-install, the same engine as
 the text-mode installer, fed an answers file; this app shows its progress.
@@ -33,7 +33,7 @@ CONFIG = Path(os.environ.get("XDG_CONFIG_HOME", HOME / ".config")) / "lumen"
 WALLPAPERS = Path(os.environ.get("XDG_DATA_HOME", HOME / ".local/share")) / "backgrounds/lumen"
 HERE = Path(__file__).resolve().parent
 ENGINE = os.environ.get("LUMEN_OS_INSTALL", "/usr/local/bin/anarch-os-install")
-LOG = Path("/var/log/lumen-os-install.log")
+LOG = Path("/var/log/an4rch-install.log")
 DEMO = os.environ.get("LUMEN_INSTALLER_DEMO") == "1"  # UI only, never touches disks
 
 BROWSERS = [("firefox", "Firefox", "Fast, private, by Mozilla"), ("chromium", "Chromium", "The open-source base of Chrome"),
@@ -49,16 +49,16 @@ KERNELS = [("linux", "Latest", "The newest kernel: best hardware support (recomm
 SHELLS = [("zsh", "Zsh", "Suggestions as you type, colours (recommended)"),
           ("bash", "Bash", "The classic, on every Linux"),
           ("fish", "Fish", "The friendliest, with smart suggestions")]
-EDITIONS = [("desktop", "Desktop", "The full an4rch desktop (recommended)"),
+EDITIONS = [("desktop", "Desktop", "The full An4rch desktop (recommended)"),
             ("game", "Game", "Starts straight into Steam's Big Picture, like a Steam Deck; the desktop is one menu away"),
-            ("server", "Server", "No desktop: the system, SSH and an4rch's tools, for old computers and home servers")]
+            ("server", "Server", "No desktop: the system, SSH and An4rch's tools, for old computers and home servers")]
 DESKTOP_PAGES = ("look", "apps")
 LAYOUTS = [("classic", "an4rch", "Top bar, title bars and a taskbar along the bottom", "yes", "yes"),
            ("modern", "Top bar only", "No taskbar: tap the Windows key for Start and your apps", "no", "yes"),
            ("minimal", "Minimal", "Edge-to-edge tiling windows, no title bars", "no", "no")]
 # Steps of the engine and of the desktop installer, for the progress bar.
 STEPS = ["Mirrors", "Partitioning", "Encrypting", "Formatting", "Creating btrfs", "Installing the base system",
-         "Configuring the system", "Copying an4rch", "[1/9]", "[2/9]", "[3/9]", "[4/9]", "[5/9]", "[6/9]",
+         "Configuring the system", "Copying An4rch", "[1/9]", "[2/9]", "[3/9]", "[4/9]", "[5/9]", "[6/9]",
          "[7/9]", "[8/9]", "[9/9]", "LUMEN-INSTALL-OK"]
 FRIENDLY = {"[1/9]": "Checking the new system", "[2/9]": "Choosing your apps", "[3/9]": "Preparing the package manager",
             "[4/9]": "Installing the desktop", "[5/9]": "Installing your apps", "[6/9]": "Writing your settings",
@@ -155,7 +155,7 @@ def catalog_apps() -> list[dict]:
 
 
 def alongside_space(path: str) -> dict[str, str]:
-    """Can an4rch go next to the Windows on this disk, and how big can it be?
+    """Can An4rch go next to the Windows on this disk, and how big can it be?
     (anarch-disk-info --space: max_gb=…, or error=…)."""
     if DEMO:
         return {"max_gb": "180"}
@@ -263,7 +263,7 @@ def themes() -> list[tuple[str, dict]]:
     for d in sorted((LUMEN_PATH / "themes").iterdir()):
         if (d / "theme.conf").is_file():
             found[d.name] = read_theme(d / "theme.conf")
-    # an4rch first, its light version second, then the rest A–Z (High contrast last).
+    # An4rch first, its light version second, then the rest A–Z (High contrast last).
     order = ["an4rch", "an4rch-light"]
     return sorted(found.items(), key=lambda kv: (order.index(kv[0]) if kv[0] in order else 99 if kv[0] == "high-contrast" else 9, kv[1].get("name", kv[0])))
 
@@ -280,7 +280,7 @@ def wallpaper_for(slug: str) -> Path | None:
 # --- the window ------------------------------------------------------------------------------
 class Installer(Adw.ApplicationWindow):
     def __init__(self, app: Adw.Application):
-        super().__init__(application=app, title="Install an4rch OS", default_width=980, default_height=720)
+        super().__init__(application=app, title="Install An4rch OS", default_width=980, default_height=720)
         self.answers: dict[str, str] = {
             "theme": "an4rch", "layout": "classic", "browser": "firefox", "terminal": "ghostty", "editor": "code",
             "gaming": "0", "encrypt": "", "keymap": "us", "timezone": "UTC", "autologin": "0",
@@ -321,7 +321,7 @@ class Installer(Adw.ApplicationWindow):
         self.nav.append(self.next)
 
         view = Adw.ToolbarView()
-        view.add_top_bar(Adw.HeaderBar(title_widget=Adw.WindowTitle(title="Install an4rch OS",
+        view.add_top_bar(Adw.HeaderBar(title_widget=Adw.WindowTitle(title="Install An4rch OS",
                                                                     subtitle="Demo mode: nothing will be written" if DEMO else "")))
         body = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         body.append(self.stack)
@@ -420,18 +420,18 @@ class Installer(Adw.ApplicationWindow):
         logo = Gtk.Image.new_from_file(str(svg)) if svg.exists() else Gtk.Image(icon_name="lumen-logo")
         logo.set_pixel_size(96)
         logo.set_margin_top(24)
-        hello = Gtk.Label(label="Welcome to an4rch OS", css_classes=["title-1"])
+        hello = Gtk.Label(label="Welcome to An4rch OS", css_classes=["title-1"])
         text = Gtk.Label(wrap=True, justify=Gtk.Justification.CENTER, css_classes=["installer-sub"],
-                         label="You're running an4rch from the USB stick right now: look around, open apps, try the "
+                         label="You're running An4rch from the USB stick right now: look around, open apps, try the "
                                "Start menu (tap the Windows key). When you're ready, this installer asks a few "
-                               "questions and puts an4rch on your computer. It only takes a few minutes.")
+                               "questions and puts An4rch on your computer. It only takes a few minutes.")
         keymap = Adw.ComboRow(title="Keyboard layout", subtitle="For the desktop, the login screen and the disk password (uk for a UK keyboard)")
         self.keymaps = keymaps()
         keymap.set_model(Gtk.StringList.new(self.keymaps))
         keymap.connect("notify::selected", self.on_keymap)
         group = Adw.PreferencesGroup(margin_top=12)
         group.add(keymap)
-        tips = Gtk.Button(label="New to an4rch? Open the tips", css_classes=["flat"], halign=Gtk.Align.CENTER)
+        tips = Gtk.Button(label="New to An4rch? Open the tips", css_classes=["flat"], halign=Gtk.Align.CENTER)
         tips.connect("clicked", lambda *_: lumen("anarch-welcome"))
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14, halign=Gtk.Align.CENTER)
         for w in (logo, hello, text, group, tips):
@@ -450,7 +450,7 @@ class Installer(Adw.ApplicationWindow):
         rescan.connect("clicked", lambda *_: self.scan_wifi())
         self.wifi_group.set_header_suffix(rescan)
         self.wifi_rows: list[Gtk.Widget] = []
-        return self.page("Connect to the internet", "an4rch downloads the latest packages while it installs. "
+        return self.page("Connect to the internet", "An4rch downloads the latest packages while it installs. "
                          "Plugged-in and virtual machine connections work by themselves.", status, self.wifi_group)
 
     def refresh_network(self) -> None:
@@ -506,7 +506,7 @@ class Installer(Adw.ApplicationWindow):
     # --- 3. disk -------------------------------------------------------------------------------
     def page_disk(self) -> Gtk.Widget:
         group = Adw.PreferencesGroup(title="Install on", description="Erasing a disk deletes everything on it. "
-                                     "A disk with Windows can keep it: an4rch goes alongside.")
+                                     "A disk with Windows can keep it: An4rch goes alongside.")
         self.disk_list = disks()
         first: Gtk.CheckButton | None = None
         if not self.disk_list:
@@ -528,7 +528,7 @@ class Installer(Adw.ApplicationWindow):
         self.how_mode = Adw.ComboRow(title="Install", model=Gtk.StringList.new(
             ["Alongside Windows (keep it)", "Erase the whole disk"]))
         self.how_size = Adw.SpinRow.new_with_range(30, 30, 1)
-        self.how_size.set_title("Space for an4rch (GB)")
+        self.how_size.set_title("Space for An4rch (GB)")
         self.how_size.set_subtitle("Windows keeps the rest. You choose which to start at every start-up.")
         self.how_status = Adw.ActionRow(title="", visible=False, css_classes=["error"])
         self.how_mode.connect("notify::selected", lambda *_: self.update_how())
@@ -548,11 +548,11 @@ class Installer(Adw.ApplicationWindow):
             crypt.add(w)
         # Advanced: partitions made beforehand.
         self.parts = partitions()
-        self.manual_group = Adw.PreferencesGroup(title="Advanced", description="Already made partitions for an4rch "
+        self.manual_group = Adw.PreferencesGroup(title="Advanced", description="Already made partitions for An4rch "
                                                  "(for example next to another Linux)? Choose them here.")
         self.manual_switch = Adw.SwitchRow(title="Use partitions I've made myself")
         labels = [p["label"] for p in self.parts] or ["(no partitions found)"]
-        self.root_row = Adw.ComboRow(title="Partition for an4rch", subtitle="20 GB or more. Everything on it is erased",
+        self.root_row = Adw.ComboRow(title="Partition for An4rch", subtitle="20 GB or more. Everything on it is erased",
                                      model=Gtk.StringList.new(labels), visible=False)
         self.efi_row = Adw.ComboRow(title="EFI system partition", subtitle="Its boot files (e.g. Windows') are kept",
                                     model=Gtk.StringList.new(labels), visible=False)
@@ -568,7 +568,7 @@ class Installer(Adw.ApplicationWindow):
         self.manual_switch.connect("notify::active", lambda *_: self.update_manual())
         for w in (self.manual_switch, self.parted_row, self.root_row, self.efi_row, self.efi_format, self.boot_row):
             self.manual_group.add(w)
-        # Sensible first guesses: the biggest partition for an4rch, a FAT one for EFI.
+        # Sensible first guesses: the biggest partition for An4rch, a FAT one for EFI.
         if self.parts:
             biggest = max(range(len(self.parts)), key=lambda i: self.parts[i]["size_mb"])
             self.root_row.set_selected(biggest)
@@ -578,7 +578,7 @@ class Installer(Adw.ApplicationWindow):
         box.append(self.how)
         box.append(crypt)
         box.append(self.manual_group)
-        return self.page("Where should an4rch go?", "", group, box)
+        return self.page("Where should An4rch go?", "", group, box)
 
     def manual(self) -> bool:
         sw = getattr(self, "manual_switch", None)
@@ -627,7 +627,7 @@ class Installer(Adw.ApplicationWindow):
         err = info.get("error", "")
         max_gb = int(info.get("max_gb", "0") or 0)
         if not err and max_gb < 30:
-            err = f"Only {max_gb} GB can be freed next to Windows; an4rch needs 30 GB. Free up space in Windows first."
+            err = f"Only {max_gb} GB can be freed next to Windows; An4rch needs 30 GB. Free up space in Windows first."
         along = self.how_mode.get_selected() == 0
         self.how_status.set_visible(along and bool(err))
         self.how_status.set_title(err)
@@ -719,7 +719,7 @@ class Installer(Adw.ApplicationWindow):
             flow.append(b)
         self.pick_theme("an4rch", apply=False)
 
-        layouts = Adw.PreferencesGroup(title="Layout", description="Change any of this later from the an4rch menu.")
+        layouts = Adw.PreferencesGroup(title="Layout", description="Change any of this later from the An4rch menu.")
         first: Gtk.CheckButton | None = None
         for key, name, desc, taskbar, titlebars in LAYOUTS:
             check = Gtk.CheckButton(group=first)
@@ -766,7 +766,7 @@ class Installer(Adw.ApplicationWindow):
         self.gaming = Adw.SwitchRow(title="Set up gaming", subtitle="Steam with Proton, GameMode, MangoHud, gamescope and 32-bit drivers")
         gaming.add(self.gaming)
         # Extra apps from the App Store's list, by category.
-        extras = Adw.PreferencesGroup(title="Extra apps", description="Installed with an4rch. Tick as many as you like; "
+        extras = Adw.PreferencesGroup(title="Extra apps", description="Installed with An4rch. Tick as many as you like; "
                                       "everything else is in the App Store later.")
         try:
             cats = {c["id"]: c["name"] for c in json.loads((LUMEN_PATH / "apps/lumen-store/catalog.json").read_text())["categories"]}
@@ -803,12 +803,12 @@ class Installer(Adw.ApplicationWindow):
         server = a["edition"] == "server"
         if self.manual():
             m = self.manual_parts()
-            disk_text = (f"Your partitions: an4rch on {m.get('root')} (erased), EFI {m.get('efi')}"
+            disk_text = (f"Your partitions: An4rch on {m.get('root')} (erased), EFI {m.get('efi')}"
                          + (" (formatted)" if a.get("formatefi") == "1" else " (kept)")
                          + (f", boot {m['boot']} (erased)" if m.get("boot") else ""))
         elif self.disk_choice:
             disk_text = (f"{self.disk_choice['label']} · {self.disk_choice['size']} ({a['disk']}) — "
-                         + (f"alongside Windows, {int(self.how_size.get_value())} GB for an4rch" if self.alongside() else "will be erased"))
+                         + (f"alongside Windows, {int(self.how_size.get_value())} GB for An4rch" if self.alongside() else "will be erased"))
         else:
             disk_text = "none"
         kernel_name = next(k[1] for k in KERNELS if k[0] == a["kernel"])
@@ -850,10 +850,10 @@ class Installer(Adw.ApplicationWindow):
                 return False
             sizes = {p["path"]: p["size_mb"] for p in self.parts}
             if len({m["root"], m["efi"], m["boot"] or "-"}) < 3:
-                self.toast_msg("The partitions for an4rch, EFI and boot must be different")
+                self.toast_msg("The partitions for An4rch, EFI and boot must be different")
                 return False
             if sizes.get(m["root"], 0) < 20 * 1024:
-                self.toast_msg("The partition for an4rch needs 20 GB or more")
+                self.toast_msg("The partition for An4rch needs 20 GB or more")
                 return False
             if sizes.get(m["efi"], 0) < 900 and not m["boot"]:
                 self.toast_msg("The EFI partition is small: choose a boot partition (about 1 GB) too")
@@ -863,7 +863,7 @@ class Installer(Adw.ApplicationWindow):
                 self.toast_msg("No disk to install on")
                 return False
             if self.alongside() and self.how_status.get_visible():
-                self.toast_msg("an4rch can't go alongside Windows on this disk yet (see the message)")
+                self.toast_msg("An4rch can't go alongside Windows on this disk yet (see the message)")
                 return False
         if page == "disk":
             if self.encrypt.get_active():
@@ -936,7 +936,7 @@ class Installer(Adw.ApplicationWindow):
         if self.alongside():
             gb = int(self.how_size.get_value())
             dialog = Adw.AlertDialog(heading="Install alongside Windows?",
-                                     body=f"Windows will be shrunk to make {gb} GB of room for an4rch. Windows and its files "
+                                     body=f"Windows will be shrunk to make {gb} GB of room for An4rch. Windows and its files "
                                           "are kept, and you choose which to start every time the computer starts.\n\n"
                                           "Resizing is safe, but back up anything important first (a power cut during it "
                                           "could cause damage).")
@@ -978,7 +978,7 @@ class Installer(Adw.ApplicationWindow):
         cmd = ["sudo", "-n", ENGINE, "--answers", path]
         if DEMO:
             cmd = ["bash", "-c", "for s in Mirrors Partitioning Formatting 'Creating btrfs' 'Installing the base system' "
-                   "'Configuring the system' 'Copying an4rch' '[1/9]' '[4/9]' '[8/9]' '[9/9]'; do echo \"==> $s\"; sleep 1; done; "
+                   "'Configuring the system' 'Copying An4rch' '[1/9]' '[4/9]' '[8/9]' '[9/9]'; do echo \"==> $s\"; sleep 1; done; "
                    "echo LUMEN-INSTALL-OK"]
         self.proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1)
         self.answers_path = path
@@ -1053,10 +1053,10 @@ class Installer(Adw.ApplicationWindow):
                                      css_classes=["installer-log"])
         scroller = Gtk.ScrolledWindow(child=self.log_view, min_content_height=260, vexpand=True)
         details = Gtk.Expander(label="Details", child=scroller)
-        return self.page("Installing an4rch OS", "", self.progress_label, self.progress, tip, details)
+        return self.page("Installing An4rch OS", "", self.progress_label, self.progress, tip, details)
 
     def page_finished(self) -> Gtk.Widget:
-        status = Adw.StatusPage(icon_name="emblem-ok-symbolic", title="an4rch OS is installed",
+        status = Adw.StatusPage(icon_name="emblem-ok-symbolic", title="An4rch OS is installed",
                                 description="Remove the USB stick, then restart. After logging in, tap the Windows key to open Start.")
         restart = Gtk.Button(label="Restart now", halign=Gtk.Align.CENTER, css_classes=["suggested-action", "pill"])
         restart.connect("clicked", lambda *_: detached("systemctl", "reboot"))
@@ -1067,7 +1067,7 @@ class Installer(Adw.ApplicationWindow):
         self.fail_text = Gtk.Label(wrap=True, xalign=0, selectable=True, css_classes=["installer-log"])
         status = Adw.StatusPage(icon_name="dialog-error-symbolic", title="The installation didn't finish",
                                 description="Nothing else on your computer was changed. The details are below and in "
-                                            "/var/log/lumen-os-install.log.")
+                                            "/var/log/an4rch-install.log.")
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
         box.append(Gtk.ScrolledWindow(child=self.fail_text, min_content_height=220))
         again = Gtk.Button(label="Start over", halign=Gtk.Align.CENTER, css_classes=["pill"])

@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
-# lumen-menu — obsolete name (before an4rch OS 1.1.0) of anarch-menu; kept so old configs still work.
+# lumen-menu — obsolete name (before An4rch OS 1.1.0) of anarch-menu; kept so old configs still work.
 [[ -t 2 ]] && printf '\e[33m!\e[0m lumen-menu is obsolete: use anarch-menu (or: anarch menu)\n' >&2
 exec "${LUMEN_PATH:-$HOME/.local/share/lumen}/bin/anarch-menu" "$@"

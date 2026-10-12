@@ -4,7 +4,7 @@
 
 <kbd>SUPER</kbd> + <kbd>ALT</kbd> + <kbd>W</kbd>, or click the network icon in the bar.
 
-The menu scans and lists networks, strongest first: 󰌾 marks secured ones and *connected* marks the current one. Pick a network to join (an4rch asks for the password if needed). Pick the connected one to disconnect. The menu can also turn Wi-Fi on or off.
+The menu scans and lists networks, strongest first: 󰌾 marks secured ones and *connected* marks the current one. Pick a network to join (An4rch asks for the password if needed). Pick the connected one to disconnect. The menu can also turn Wi-Fi on or off.
 
 - **Network settings** opens the connection editor: VPNs (WireGuard, OpenVPN), static IPs, proxies, hotspots.
 - **Advanced** opens `nmtui` in a terminal.
@@ -19,14 +19,14 @@ nmcli con import type wireguard file ~/wg0.conf
 
 ## Bluetooth
 
-<kbd>SUPER</kbd> + <kbd>ALT</kbd> + <kbd>B</kbd>, or click the Bluetooth icon, opens [bluetui](https://github.com/pythops/bluetui). Use the arrow keys to move, <kbd>Space</kbd> to toggle scanning, <kbd>Enter</kbd> to pair or connect, <kbd>?</kbd> for help. an4rch powers the adapter on and unblocks it first. Connected devices show their battery level in the bar when they report it.
+<kbd>SUPER</kbd> + <kbd>ALT</kbd> + <kbd>B</kbd>, or click the Bluetooth icon, opens [bluetui](https://github.com/pythops/bluetui). Use the arrow keys to move, <kbd>Space</kbd> to toggle scanning, <kbd>Enter</kbd> to pair or connect, <kbd>?</kbd> for help. An4rch powers the adapter on and unblocks it first. Connected devices show their battery level in the bar when they report it.
 
 ## Sound
 
 - The volume keys change volume with an on-screen indicator; hold <kbd>ALT</kbd> for 1 % steps.
 - Scroll on the volume icon to change it. Right-click mutes.
 - <kbd>SUPER</kbd> + <kbd>ALT</kbd> + <kbd>A</kbd> (or click the icon) opens the mixer: per-app volume, input and output devices.
-- **an4rch menu → Setup → Audio output** switches speakers and headphones quickly.
+- **An4rch menu → Setup → Audio output** switches speakers and headphones quickly.
 - The microphone-mute key works too, and an orange pill appears in the bar whenever an app is using your microphone or sharing your screen.
 
 Audio runs on PipeWire, so PulseAudio and JACK apps work unchanged.
@@ -73,7 +73,7 @@ Closing the laptop lid suspends, and the screen is always locked before the comp
 
 ## Logging in, passwords and the keyring
 
-an4rch's login screen is **greetd** with the graphical **ReGreet** greeter. It carries on from the boot screen: the an4rch logo starts large as the computer boots, shrinks to the top of the screen, and the login appears below it, in your theme's colours (they follow you when you change theme: `anarch-login sync`). `anarch-login wallpaper on` shows your desktop wallpaper behind the login instead of the logo. It remembers the last user, so you usually just type your password. If it can't start on your graphics hardware, the text login screen (tuigreet) appears instead; `anarch-login text on` always uses the text one, and `anarch-login preview` shows the graphical one in a window.
+an4rch's login screen is **greetd** with the graphical **ReGreet** greeter. It carries on from the boot screen: the An4rch logo starts large as the computer boots, shrinks to the top of the screen, and the login appears below it, in your theme's colours (they follow you when you change theme: `anarch-login sync`). `anarch-login wallpaper on` shows your desktop wallpaper behind the login instead of the logo. It remembers the last user, so you usually just type your password. If it can't start on your graphics hardware, the text login screen (tuigreet) appears instead; `anarch-login text on` always uses the text one, and `anarch-login preview` shows the graphical one in a window.
 
 - Your login password also unlocks the **GNOME keyring**, where browsers, Git and other apps store secrets. You won't get a second password prompt.
 - When an app needs administrator rights (changing the time zone, mounting a disk), a centred password dialog appears. This is the Hyprland polkit agent.
@@ -81,17 +81,17 @@ an4rch's login screen is **greetd** with the graphical **ReGreet** greeter. It c
 
 ## Fingerprint
 
-**an4rch menu → Setup → Fingerprint login** (or `anarch setup fingerprint`) installs `fprintd`, enrols a finger and tests it. It then allows the fingerprint, alongside your password, for the lock screen, `sudo` and administrator prompts. Supported readers are listed at <https://fprint.freedesktop.org/supported-devices.html>.
+**An4rch menu → Setup → Fingerprint login** (or `anarch setup fingerprint`) installs `fprintd`, enrols a finger and tests it. It then allows the fingerprint, alongside your password, for the lock screen, `sudo` and administrator prompts. Supported readers are listed at <https://fprint.freedesktop.org/supported-devices.html>.
 
 ## Time zone and keyboard
 
-**an4rch menu → Setup → Time zone** has a searchable list and a *Detect automatically* option. The clock is kept accurate over the network.
+**An4rch menu → Setup → Time zone** has a searchable list and a *Detect automatically* option. The clock is kept accurate over the network.
 
-**an4rch menu → Setup → Keyboard layout** picks a layout, a variant and an optional second layout (<kbd>ALT</kbd> + <kbd>SHIFT</kbd> switches between them). The lock screen shows the active layout in the corner.
+**An4rch menu → Setup → Keyboard layout** picks a layout, a variant and an optional second layout (<kbd>ALT</kbd> + <kbd>SHIFT</kbd> switches between them). The lock screen shows the active layout in the corner.
 
 ## Printing
 
-**an4rch menu → Setup → Printers** (or `anarch setup printing`) installs CUPS, turns on discovery of network printers, and opens the printer settings. Most network printers then just appear in every app's print dialog.
+**An4rch menu → Setup → Printers** (or `anarch setup printing`) installs CUPS, turns on discovery of network printers, and opens the printer settings. Most network printers then just appear in every app's print dialog.
 
 ## Firewall
 
@@ -107,11 +107,11 @@ sudo ufw status
 | How | For |
 | --- | --- |
 | <kbd>SUPER</kbd> + <kbd>ALT</kbd> + <kbd>I</kbd> | Search every package in the Arch repositories and the AUR. <kbd>Tab</kbd> selects several, <kbd>Enter</kbd> installs |
-| **an4rch menu → Install → Popular apps** | A hand-picked list: browsers, chat, music, office, design, password managers, editors, games |
-| **an4rch menu → Install → Flatpak apps** | Search Flathub (sets Flatpak up on first use) |
-| **an4rch menu → Install → Development tools** | Git, GitHub CLI, lazygit, mise, Docker, Python, Node, Go, Rust, … |
-| **an4rch menu → Install → Gaming** | Steam (enables multilib), GameMode, MangoHud, gamescope |
-| **an4rch menu → Remove** | Pick installed apps to remove |
+| **An4rch menu → Install → Popular apps** | A hand-picked list: browsers, chat, music, office, design, password managers, editors, games |
+| **An4rch menu → Install → Flatpak apps** | Search Flathub (sets Flatpak up on first use) |
+| **An4rch menu → Install → Development tools** | Git, GitHub CLI, lazygit, mise, Docker, Python, Node, Go, Rust, … |
+| **An4rch menu → Install → Gaming** | Steam (enables multilib), GameMode, MangoHud, gamescope |
+| **An4rch menu → Remove** | Pick installed apps to remove |
 | `anarch pkg add NAME…` | Install by name from a terminal: repos first, then the AUR |
 
 Installed apps appear in the launcher immediately.
@@ -120,7 +120,7 @@ Installed apps appear in the launcher immediately.
 
 <kbd>SUPER</kbd> + <kbd>ALT</kbd> + <kbd>U</kbd> (or click the update count in the bar, or run `update`) updates, in order:
 
-1. **an4rch itself.** It pulls the latest version, shows what changed, adds any new config files and runs one-off migrations. Your own files are never overwritten.
+1. **An4rch itself.** It pulls the latest version, shows what changed, adds any new config files and runs one-off migrations. Your own files are never overwritten.
 2. **System packages**, official and AUR, through `yay`.
 3. **Flatpak apps**, if you have any.
 4. **Firmware**, through `fwupd`, after asking first.

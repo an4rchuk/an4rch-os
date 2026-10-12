@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""an4rch's login screen. greetd starts it (in the cage kiosk compositor, as the
+"""An4rch's login screen. greetd starts it (in the cage kiosk compositor, as the
 "greeter" user, through /usr/local/bin/lumen-greeter).
 
-The clock at the top, the an4rch logo where the boot screen leaves it (the
+The clock at the top, the An4rch logo where the boot screen leaves it (the
 background, drawn by `anarch-login sync`), and below it the user name and
 password together: type the password, press Enter.
 
@@ -49,7 +49,7 @@ def people() -> list[tuple[str, str]]:
 
 
 def sessions() -> list[tuple[str, list[str]]]:
-    """(name, command) for each desktop session; an4rch's own come first."""
+    """(name, command) for each desktop session; An4rch's own come first."""
     seen, found = set(), []
     for d in SESSION_DIRS:
         for f in sorted(Path(d).glob("*.desktop")) if Path(d).is_dir() else []:

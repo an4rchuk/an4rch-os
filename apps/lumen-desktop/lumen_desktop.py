@@ -2,9 +2,9 @@
 """anarch-desktop — icons on the desktop (top left, under the windows).
 
 The icons are listed in ~/.config/lumen/desktop-icons.json:
-    [{"id": "lumen-installer.desktop", "label": "Install an4rch OS"}, ...]
+    [{"id": "lumen-installer.desktop", "label": "Install An4rch OS"}, ...]
 (an "id" is a .desktop file name; "label" is optional). The live USB shows
-"Install an4rch OS" and the Welcome guide here. A single click opens an icon.
+"Install An4rch OS" and the Welcome guide here. A single click opens an icon.
 """
 from __future__ import annotations
 

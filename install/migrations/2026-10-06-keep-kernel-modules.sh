@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# an4rch 2.3: USB sticks (exFAT, NTFS) kept failing to open after a kernel
+# An4rch 2.3: USB sticks (exFAT, NTFS) kept failing to open after a kernel
 # update until a restart; the running kernel's modules are now kept until
 # then. Also the tools for exFAT, NTFS and FAT drives.
 set -euo pipefail

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""The login screen's background: the an4rch logo on black, exactly where the
+"""The login screen's background: the An4rch logo on black, exactly where the
 boot screen (share/plymouth/an4rch/an4rch.script) leaves it, so booting flows
 straight into logging in.
 

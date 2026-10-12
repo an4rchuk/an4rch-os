@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# an4rch OS system layer. Run as root (the ISO installer runs it inside the new
+# An4rch OS system layer. Run as root (the ISO installer runs it inside the new
 # system; `install.sh --distro` runs it on an existing Arch install).
 #
 #   - brands the OS (os-release, console greeting, fastfetch logo) and keeps
@@ -24,6 +24,20 @@ pacman -S --needed --noconfirm plymouth zram-generator pacman-contrib arch-insta
 # tries; if they all fail, the fallback (LTS) entry starts instead.
 install -Dm755 "$LUMEN_PATH/share/recover/arm-bootcount" /usr/local/lib/lumen/arm-bootcount
 install -d /etc/pacman.d/hooks
+# KDE Connect (phone link) through the firewall, however it gets installed.
+install -Dm755 "$LUMEN_PATH/share/phone/kdeconnect-firewall" /usr/local/lib/lumen/kdeconnect-firewall
+cat >/etc/pacman.d/hooks/90-an4rch-kdeconnect.hook <<'HOOK'
+[Trigger]
+Operation = Install
+Operation = Upgrade
+Type = Package
+Target = kdeconnect
+
+[Action]
+Description = Letting KDE Connect through the firewall...
+When = PostTransaction
+Exec = /usr/local/lib/lumen/kdeconnect-firewall
+HOOK
 cat >/etc/pacman.d/hooks/95-lumen-bootcount.hook <<'HOOK'
 [Trigger]
 Operation = Install
@@ -41,7 +55,7 @@ Exec = /usr/local/lib/lumen/arm-bootcount
 HOOK
 
 # --- Boot splash --------------------------------------------------------------------
-# The an4rch logo on black, and the disk password in the same style.
+# The An4rch logo on black, and the disk password in the same style.
 bash "$LUMEN_PATH/install/plymouth.sh"
 
 # --- Memory ---------------------------------------------------------------------------
@@ -121,7 +135,7 @@ systemctl enable paccache.timer >/dev/null 2>&1 || true
 if [[ "$(findmnt -no FSTYPE /)" == btrfs ]]; then
   pacman -S --needed --noconfirm snapper snap-pac >/dev/null
   if [[ ! -f /etc/snapper/configs/root ]]; then
-    # snapper wants to create /.snapshots itself; an4rch OS mounts the @snapshots
+    # snapper wants to create /.snapshots itself; An4rch OS mounts the @snapshots
     # subvolume there instead, so step aside while the config is created.
     if mountpoint -q /.snapshots; then
       umount /.snapshots
@@ -157,4 +171,4 @@ if [[ "$(findmnt -no FSTYPE /)" == btrfs ]]; then
   systemctl enable btrfs-scrub@-.timer >/dev/null 2>&1 || true
 fi
 
-echo "an4rch OS system layer applied."
+echo "An4rch OS system layer applied."

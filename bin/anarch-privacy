@@ -46,7 +46,7 @@ mac() {
       # "stable": its own address on each network, the same one each time you
       # return (so sign-in pages and router reservations keep working).
       sudo install -D -m644 /dev/stdin "$MAC_CONF" <<'EOF'
-# an4rch privacy: don't show this computer's real hardware address to networks.
+# An4rch privacy: don't show this computer's real hardware address to networks.
 [device-mac-randomization]
 wifi.scan-rand-mac-address=yes
 

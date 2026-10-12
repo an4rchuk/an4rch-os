@@ -1,0 +1,12 @@
+#!/usr/bin/env python3
+# app-sources CATALOG ID[,ID…] — for each App Store id, print "ID<TAB>kind:package …":
+# the Arch repositories first (when the package is there), then the AUR, then Flathub.
+import json, subprocess, sys
+
+apps = {a["id"]: a for a in json.load(open(sys.argv[1]))["apps"]}
+for want in filter(None, ",".join(sys.argv[2:]).split(",")):
+    srcs = apps.get(want, {}).get("sources", [])
+    order = [s for s in srcs if s["type"] == "pacman" and
+             subprocess.run(["pacman", "-Si", s["id"]], capture_output=True).returncode == 0]
+    order += [s for s in srcs if s["type"] == "aur"] + [s for s in srcs if s["type"] == "flatpak"]
+    print(want + "\t" + " ".join(f"{s['type']}:{s['id']}" for s in order))

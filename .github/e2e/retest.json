@@ -1,5 +1,43 @@
 {
   "include": [
-    {"vm": "b-1080-login", "login": true}
+    {
+      "vm": "b-offline-encrypted",
+      "nonet": true,
+      "install": "lumen.encrypt=lupinsteel lumen.keymap=fr lumen.timezone=Europe/Paris",
+      "bootpass": "lupinsteel"
+    },
+    {
+      "vm": "b-offline-dualboot",
+      "nonet": true,
+      "windows": true,
+      "install": "lumen.mode=alongside lumen.size=30"
+    },
+    {
+      "vm": "b-offline-bios",
+      "nonet": true,
+      "bios": true,
+      "cpus": 2,
+      "mem": "4G"
+    },
+    {
+      "vm": "b-offline-gamer",
+      "nonet": true,
+      "install": "lumen.gaming=1"
+    },
+    {
+      "vm": "uk-laptop",
+      "install": "lumen.keymap=uk lumen.timezone=Europe/London lumen.locale=en_GB.UTF-8"
+    },
+    {
+      "vm": "offline",
+      "nonet": true,
+      "install": "lumen.keymap=de lumen.timezone=Europe/Berlin"
+    },
+    {
+      "vm": "f-manual-encrypted",
+      "prepart": "simple",
+      "install": "lumen.mode=manual lumen.root=/dev/vda2 lumen.efi=/dev/vda1 lumen.formatefi=1 lumen.encrypt=lumenpass1",
+      "bootpass": "lumenpass1"
+    }
   ]
 }

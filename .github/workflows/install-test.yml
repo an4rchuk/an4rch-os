@@ -1,6 +1,6 @@
 name: install-test
 
-# Runs the an4rch desktop installer the way the an4rch OS ISO does: inside an
+# Runs the An4rch desktop installer the way the An4rch OS ISO does: inside an
 # Arch Linux root that isn't booted (no running systemd), as a normal user
 # with sudo, fully unattended. Catches missing packages and steps that only
 # work on a running system.
@@ -58,7 +58,7 @@ jobs:
           done </tmp/not-in-repos
           exit $missing
 
-      - name: Copy an4rch into the user's home
+      - name: Copy An4rch into the user's home
         run: |
           mkdir -p /home/lumen/.local/share
           cp -a "$GITHUB_WORKSPACE" /home/lumen/.local/share/lumen

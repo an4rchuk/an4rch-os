@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# The an4rch boot screen (Plymouth): the logo on black with a slow red glow,
+# The An4rch boot screen (Plymouth): the logo on black with a slow red glow,
 # and the disk password asked for in the same style. Run as root.
 #
 #   install/plymouth.sh            install the theme and make it the default;
