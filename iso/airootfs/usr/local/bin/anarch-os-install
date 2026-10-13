@@ -145,12 +145,14 @@ spin() {
 # not the disk itself.
 live_disks() {
   local src label uuid
-  label=$(sed -n 's/.*archisolabel=\([^ ]*\).*/\1/p' /proc/cmdline)
-  uuid=$(sed -n 's/.*archisosearchuuid=\([^ ]*\).*/\1/p' /proc/cmdline)
-  for src in $(findmnt -nvo SOURCE /run/archiso/bootmnt 2>/dev/null) \
-    ${label:+$(blkid -L "$label" 2>/dev/null)} ${uuid:+$(blkid -U "$uuid" 2>/dev/null)}; do
-    lsblk -lnspo NAME,TYPE "$src" 2>/dev/null | awk '$2 == "disk" {print $1}'
+  label=$(sed -n 's/.*archisolabel=\([^ ]*\).*/\1/p' /proc/cmdline 2>/dev/null || true)
+  uuid=$(sed -n 's/.*archisosearchuuid=\([^ ]*\).*/\1/p' /proc/cmdline 2>/dev/null || true)
+  # Every lookup may fail (no label, copied to RAM, …): never stop the install.
+  for src in $(findmnt -nvo SOURCE /run/archiso/bootmnt 2>/dev/null || true) \
+    ${label:+$(blkid -L "$label" 2>/dev/null || true)} ${uuid:+$(blkid -U "$uuid" 2>/dev/null || true)}; do
+    { lsblk -lnspo NAME,TYPE "$src" 2>/dev/null || true; } | awk '$2 == "disk" {print $1}'
   done | sort -u
+  return 0
 }
 
 # release_disk DISK — before erasing or resizing a disk, stop using anything
@@ -159,7 +161,9 @@ live_disks() {
 # kernel keeps the old partition table and formatting hits an old partition.
 release_disk() {
   local disk=$1 dev type mnt busy
-  live_disks | grep -qxF "$disk" && fail "$disk is the USB stick An4rch is running from. Choose the computer's own disk."
+  local live
+  live=$(live_disks)
+  grep -qxF "$disk" <<<"$live" && fail "$disk is the USB stick An4rch is running from. Choose the computer's own disk."
   # Children first (unlocked and LVM volumes sit on top of partitions).
   while read -r dev type; do
     [[ "$dev" == "$disk" ]] && continue
@@ -171,8 +175,8 @@ release_disk() {
       crypt) cryptsetup close "$dev" >>"$LOG" 2>&1 || true ;;
       lvm) dmsetup remove "$dev" >>"$LOG" 2>&1 || true ;;
     esac
-  done < <(lsblk -lnpo NAME,TYPE "$disk" 2>/dev/null | tac)
-  busy=$(lsblk -lnpo NAME,MOUNTPOINTS "$disk" 2>/dev/null | awk 'NF > 1 {print $1 " (" $2 ")"}' | paste -sd, -)
+  done < <({ lsblk -lnpo NAME,TYPE "$disk" 2>/dev/null || true; } | tac)
+  busy=$({ lsblk -lnpo NAME,MOUNTPOINTS "$disk" 2>/dev/null || true; } | awk 'NF > 1 {print $1 " (" $2 ")"}' | paste -sd, -)
   [[ -z "$busy" ]] || fail "Something is still using $disk: $busy. Close any Files window showing it, or restart the USB stick, then try again."
 }
 
@@ -736,8 +740,13 @@ alongside_partition() {
 manual_partition() {
   local num pdisk
   [[ $UEFI -eq 1 ]] || fail "Manual partitioning needs the computer started in UEFI mode."
+  local live
+  live=$(live_disks)
   for p in "$ROOT_PART" "$EFI_PART" ${BOOT_PART:+"$BOOT_PART"}; do
     [[ -b "$p" ]] || fail "$p isn't a partition on this computer."
+    grep -qxF "/dev/$(lsblk -no PKNAME "$p" 2>/dev/null | head -n1)" <<<"$live" &&
+      fail "$p is on the USB stick An4rch is running from. Choose partitions on the computer's own disk."
+    swapoff "$p" 2>/dev/null || true
     umount "$p" 2>/dev/null || true
   done
   [[ "$ROOT_PART" != "$EFI_PART" && "$ROOT_PART" != "${BOOT_PART:-none}" && "$EFI_PART" != "${BOOT_PART:-none}" ]] ||

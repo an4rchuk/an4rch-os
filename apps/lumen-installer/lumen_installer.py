@@ -1024,6 +1024,11 @@ class Installer(Adw.ApplicationWindow):
             clean = re.sub(r"\x1b\[[0-9;?]*[a-zA-Z]", "", line)
             self.append_log(clean)
             self.note_progress(clean)
+            if clean.startswith("LUMEN-INSTALL-FAILED"):
+                # Show the failure now, even if something still holds the
+                # engine's output open and the end of it never comes.
+                self.fail_text.set_text(self.log_tail())
+                self.stack.set_visible_child_name("failed")
             return True
         if self.proc and self.proc.poll() is None and not (condition & GLib.IOCondition.HUP):
             return True
@@ -1082,8 +1087,9 @@ class Installer(Adw.ApplicationWindow):
     def page_failed(self) -> Gtk.Widget:
         self.fail_text = Gtk.Label(wrap=True, xalign=0, selectable=True, css_classes=["installer-log"])
         status = Adw.StatusPage(icon_name="dialog-error-symbolic", title="The installation didn't finish",
-                                description="Nothing else on your computer was changed. The details are below and in "
-                                            "/var/log/an4rch-install.log.")
+                                description="Your other disks weren't touched. If it got as far as preparing the disk, the disk "
+                                            "you chose may already be erased: start over to install again. The details are "
+                                            "below and in /var/log/an4rch-install.log.")
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
         box.append(Gtk.ScrolledWindow(child=self.fail_text, min_content_height=220))
         again = Gtk.Button(label="Start over", halign=Gtk.Align.CENTER, css_classes=["pill"])
