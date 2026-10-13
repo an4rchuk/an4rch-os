@@ -85,12 +85,28 @@ def lumen(*argv: str) -> None:
 
 
 # --- system information -------------------------------------------------------------------
-def boot_disk() -> str:
-    """The USB stick we booted from, so it isn't offered as a target."""
-    src = run("findmnt", "-no", "SOURCE", "/run/archiso/bootmnt").strip()
-    if not src:
-        return ""
-    return run("lsblk", "-no", "PKNAME", src).strip()
+def boot_disks() -> set[str]:
+    """The USB stick we booted from, so it isn't offered as a target. Followed
+    through loop and device-mapper layers: on a Ventoy stick the ISO is mapped
+    from a file, so the mount's direct parent isn't the disk itself."""
+    sources = [run("findmnt", "-nvo", "SOURCE", "/run/archiso/bootmnt").strip()]
+    try:
+        cmdline = open("/proc/cmdline").read().split()
+    except OSError:
+        cmdline = []
+    for arg in cmdline:
+        key, _, value = arg.partition("=")
+        if key == "archisolabel" and value:
+            sources.append(run("blkid", "-L", value).strip())
+        elif key == "archisosearchuuid" and value:
+            sources.append(run("blkid", "-U", value).strip())
+    found = set()
+    for src in filter(None, sources):
+        for line in run("lsblk", "-lnso", "NAME,TYPE", src).splitlines():
+            parts = line.split()
+            if len(parts) == 2 and parts[1] == "disk":
+                found.add(parts[0])
+    return found
 
 
 def disks() -> list[dict]:
@@ -98,10 +114,10 @@ def disks() -> list[dict]:
         data = json.loads(run("lsblk", "-J", "-b", "-d", "-o", "NAME,SIZE,MODEL,TYPE,TRAN,RM,RO") or "{}")
     except json.JSONDecodeError:
         return []
-    skip = boot_disk()
+    skip = boot_disks()
     found = []
     for d in data.get("blockdevices", []):
-        if d.get("type") != "disk" or d.get("ro") or d["name"] == skip or d["name"].startswith(("loop", "zram", "sr")):
+        if d.get("type") != "disk" or d.get("ro") or d["name"] in skip or d["name"].startswith(("loop", "zram", "sr")):
             continue
         size = int(d.get("size") or 0)
         if size < 20 * 1000**3:
@@ -127,12 +143,12 @@ def partitions() -> list[dict]:
         data = json.loads(run("lsblk", "-J", "-b", "-o", "PATH,NAME,SIZE,FSTYPE,PARTLABEL,LABEL,TYPE,PKNAME") or "{}")
     except json.JSONDecodeError:
         return []
-    skip = boot_disk()
+    skip = boot_disks()
     found = []
 
     def walk(devs: list[dict]) -> None:
         for d in devs:
-            if d.get("type") == "part" and d.get("pkname") != skip:
+            if d.get("type") == "part" and d.get("pkname") not in skip:
                 size = int(d.get("size") or 0)
                 name = d.get("partlabel") or d.get("label") or ""
                 found.append({"path": d["path"], "size_mb": size // 1048576, "fstype": d.get("fstype") or "",

@@ -139,6 +139,43 @@ spin() {
   gum style --foreground "#9fdc9b" "  ✓ $t"
 }
 
+# live_disks — the disk(s) the USB stick An4rch runs from lives on. Followed
+# through loop and device-mapper layers: on a Ventoy stick the ISO is mapped
+# from a file, so the mount's direct parent is a partition or a dm device,
+# not the disk itself.
+live_disks() {
+  local src label uuid
+  label=$(sed -n 's/.*archisolabel=\([^ ]*\).*/\1/p' /proc/cmdline)
+  uuid=$(sed -n 's/.*archisosearchuuid=\([^ ]*\).*/\1/p' /proc/cmdline)
+  for src in $(findmnt -nvo SOURCE /run/archiso/bootmnt 2>/dev/null) \
+    ${label:+$(blkid -L "$label" 2>/dev/null)} ${uuid:+$(blkid -U "$uuid" 2>/dev/null)}; do
+    lsblk -lnspo NAME,TYPE "$src" 2>/dev/null | awk '$2 == "disk" {print $1}'
+  done | sort -u
+}
+
+# release_disk DISK — before erasing or resizing a disk, stop using anything
+# on it: swap, mounted partitions (the live desktop's Files can mount them),
+# and unlocked or LVM volumes left from an earlier system. Otherwise the
+# kernel keeps the old partition table and formatting hits an old partition.
+release_disk() {
+  local disk=$1 dev type mnt busy
+  live_disks | grep -qxF "$disk" && fail "$disk is the USB stick An4rch is running from. Choose the computer's own disk."
+  # Children first (unlocked and LVM volumes sit on top of partitions).
+  while read -r dev type; do
+    [[ "$dev" == "$disk" ]] && continue
+    swapoff "$dev" 2>/dev/null || true
+    while read -r mnt; do
+      [[ -n "$mnt" ]] && { umount "$mnt" 2>>"$LOG" || umount -R "$mnt" 2>>"$LOG" || true; }
+    done < <(findmnt -nro TARGET -S "$dev" 2>/dev/null | sort -r)
+    case "$type" in
+      crypt) cryptsetup close "$dev" >>"$LOG" 2>&1 || true ;;
+      lvm) dmsetup remove "$dev" >>"$LOG" 2>&1 || true ;;
+    esac
+  done < <(lsblk -lnpo NAME,TYPE "$disk" 2>/dev/null | tac)
+  busy=$(lsblk -lnpo NAME,MOUNTPOINTS "$disk" 2>/dev/null | awk 'NF > 1 {print $1 " (" $2 ")"}' | paste -sd, -)
+  [[ -z "$busy" ]] || fail "Something is still using $disk: $busy. Close any Files window showing it, or restart the USB stick, then try again."
+}
+
 # part_mb PART — a partition's size in MiB.
 part_mb() { echo $(($(lsblk -bdno SIZE "$1" 2>/dev/null || echo 0) / 1048576)); }
 
@@ -148,19 +185,18 @@ part_mb() { echo $(($(lsblk -bdno SIZE "$1" 2>/dev/null || echo 0) / 1048576)); 
 # a separate boot partition for them (erased).
 manual_partitions() {
   [[ -d /sys/firmware/efi ]] || fail "Manual partitioning needs the computer started in UEFI mode."
-  local live_src live_disk parts=() line pick dev size fs root_mb efi_mb has_files
-  live_src=$(findmnt -nvo SOURCE /run/archiso/bootmnt 2>/dev/null || true)
-  live_disk=$( [[ -n "$live_src" ]] && lsblk -npo PKNAME "$live_src" 2>/dev/null | head -n1)
+  local live_disk parts=() line pick dev size fs root_mb efi_mb has_files
+  live_disk=$(live_disks | paste -sd' ' -)
   note "Make your partitions first with the partition editor (cfdisk), or with another tool before starting." \
     "An4rch needs: one partition of 20 GB or more for itself, and an EFI system partition."
   if gum confirm --default=false "Open the partition editor (cfdisk) now?"; then
-    mapfile -t ds < <(lsblk -dpno NAME,SIZE,MODEL,TYPE -e 7,11 | awk -v skip="${live_disk:-none}" '$NF == "disk" && $1 != skip {$NF=""; print}')
+    mapfile -t ds < <(lsblk -dpno NAME,SIZE,MODEL,TYPE -e 7,11 | awk -v skip=" ${live_disk:-none} " '$NF == "disk" && index(skip, " " $1 " ") == 0 {$NF=""; print}')
     pick=$(printf '%s\n' "${ds[@]}" | gum choose --header "Disk to edit") || true
     [[ -n "$pick" ]] && { cfdisk "${pick%% *}" || true; partprobe "${pick%% *}" 2>/dev/null; udevadm settle; }
   fi
   while IFS= read -r line; do
     dev=${line%% *}
-    [[ -n "$live_disk" && "/dev/$(lsblk -no PKNAME "$dev" | head -n1)" == "$live_disk" ]] && continue
+    [[ " $live_disk " == *" /dev/$(lsblk -no PKNAME "$dev" | head -n1) "* ]] && continue
     parts+=("$line")
   done < <(lsblk -lnpo NAME,SIZE,FSTYPE,PARTLABEL,TYPE -e 7,11 | awk '$NF == "part" {$NF=""; print}' | sed 's/ *$//')
   [[ ${#parts[@]} -ge 2 ]] || fail "Not enough partitions: An4rch needs one for itself and an EFI system partition. Make them first (cfdisk), then try again."
@@ -343,9 +379,8 @@ if [[ "$how_part" == Manually* ]]; then
   manual_partitions
 else
 # The USB stick An4rch is running from isn't offered.
-live_src=$(findmnt -nvo SOURCE /run/archiso/bootmnt 2>/dev/null || true)
-live_disk=$( [[ -n "$live_src" ]] && lsblk -npo PKNAME "$live_src" 2>/dev/null | head -n1)
-mapfile -t disks < <(lsblk -dpno NAME,SIZE,MODEL,TYPE -e 7,11 | awk -v skip="${live_disk:-none}" '$NF == "disk" && $1 != skip {$NF=""; print}' | sed 's/ *$//')
+live_disk=$(live_disks | paste -sd' ' -)
+mapfile -t disks < <(lsblk -dpno NAME,SIZE,MODEL,TYPE -e 7,11 | awk -v skip=" ${live_disk:-none} " '$NF == "disk" && index(skip, " " $1 " ") == 0 {$NF=""; print}' | sed 's/ *$//')
 [[ ${#disks[@]} -gt 0 ]] || fail "No disks found."
 # Show what's on each disk, so a disk with Windows on it is easy to spot.
 for i in "${!disks[@]}"; do
@@ -724,12 +759,18 @@ manual_partition() {
 if [[ $MODE == alongside ]]; then
   [[ $UEFI -eq 1 ]] || fail "Installing alongside Windows needs the computer started in UEFI mode."
   step "Installing alongside Windows"
+  release_disk "$DISK"
   alongside_partition
 elif [[ $MODE == manual ]]; then
   step "Installing on your own partitions"
   manual_partition
 else
+release_disk "$DISK"
 spin "Partitioning $DISK" bash -c "wipefs -af '$DISK' && sgdisk -Z '$DISK' && sgdisk -n1:0:+1G -t1:ef00 -c1:EFI -n3:0:+1M -t3:ef02 -c3:BIOS -n2:0:0 -t2:8300 -c2:lumen '$DISK' && partprobe '$DISK' && udevadm settle"
+# Never format with the old partition table still in use: that would hit
+# whatever partition used to be there.
+[[ "$(lsblk -no PARTLABEL "$SYS" 2>/dev/null)" == lumen && "$(lsblk -no PARTLABEL "$EFI" 2>/dev/null)" == EFI ]] ||
+  fail "The computer is still using $DISK's old partitions, so nothing was formatted. Restart the computer from the USB stick and install again."
 fi
 
 ROOTDEV="$SYS"
