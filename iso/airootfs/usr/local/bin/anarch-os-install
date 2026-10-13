@@ -966,7 +966,8 @@ fi
 
 # Carry the Wi-Fi network over to NetworkManager.
 if [[ -n "${WIFI_SSID:-}" ]]; then
-  conn="$MNT/etc/NetworkManager/system-connections/$WIFI_SSID.nmconnection"
+  # A network name may contain "/", which can't be in a file name.
+  conn="$MNT/etc/NetworkManager/system-connections/${WIFI_SSID//\//_}.nmconnection"
   mkdir -p "$(dirname "$conn")"
   {
     printf '[connection]\nid=%s\ntype=wifi\n\n[wifi]\nmode=infrastructure\nssid=%s\n\n' "$WIFI_SSID" "$WIFI_SSID"
