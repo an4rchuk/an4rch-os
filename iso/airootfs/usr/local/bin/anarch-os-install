@@ -982,6 +982,8 @@ spin "Copying An4rch" bash -c "mkdir -p '$MNT/home/$USERNAME/.local/share' && cp
 # for a password, because the wheel rule above has no NOPASSWD.
 printf 'Defaults:%s verifypw=any, listpw=any\n%s ALL=(ALL) NOPASSWD: ALL\n' "$USERNAME" "$USERNAME" >"$MNT/etc/sudoers.d/99-lumen-install"
 chmod 440 "$MNT/etc/sudoers.d/99-lumen-install"
+# Never left behind, however the install ends (a failure, a crash, Ctrl+C).
+trap 'rm -f "$MNT/etc/sudoers.d/99-lumen-install" 2>/dev/null' EXIT
 
 lumen_args=(--yes --distro --no-reboot --browser "$BROWSER" --terminal "$TERMINAL_APP" --editor "$EDITOR_APP" --theme "$THEME" --shell "$SHELL_CHOICE")
 [[ $EDITION == server ]] && lumen_args+=(--server)
