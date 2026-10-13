@@ -565,6 +565,15 @@ case "${SHELL_CHOICE:-zsh}" in zsh | bash | fish) ;; *) SHELL_CHOICE=zsh ;; esac
 case "${EDITION:-desktop}" in server | game) ;; *) EDITION=desktop ;; esac
 [[ $EDITION == game ]] && GAMING=1
 [[ "${EXTRA_APPS:-}" =~ ^[a-z0-9.,_-]*$ ]] || EXTRA_APPS=""
+# The name goes into the new system's setup script and /etc/passwd: no
+# quotes, $, backquotes, backslashes or colons. The username can't be one
+# the system already uses (root, git, …): creating the account would fail
+# at the very end of the install.
+FULLNAME=$(tr -d '"$`\\:' <<<"${FULLNAME:-}")
+if [[ ! "${USERNAME:-}" =~ ^[a-z_][a-z0-9_-]{0,31}$ || "$USERNAME" == root || "$USERNAME" == live ]] || getent passwd "$USERNAME" >/dev/null; then
+  fail "The username \"${USERNAME:-}\" can't be used: choose another (lower-case letters, digits, - or _, starting with a letter)."
+fi
+[[ "${HOSTNAME_:-}" =~ ^[a-zA-Z0-9][a-zA-Z0-9-]{0,62}$ ]] || HOSTNAME_=an4rch
 
 # --- install -----------------------------------------------------------------------------------
 title "Installing An4rch OS"
@@ -957,7 +966,8 @@ fi
 
 # Carry the Wi-Fi network over to NetworkManager.
 if [[ -n "${WIFI_SSID:-}" ]]; then
-  conn="$MNT/etc/NetworkManager/system-connections/$WIFI_SSID.nmconnection"
+  # A network name may contain "/", which can't be in a file name.
+  conn="$MNT/etc/NetworkManager/system-connections/${WIFI_SSID//\//_}.nmconnection"
   mkdir -p "$(dirname "$conn")"
   {
     printf '[connection]\nid=%s\ntype=wifi\n\n[wifi]\nmode=infrastructure\nssid=%s\n\n' "$WIFI_SSID" "$WIFI_SSID"
@@ -973,6 +983,8 @@ spin "Copying An4rch" bash -c "mkdir -p '$MNT/home/$USERNAME/.local/share' && cp
 # for a password, because the wheel rule above has no NOPASSWD.
 printf 'Defaults:%s verifypw=any, listpw=any\n%s ALL=(ALL) NOPASSWD: ALL\n' "$USERNAME" "$USERNAME" >"$MNT/etc/sudoers.d/99-lumen-install"
 chmod 440 "$MNT/etc/sudoers.d/99-lumen-install"
+# Never left behind, however the install ends (a failure, a crash, Ctrl+C).
+trap 'rm -f "$MNT/etc/sudoers.d/99-lumen-install" 2>/dev/null' EXIT
 
 lumen_args=(--yes --distro --no-reboot --browser "$BROWSER" --terminal "$TERMINAL_APP" --editor "$EDITOR_APP" --theme "$THEME" --shell "$SHELL_CHOICE")
 [[ $EDITION == server ]] && lumen_args+=(--server)

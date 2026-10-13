@@ -4,7 +4,7 @@
 
 <p align="center"><strong>An Arch-based Linux distribution that's calm, fast, private, and ready for work and play the moment you log in.</strong></p>
 
-<p align="center"><a href="https://github.com/an4rchuk/an4rch-os/releases">Download</a> · <a href="docs/README.md">Manual</a> · <a href="docs/releases/v1.1.2.md">What's new in 1.1.2</a> · <a href="docs/ROADMAP.md">Roadmap</a> · <a href="https://an4rch.uk">an4rch.uk</a></p>
+<p align="center"><a href="https://github.com/an4rchuk/an4rch-os/releases">Download</a> · <a href="docs/README.md">Manual</a> · <a href="docs/releases/v1.1.3.md">What's new in 1.1.3</a> · <a href="docs/ROADMAP.md">Roadmap</a> · <a href="https://an4rch.uk">an4rch.uk</a></p>
 
 An4rch OS takes inspiration from [Omarchy](https://omarchy.org) (an opinionated, keyboard-first Hyprland desktop on plain Arch), [Bazzite](https://bazzite.gg) (try it live before installing, roll back any update, gaming ready, a friendly app store) and [CachyOS](https://cachyos.org) (tuned for speed, a teal look of its own). It ships as a bootable USB image; the same desktop also installs on any existing Arch system.
 

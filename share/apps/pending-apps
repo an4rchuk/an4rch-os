@@ -8,6 +8,8 @@ list=/var/lib/lumen/pending-apps # lines: USER<TAB>APP-ID
 tries=/var/lib/lumen/pending-apps.tries
 sudoers=/etc/sudoers.d/98-lumen-pending-apps
 done_() { rm -f "$list" "$tries" "$sudoers"; systemctl disable lumen-pending-apps.service >/dev/null 2>&1; exit 0; }
+# A permission left by a run that was cut off (power loss) never outlives it.
+rm -f "$sudoers"
 [[ -s "$list" ]] || done_
 n=$(($(cat "$tries" 2>/dev/null || echo 0) + 1))
 echo "$n" >"$tries"
@@ -33,6 +35,9 @@ while IFS=$'\t' read -r user id; do
         printf '%s ALL=(ALL) NOPASSWD: ALL\n' "$user" >"$sudoers" && chmod 440 "$sudoers"
         runuser -u "$user" -- env HOME="$home" USER="$user" \
           yay -S --needed --noconfirm --answerdiff None --answerclean None --removemake "$pkg" </dev/null
+        r=$?
+        rm -f "$sudoers"
+        ((r == 0))
         ;;
       flatpak)
         command -v flatpak >/dev/null || continue

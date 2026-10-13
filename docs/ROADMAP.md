@@ -10,9 +10,13 @@ Privacy and safety tools, features borrowed from other systems, and more choices
 
 The red and black An4rch look, a boot screen that flows into a one-step login, the An4rch Hub, display scaling, backups, phone link, the driver manager, Secure Boot, `anarch report`, automatic recovery and the Game edition. See the [release notes](releases/v1.1.1.md).
 
-## 1.1.2 — Tested hard (now)
+## 1.1.2 — Tested hard
 
 Fixes from a day of testing on 144 virtual machines: notifications, apps chosen in the installer, offline backups, installs when the AUR is down, and more. See the [release notes](releases/v1.1.2.md).
+
+## 1.1.3 — Safer installs (now)
+
+The installer never offers the USB stick it runs from (Ventoy), frees a disk before erasing it, and catches answers that broke the install. See the [release notes](releases/v1.1.3.md).
 
 ## 1.2 — Safe to forget about
 
