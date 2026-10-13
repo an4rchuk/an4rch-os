@@ -897,6 +897,9 @@ class Installer(Adw.ApplicationWindow):
             if not re.fullmatch(r"[a-z_][a-z0-9_-]{0,31}", self.username.get_text()):
                 self.toast_msg("Username: lower-case letters, digits, - and _")
                 return False
+            if self.username.get_text() in ("root", "live") or run("getent", "passwd", self.username.get_text()).strip():
+                self.toast_msg("That username is used by the system: choose another")
+                return False
             if not self.password.get_text():
                 self.toast_msg("Choose a password")
                 return False
